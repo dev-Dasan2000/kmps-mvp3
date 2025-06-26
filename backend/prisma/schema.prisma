@@ -1,0 +1,308 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model emergency_contacts {
+  emergency_contact_id  Int      @id @default(autoincrement())
+  name                  String
+  relationship          String?
+  contact_number        String
+
+  patient_id            String @unique
+  patient               patients @relation(fields: [patient_id], references: [patient_id])
+}
+
+model patients {
+  patient_id              String   @id
+  hospital_patient_id     String?
+  password                String
+  name                    String
+  profile_picture         String?
+  email                   String   @unique
+  phone_number            String?
+  address                 String?
+  nic                     String?  @unique
+  blood_group             String?
+  date_of_birth           String?
+  gender                  String?
+
+  emergency_contact       emergency_contacts?
+
+  appointments            appointments[]
+  appointment_histories   appointment_history[]
+  soap_notes              soap_notes[]
+  medical_reports         medical_reports[]
+  medical_histories       medical_history[]
+  security_answers        patient_security_question_answers[]
+  insurance_detail        insurance_details?
+  studies                 study[]
+}
+
+model dentists {
+  dentist_id              String   @id
+  password                String
+  name                    String
+  profile_picture         String?
+  email                   String   @unique
+  phone_number            String?
+  language                String?
+  service_types           String?
+  work_days_from          String?
+  work_days_to            String?
+  work_time_from          String?
+  work_time_to            String?
+  appointment_duration    String?
+  appointment_fee         Decimal?
+
+  appointments            appointments[]
+  appointment_histories   appointment_history[]
+  soap_notes              soap_notes[]
+  blocked_dates           blocked_dates[]
+  security_answers        dentist_security_question_answers[]
+  dentistAssigns  DentistAssign[]
+}
+
+model receptionists {
+  receptionist_id         String   @id
+  password                String
+  name                    String
+  email                   String   @unique
+  phone_number            String?
+
+  security_answers        receptionist_security_question_answers[]
+}
+
+model admins {
+  admin_id                String   @id
+  password                String
+}
+
+model appointments {
+  appointment_id          Int      @id @default(autoincrement())
+  patient_id              String?
+  dentist_id              String?
+  date                    DateTime
+  time_from               String
+  time_to                 String
+  fee                     Decimal?
+  note                    String?
+  status                  String?
+  payment_status          String?
+
+  patient                 patients?  @relation(fields: [patient_id], references: [patient_id])
+  dentist                 dentists?  @relation(fields: [dentist_id], references: [dentist_id])
+  payment_history         payment_history?
+}
+
+model appointment_history {
+  appointment_history_id  Int      @id @default(autoincrement())
+  patient_id              String
+  dentist_id              String
+  date                    String?
+  time_from               String?
+  time_to                 String?
+  fee                     Decimal?
+  note                    String?
+
+  patient                 patients  @relation(fields: [patient_id], references: [patient_id])
+  dentist                 dentists  @relation(fields: [dentist_id], references: [dentist_id])
+}
+
+model soap_notes {
+  note_id                 Int      @id @default(autoincrement())
+  dentist_id              String
+  patient_id              String
+  note                    String
+  date                    String
+
+  dentist                 dentists  @relation(fields: [dentist_id], references: [dentist_id])
+  patient                 patients  @relation(fields: [patient_id], references: [patient_id])
+}
+
+model payment_history {
+  appointment_id          Int      @id
+  payment_date            String?
+  payment_time            String?
+  reference_number        String?
+
+  appointment             appointments @relation(fields: [appointment_id], references: [appointment_id])
+}
+
+model service_types {
+  service_type_id         Int      @id @default(autoincrement())
+  service_type            String
+}
+
+model blocked_dates {
+  blocked_date_id         Int      @id @default(autoincrement())
+  dentist_id              String
+  date                    String
+  time_from               String?
+  time_to                 String?
+
+  dentist                 dentists  @relation(fields: [dentist_id], references: [dentist_id])
+}
+
+model medical_reports {
+  report_id               Int      @id @default(autoincrement())
+  patient_id              String
+  record_url              String
+  record_name             String
+
+  patient                 patients  @relation(fields: [patient_id], references: [patient_id])
+}
+
+model medical_questions {
+  medical_question_id     Int      @id @default(autoincrement())
+  question                String
+
+  medical_histories       medical_history[]
+}
+
+model medical_history {
+  patient_id              String
+  medical_question_id     Int
+  medical_question_answer String?
+
+  patient                 patients          @relation(fields: [patient_id], references: [patient_id])
+  question                medical_questions @relation(fields: [medical_question_id], references: [medical_question_id])
+
+  @@id([patient_id, medical_question_id])
+}
+
+model email_verifications {
+  email                   String   @id
+  code                    String
+}
+
+model security_questions {
+  security_question_id    Int      @id @default(autoincrement())
+  question                String
+
+  patient_answers         patient_security_question_answers[]
+  dentist_answers         dentist_security_question_answers[]
+  receptionist_answers    receptionist_security_question_answers[]
+  radiologist_answers     radiologist_security_question_answers[]
+}
+
+model patient_security_question_answers {
+  patient_id              String
+  security_question_id    Int
+  answer                  String
+
+  patient                 patients          @relation(fields: [patient_id], references: [patient_id])
+  question                security_questions @relation(fields: [security_question_id], references: [security_question_id])
+
+  @@id([patient_id, security_question_id])
+}
+
+model dentist_security_question_answers {
+  dentist_id              String
+  security_question_id    Int
+  answer                  String
+
+  dentist                 dentists          @relation(fields: [dentist_id], references: [dentist_id])
+  question                security_questions @relation(fields: [security_question_id], references: [security_question_id])
+
+  @@id([dentist_id, security_question_id])
+}
+
+model receptionist_security_question_answers {
+  receptionist_id         String
+  security_question_id    Int
+  answer                  String
+
+  receptionist            receptionists      @relation(fields: [receptionist_id], references: [receptionist_id])
+  question                security_questions @relation(fields: [security_question_id], references: [security_question_id])
+
+  @@id([receptionist_id, security_question_id])
+}
+
+model radiologist_security_question_answers {
+  radiologist_id          String
+  security_question_id    Int
+  answer                  String
+
+  radiologist             radiologists       @relation(fields: [radiologist_id], references: [radiologist_id])
+  question                security_questions @relation(fields: [security_question_id], references: [security_question_id])
+
+  @@id([radiologist_id, security_question_id])
+}
+
+model insurance_details {
+  provider_name           String?
+  policy_number           String?
+  patient_id              String  @id
+
+  patient                 patients @relation(fields: [patient_id], references: [patient_id])
+}
+
+model study {
+  study_id          Int         @id @default(autoincrement())
+  patient_id        String
+  radiologist_id    String?
+  date              DateTime
+  time              String
+  modality          String?
+  report_id         Int?
+  assertion_number  Int?
+  description       String?
+  source            String?
+  isurgent          Boolean     @default(false)
+  dicom_file_url    String?
+  body_part         String?
+  reason            String?
+  status            String?
+
+  // Relations
+  patient           patients      @relation(fields: [patient_id], references: [patient_id])
+  radiologist       radiologists? @relation(fields: [radiologist_id], references: [radiologist_id])
+  report            reports?      @relation(fields: [report_id], references: [report_id])
+  dentistAssigns    DentistAssign[]
+
+
+}
+
+// Add new models
+model reports {
+  report_id       Int     @id @default(autoincrement())
+  status          String
+  report_file_url String?
+
+  // Relations
+  studies         study[]
+  
+  @@map("reports")
+}
+
+model radiologists {
+  radiologist_id  String      @id
+  password        String
+  name            String
+  profile_picture String?
+  email           String   @unique
+  phone_number    String?
+
+  // Relations
+  studies         study[]
+  security_answers        radiologist_security_question_answers[]
+  
+  @@map("radiologists")
+}
+
+model DentistAssign {
+  study_id    Int
+  dentist_id  String
+
+  // Relations
+  study       study      @relation(fields: [study_id], references: [study_id])
+  dentist     dentists   @relation(fields: [dentist_id], references: [dentist_id])
+
+  @@id([study_id, dentist_id])
+  @@map("dentistassign")
+}
