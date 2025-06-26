@@ -60,7 +60,7 @@ model dentists {
   soap_notes           soap_notes[]
   blocked_dates        blocked_dates[]
   security_answers     dentist_security_question_answers[]
-  dentist_assigns      dentist_assign[]
+  DentistAssigns      DentistAssign[]
   room_assigns         room_assign[]
 }
 
@@ -250,10 +250,10 @@ model study {
   patient          patients   @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
   radiologist      radiologists? @relation(fields: [radiologist_id], references: [radiologist_id], onDelete: SetNull)
   report           reports?   @relation(fields: [report_id], references: [report_id], onDelete: SetNull)
-  dentist_assigns  dentist_assign[]
+  DentistAssigns  DentistAssign[]
 }
 
-model dentist_assign {
+model DentistAssign {
   study_id   Int
   dentist_id String
 
