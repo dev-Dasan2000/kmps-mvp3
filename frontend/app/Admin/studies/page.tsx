@@ -1077,6 +1077,28 @@ const MedicalStudyInterface: React.FC = () => {
                   {study.doctors && study.doctors.length > 0 && (
                     <div className="text-blue-600">Doctors: {study.doctors.map(d => d.name).join(', ')}</div>
                   )}
+                  <div className="flex flex-col space-y-2">
+                    {study.dicom_file_url && (
+                      <button
+                        onClick={() => {
+                          openDicomInNewTab(study.dicom_file_url!);
+                        }}
+                        className="flex items-center justify-center gap-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded transition-colors"
+                      >
+                        <Eye className="w-3 h-3" /> View DICOM
+                      </button>
+                    )}
+      
+                    {study.report_id && (
+                      <button
+                        onClick={() => {
+                          window.open(`${backendURL}/reports/${study.report_id}`, '_blank');
+                      }}
+                      className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
+                        <File className="w-3 h-3" /> Open Report
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
