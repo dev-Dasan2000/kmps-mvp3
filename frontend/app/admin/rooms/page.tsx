@@ -207,30 +207,28 @@ export default function RoomTable() {
   return (
     <div className="p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Manage Rooms</h1>
-          
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search rooms..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full"
-              />
-            </div>
-            
-            {/* Add Room Button */}
-            <Button
-              onClick={() => setAddDialogOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shrink-0"
-            >
-              <Plus size={20} />
-              Add Room
-            </Button>
+          <Button
+            onClick={() => setAddDialogOpen(true)}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2 w-full sm:w-auto"
+          >
+            <Plus size={20} />
+            Add Room
+          </Button>
+        </div>
+
+        {/* Search Bar */}
+        <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Search rooms..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+            />
           </div>
         </div>
         
