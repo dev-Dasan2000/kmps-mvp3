@@ -148,7 +148,7 @@ const AdminSidebar = () => {
             />*/}
           </div>
           <p className="text-sm text-gray-600 text-center mt-1">
-            Adnim Dashboard
+            Admin Dashboard
           </p>
         </SidebarHeader>
 

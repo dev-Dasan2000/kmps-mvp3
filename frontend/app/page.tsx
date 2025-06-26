@@ -125,7 +125,7 @@ export default function LoginPage() {
             <Input
               id="email"
               type="email"
-              placeholder="Enter your email"
+              placeholder="Enter your ID"
               className="w-full"
               value={id}
               onChange={(e) => { setId(e.target.value) }}
