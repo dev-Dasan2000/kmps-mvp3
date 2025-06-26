@@ -1,0 +1,235 @@
+"use client"
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { generateDentistTimeSlots, isDentistWorkingDay, mockAppointments } from "@/lib/mock-data"
+import type { Dentist, Appointment, DayOfWeek } from "@/types/dentist"
+
+interface DoctorScheduleColumnProps {
+  dentist: Dentist
+  weekDays: DayOfWeek[]
+  selectedWeek: string
+  viewMode: "day" | "week"
+  selectedDate: string
+}
+
+export function DoctorScheduleColumn({
+  dentist,
+  weekDays,
+  selectedWeek,
+  viewMode,
+  selectedDate,
+}: DoctorScheduleColumnProps) {
+  const dentistTimeSlots = generateDentistTimeSlots(dentist)
+
+  const getAppointmentForSlot = (date: string, time: string): Appointment | null => {
+    return (
+      mockAppointments.find((apt) => apt.dentist_id === dentist.dentist_id && apt.date === date && apt.time === time) ||
+      null
+    )
+  }
+
+  const getAppointmentContent = (day: DayOfWeek, timeSlot: string) => {
+    const isWorkingDay = isDentistWorkingDay(dentist, day.dayIndex)
+
+    if (!isWorkingDay) {
+      return (
+        <div className="h-16 sm:h-20 bg-gray-50 border-2 border-gray-100 rounded-lg p-1 sm:p-2 flex items-center justify-center">
+          <span className="text-xs sm:text-sm text-gray-400 font-medium">Off</span>
+        </div>
+      )
+    }
+
+    const appointment = getAppointmentForSlot(day.date, timeSlot)
+
+    if (!appointment) {
+      return (
+        <div className="h-16 sm:h-20 bg-white border-2 border-gray-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors hover:border-gray-300">
+          Available
+        </div>
+      )
+    }
+
+    if (appointment.status === "blocked") {
+      return (
+        <div className="h-16 sm:h-20 bg-red-100 border-2 border-red-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-red-600 font-medium">
+          Blocked
+        </div>
+      )
+    }
+
+    if (appointment.status === "booked") {
+      return (
+        <div className="h-16 sm:h-20 bg-green-100 border-2 border-green-200 rounded-lg p-1 sm:p-2 text-xs cursor-pointer hover:bg-green-200 transition-colors">
+          <div className="font-semibold text-green-800 truncate text-[10px] sm:text-xs leading-tight">
+            {appointment.patient_name}
+          </div>
+          <div className="text-green-700 text-[10px] sm:text-xs leading-tight truncate mt-1">{appointment.service}</div>
+          <div className="text-green-600 text-[10px] sm:text-xs mt-1">{appointment.duration}</div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="h-16 sm:h-20 bg-white border-2 border-gray-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors hover:border-gray-300">
+        Available
+      </div>
+    )
+  }
+
+  // Filter days based on view mode
+  const displayDays = viewMode === "day" ? weekDays.filter((day) => day.date === selectedDate) : weekDays
+
+  // Get appointments for the selected date (for day view statistics)
+  const dayAppointments =
+    viewMode === "day"
+      ? mockAppointments.filter((apt) => apt.dentist_id === dentist.dentist_id && apt.date === selectedDate)
+      : []
+
+  // Check if dentist is working on selected date (for day view)
+  const selectedDateObj = new Date(selectedDate)
+  const selectedDayIndex = selectedDateObj.getDay()
+  const isWorkingSelectedDay = isDentistWorkingDay(dentist, selectedDayIndex)
+
+  return (
+    <Card className="min-w-[280px] sm:min-w-[400px] lg:min-w-[600px] max-w-[600px] flex-shrink-0">
+      <CardHeader className="pb-2 sm:pb-3">
+        {/* Doctor Header */}
+        <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
+          <Avatar className="h-10 w-10 sm:h-14 sm:w-14">
+            <AvatarImage src={dentist.profile_picture || "/placeholder.svg"} />
+            <AvatarFallback className="text-sm sm:text-lg">
+              {dentist.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-base sm:text-xl truncate">{dentist.name}</h3>
+            <div className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-gray-600 mt-1">
+              <span className="font-medium">${dentist.appointment_fee}</span>
+              <span>•</span>
+              <span>{dentist.appointment_duration}min slots</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Working Hours Info */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
+          <Badge variant="outline" className="text-xs px-2 sm:px-3 py-1">
+            {dentist.work_time_from} - {dentist.work_time_to}
+          </Badge>
+          <Badge variant="outline" className="text-xs px-2 sm:px-3 py-1">
+            {dentist.work_days_from} - {dentist.work_days_to}
+          </Badge>
+          {viewMode === "day" && (
+            <Badge variant={isWorkingSelectedDay ? "default" : "secondary"} className="text-xs px-2 sm:px-3 py-1">
+              {isWorkingSelectedDay ? "Working Today" : "Off Today"}
+            </Badge>
+          )}
+        </div>
+
+        {/* Day View Statistics */}
+        {viewMode === "day" && (
+          <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-emerald-50 rounded-lg">
+            <div className="text-xs sm:text-sm text-emerald-800">
+              <span className="font-semibold">{dayAppointments.length}</span> appointments scheduled
+              {isWorkingSelectedDay && <span className="ml-2">• {dentistTimeSlots.length} total slots available</span>}
+            </div>
+          </div>
+        )}
+
+        {/* Week Days Header */}
+        <div className={`grid gap-1 sm:gap-2 mb-3 sm:mb-4 ${viewMode === "day" ? "grid-cols-1" : "grid-cols-7"}`}>
+          {displayDays.map((day, index) => {
+            const isWorkingDay = isDentistWorkingDay(dentist, day.dayIndex)
+            const dayAppointmentCount = mockAppointments.filter(
+              (apt) => apt.dentist_id === dentist.dentist_id && apt.date === day.date,
+            ).length
+
+            return (
+              <div
+                key={index}
+                className={`text-center p-2 sm:p-3 rounded-lg text-xs sm:text-sm font-medium ${
+                  isWorkingDay
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-gray-50 text-gray-400 border border-gray-200"
+                } ${viewMode === "day" ? "flex items-center justify-between" : ""}`}
+              >
+                <div>
+                  <div className="font-semibold">
+                    {viewMode === "day"
+                      ? new Date(day.date).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          month: "long",
+                          day: "numeric",
+                        })
+                      : day.name}
+                  </div>
+                  {viewMode === "week" && <div className="text-[10px] sm:text-xs mt-1">{day.date.split("-")[2]}</div>}
+                </div>
+                {viewMode === "day" && <div className="text-[10px] sm:text-xs">{dayAppointmentCount} appointments</div>}
+              </div>
+            )
+          })}
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0">
+        {/* Time Slots Grid */}
+        <div className="space-y-2 sm:space-y-3">
+          {dentistTimeSlots.map((timeSlot) => (
+            <div key={timeSlot} className="flex items-center gap-2 sm:gap-3">
+              {/* Time Label */}
+              <div className="w-12 sm:w-16 text-xs sm:text-sm font-semibold text-gray-700 flex-shrink-0">
+                {timeSlot}
+              </div>
+
+              {/* Appointment Slots for each day */}
+              <div className={`grid gap-1 sm:gap-2 flex-1 ${viewMode === "day" ? "grid-cols-1" : "grid-cols-7"}`}>
+                {displayDays.map((day, dayIndex) => (
+                  <div key={dayIndex} className="min-w-0">
+                    {getAppointmentContent(day, timeSlot)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* No appointments message for day view */}
+        {viewMode === "day" && dayAppointments.length === 0 && (
+          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 rounded-lg text-center">
+            <p className="text-xs sm:text-sm text-gray-600">
+              {isWorkingSelectedDay ? "No appointments scheduled for this date" : "Doctor is not working on this date"}
+            </p>
+          </div>
+        )}
+
+        {/* Doctor Details */}
+        <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-600">
+          <div>
+            <span className="font-semibold text-gray-800">Services:</span>
+            <div className="mt-1 text-xs sm:text-sm leading-relaxed">{dentist.service_types}</div>
+          </div>
+          <div>
+            <span className="font-semibold text-gray-800">Languages:</span>
+            <span className="ml-2">{dentist.language}</span>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
+            <div>
+              <span className="font-semibold text-gray-800">Contact:</span>
+              <span className="ml-2">{dentist.phone_number}</span>
+            </div>
+            <div>
+              <span className="font-semibold text-gray-800">Email:</span>
+              <span className="ml-2 break-all">{dentist.email}</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
