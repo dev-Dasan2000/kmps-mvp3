@@ -21,14 +21,14 @@ model patients {
   date_of_birth        String?
   gender               String?
 
-  emergency_contacts   emergency_contacts?
-  insurance_details    insurance_details?
+  emergency_contact    emergency_contacts?
+  insurance_detail     insurance_details?
   medical_reports      medical_reports[]
-  medical_history      medical_history[]
-  patient_security_question_answers patient_security_question_answers[]
+  medical_histories    medical_history[]
+  security_answers     patient_security_question_answers[]
   appointments         appointments[]
   soap_notes           soap_notes[]
-  study                study[]
+  studies              study[]
 }
 
 model emergency_contacts {
@@ -37,7 +37,7 @@ model emergency_contacts {
   relationship         String?
   contact_number       String
   patient_id           String   @unique
-  patients             patients @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
+  patient              patients @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
 }
 
 model dentists {
@@ -59,9 +59,9 @@ model dentists {
   appointments         appointments[]
   soap_notes           soap_notes[]
   blocked_dates        blocked_dates[]
-  dentist_security_question_answers dentist_security_question_answers[]
-  dentistassign        dentistassign[]
-  room_assign          room_assign[]
+  security_answers     dentist_security_question_answers[]
+  dentist_assigns      dentist_assign[]
+  room_assigns         room_assign[]
 }
 
 model appointments {
@@ -76,8 +76,8 @@ model appointments {
   status         String?
   payment_status String?
 
-  patients       patients? @relation(fields: [patient_id], references: [patient_id], onDelete: SetNull)
-  dentists       dentists? @relation(fields: [dentist_id], references: [dentist_id], onDelete: SetNull)
+  patient         patients? @relation(fields: [patient_id], references: [patient_id], onDelete: SetNull)
+  dentist         dentists? @relation(fields: [dentist_id], references: [dentist_id], onDelete: SetNull)
   payment_history payment_history?
 }
 
@@ -87,7 +87,7 @@ model payment_history {
   payment_time     String?
   reference_number String?
 
-  appointments     appointments @relation(fields: [appointment_id], references: [appointment_id])
+  appointment      appointments @relation(fields: [appointment_id], references: [appointment_id])
 }
 
 model soap_notes {
@@ -97,8 +97,8 @@ model soap_notes {
   note        String
   date        String
 
-  dentists    dentists? @relation(fields: [dentist_id], references: [dentist_id], onDelete: SetNull)
-  patients    patients  @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
+  dentist     dentists? @relation(fields: [dentist_id], references: [dentist_id], onDelete: SetNull)
+  patient     patients  @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
 }
 
 model blocked_dates {
@@ -108,7 +108,7 @@ model blocked_dates {
   time_from       String?
   time_to         String?
 
-  dentists        dentists @relation(fields: [dentist_id], references: [dentist_id], onDelete: Cascade)
+  dentist         dentists @relation(fields: [dentist_id], references: [dentist_id], onDelete: Cascade)
 }
 
 model medical_reports {
@@ -117,13 +117,13 @@ model medical_reports {
   record_url  String
   record_name String
 
-  patients    patients @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
+  patient     patients @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
 }
 
 model medical_questions {
   medical_question_id Int      @id @default(autoincrement())
   question            String
-  medical_history     medical_history[]
+  medical_histories   medical_history[]
 }
 
 model medical_history {
@@ -131,8 +131,8 @@ model medical_history {
   medical_question_id    Int
   medical_question_answer String?
 
-  patients               patients          @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
-  medical_questions      medical_questions @relation(fields: [medical_question_id], references: [medical_question_id])
+  patient                patients          @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
+  question               medical_questions @relation(fields: [medical_question_id], references: [medical_question_id])
 
   @@id([patient_id, medical_question_id])
 }
@@ -145,10 +145,10 @@ model email_verifications {
 model security_questions {
   security_question_id Int      @id @default(autoincrement())
   question             String
-  patient_security_question_answers patient_security_question_answers[]
-  dentist_security_question_answers dentist_security_question_answers[]
-  receptionist_security_question_answers receptionist_security_question_answers[]
-  radiologist_security_question_answers radiologist_security_question_answers[]
+  patient_answers      patient_security_question_answers[]
+  dentist_answers      dentist_security_question_answers[]
+  receptionist_answers receptionist_security_question_answers[]
+  radiologist_answers  radiologist_security_question_answers[]
 }
 
 model patient_security_question_answers {
@@ -156,8 +156,8 @@ model patient_security_question_answers {
   security_question_id  Int
   answer                String
 
-  patients              patients          @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
-  security_questions    security_questions @relation(fields: [security_question_id], references: [security_question_id])
+  patient               patients          @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
+  question              security_questions @relation(fields: [security_question_id], references: [security_question_id])
 
   @@id([patient_id, security_question_id])
 }
@@ -167,8 +167,8 @@ model dentist_security_question_answers {
   security_question_id  Int
   answer                String
 
-  dentists              dentists          @relation(fields: [dentist_id], references: [dentist_id], onDelete: Cascade)
-  security_questions    security_questions @relation(fields: [security_question_id], references: [security_question_id])
+  dentist               dentists          @relation(fields: [dentist_id], references: [dentist_id], onDelete: Cascade)
+  question              security_questions @relation(fields: [security_question_id], references: [security_question_id])
 
   @@id([dentist_id, security_question_id])
 }
@@ -179,7 +179,7 @@ model receptionists {
   name            String
   email           String @unique
   phone_number    String?
-  receptionist_security_question_answers receptionist_security_question_answers[]
+  security_answers receptionist_security_question_answers[]
 }
 
 model receptionist_security_question_answers {
@@ -187,8 +187,8 @@ model receptionist_security_question_answers {
   security_question_id  Int
   answer                String
 
-  receptionists         receptionists     @relation(fields: [receptionist_id], references: [receptionist_id], onDelete: Cascade)
-  security_questions    security_questions @relation(fields: [security_question_id], references: [security_question_id])
+  receptionist          receptionists     @relation(fields: [receptionist_id], references: [receptionist_id], onDelete: Cascade)
+  question              security_questions @relation(fields: [security_question_id], references: [security_question_id])
 
   @@id([receptionist_id, security_question_id])
 }
@@ -200,8 +200,8 @@ model radiologists {
   profile_picture String?
   email          String @unique
   phone_number   String?
-  radiologist_security_question_answers radiologist_security_question_answers[]
-  study          study[]
+  security_answers radiologist_security_question_answers[]
+  studies        study[]
 }
 
 model radiologist_security_question_answers {
@@ -209,8 +209,8 @@ model radiologist_security_question_answers {
   security_question_id  Int
   answer                String
 
-  radiologists          radiologists      @relation(fields: [radiologist_id], references: [radiologist_id], onDelete: Cascade)
-  security_questions    security_questions @relation(fields: [security_question_id], references: [security_question_id])
+  radiologist           radiologists      @relation(fields: [radiologist_id], references: [radiologist_id], onDelete: Cascade)
+  question              security_questions @relation(fields: [security_question_id], references: [security_question_id])
 
   @@id([radiologist_id, security_question_id])
 }
@@ -220,14 +220,14 @@ model insurance_details {
   provider_name String?
   policy_number String?
 
-  patients      patients @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
+  patient       patients @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
 }
 
 model reports {
-  report_id      Int      @id @default(autoincrement())
-  status         String
+  report_id       Int      @id @default(autoincrement())
+  status          String
   report_file_url String?
-  study          study[]
+  studies         study[]
 }
 
 model study {
@@ -247,18 +247,18 @@ model study {
   reason           String?
   status           String?
 
-  patients         patients   @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
-  radiologists     radiologists? @relation(fields: [radiologist_id], references: [radiologist_id], onDelete: SetNull)
-  reports          reports?   @relation(fields: [report_id], references: [report_id], onDelete: SetNull)
-  dentistassign    dentistassign[]
+  patient          patients   @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
+  radiologist      radiologists? @relation(fields: [radiologist_id], references: [radiologist_id], onDelete: SetNull)
+  report           reports?   @relation(fields: [report_id], references: [report_id], onDelete: SetNull)
+  dentist_assigns  dentist_assign[]
 }
 
-model dentistassign {
+model dentist_assign {
   study_id   Int
   dentist_id String
 
   study      study    @relation(fields: [study_id], references: [study_id], onDelete: Cascade)
-  dentists   dentists @relation(fields: [dentist_id], references: [dentist_id], onDelete: Cascade)
+  dentist    dentists @relation(fields: [dentist_id], references: [dentist_id], onDelete: Cascade)
 
   @@id([study_id, dentist_id])
 }
@@ -276,7 +276,7 @@ model admins {
 model rooms {
   room_id     String @id
   description String?
-  room_assign room_assign[]
+  room_assigns room_assign[]
 }
 
 model room_assign {
@@ -285,9 +285,8 @@ model room_assign {
   date      DateTime
   time      String
 
-  rooms     rooms    @relation(fields: [room_id], references: [room_id])
-  dentists  dentists @relation(fields: [dentist_id], references: [dentist_id])
+  room      rooms    @relation(fields: [room_id], references: [room_id])
+  dentist   dentists @relation(fields: [dentist_id], references: [dentist_id])
 
   @@id([room_id, dentist_id, date, time])
 }
-
