@@ -142,7 +142,8 @@ export function DoctorScheduleColumn({
         )}
 
         {/* Week Days Header */}
-        <div className={`grid gap-1 sm:gap-2 mb-3 sm:mb-4 ${viewMode === "day" ? "grid-cols-1" : "grid-cols-7"}`}>
+        <div className={`grid gap-1 sm:gap-2 mb-3 sm:mb-4 ${viewMode === "day" ? "grid-cols-1" : "grid-cols-8"}`}>
+          <div className="opacity-0 pointer-events-none" aria-hidden="true"></div>
           {displayDays.map((day, index) => {
             const isWorkingDay = isDentistWorkingDay(dentist, day.dayIndex)
             const dayAppointmentCount = mockAppointments.filter(

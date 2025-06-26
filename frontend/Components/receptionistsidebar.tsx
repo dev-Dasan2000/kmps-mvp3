@@ -86,6 +86,11 @@ const ReceptionistSidebar = () => {
     url: `/receptionist/payments`,
     icon: KanbanSquare,
   },
+  {
+    title: "Room Assignments",
+    url: `/receptionist/rooms`,
+    icon: KanbanSquare,
+  },
     ];
   }, [user]);
 
