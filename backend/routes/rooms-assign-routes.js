@@ -24,7 +24,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
 // GET single room assignment
 router.get('/:room_id/:dentist_id/:date/:time', /* authenticateToken, */ async (req, res) => {
   try {
-    const { room_id, dentist_id, date, time } = req.params;
+    const { room_id, dentist_id, date, time_from, time_to } = req.params;
 
     const assignment = await prisma.room_assign.findUnique({
       where: {
@@ -32,7 +32,8 @@ router.get('/:room_id/:dentist_id/:date/:time', /* authenticateToken, */ async (
           room_id,
           dentist_id,
           date: new Date(decodeURIComponent(date)),
-          time,
+          time_from,
+          time_to,
         },
       },
       include: {
@@ -53,14 +54,15 @@ router.get('/:room_id/:dentist_id/:date/:time', /* authenticateToken, */ async (
 // POST create a room assignment
 router.post('/', async (req, res) => {
   try {
-    const { room_id, dentist_id, date, time } = req.body;
+    const { room_id, dentist_id, date, time_from, time_to } = req.body;
 
     const created = await prisma.room_assign.create({
       data: {
         room_id,
         dentist_id,
         date: new Date(date),
-        time,
+        time_from,
+        time_to,
       },
     });
 
@@ -72,9 +74,9 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update a room assignment
-router.put('/:room_id/:dentist_id/:date/:time', /* authenticateToken, */ async (req, res) => {
+router.put('/:room_id/:dentist_id/:date/:time_from/:time_to', /* authenticateToken, */ async (req, res) => {
   try {
-    const { room_id, dentist_id, date, time } = req.params;
+    const { room_id, dentist_id, date, time_from, time_to } = req.params;
     const updateData = req.body;
 
     const updated = await prisma.room_assign.update({
