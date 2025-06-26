@@ -29,6 +29,8 @@ import securityQuestionsRouter from './routes/security-questions-routes.js';
 import serviceTypesRouter from './routes/service-types-routes.js';
 import soapNotesRouter from './routes/soap-notes-routes.js';
 import radioLogistSecurityQuestionsAnswersRouter from './routes/radiologist-security-questions-answers-routes.js';
+import roomsRouter from './routes/rooms-routes.js';
+import roomAssignRouter from './routes/rooms-assign-routes.js';
 
 import studyRouter from './routes/study-routes.js';
 import radiologistRouter from './routes/radiologist-routes.js';
@@ -74,6 +76,8 @@ app.use('/security-questions', securityQuestionsRouter);
 app.use('/service-types', serviceTypesRouter);
 app.use('/soap-notes', soapNotesRouter);
 app.use('/radiologist-security-question-answers', radioLogistSecurityQuestionsAnswersRouter);
+app.use('/rooms',roomsRouter);
+app.use('/rooms-assign',roomAssignRouter);
 
 app.use('/studies', studyRouter);
 app.use('/radiologists', radiologistRouter);
