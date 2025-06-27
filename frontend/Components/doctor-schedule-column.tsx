@@ -234,8 +234,8 @@ export function DoctorScheduleColumn({
 
         {/* Day View Statistics */}
         {viewMode === "day" && (
-          <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-emerald-50 rounded-lg">
-            <div className="text-xs sm:text-sm text-emerald-800">
+          <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-purple-50 rounded-lg">
+            <div className="text-xs sm:text-sm text-purple-800">
               <span className="font-semibold">{dayAppointments.length}</span> appointments scheduled
               {isWorkingSelectedDay && <span className="ml-2">• {dentistTimeSlots.length} total slots available</span>}
             </div>
@@ -256,7 +256,7 @@ export function DoctorScheduleColumn({
                 key={index}
                 className={`text-center p-2 sm:p-3 rounded-lg text-xs sm:text-sm font-medium ${
                   isWorkingDay
-                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    ? "bg-blue-50 text-blue-700 border border-blue-200"
                     : "bg-gray-50 text-gray-400 border border-gray-200"
                 } ${viewMode === "day" ? "flex items-center justify-between" : ""}`}
               >

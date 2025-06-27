@@ -193,20 +193,23 @@ export default function AppointmentBooking() {
               </Popover>
 
               {/* View Mode Toggle */}
-              <div className="flex bg-white rounded-lg p-1 border">
+              <div className="flex rounded-lg p-1 ">
                 <Button
-                  variant={viewMode === "day" ? "default" : "ghost"}
+                 // variant={viewMode === "day" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("day")}
-                  className="text-xs px-2 sm:px-3 py-1  "
+                    className={`flex items-center text-sm ${
+    viewMode === "day" ? 'bg-green-500 text-white hover:bg-green-600' :'bg-white text-black border hover:bg-green-100 '
+  }`}
                 >
                   By day
                 </Button>
                 <Button
-                  variant={viewMode === "week" ? "default" : "ghost"}
+                 // variant={viewMode === "week" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("week")}
-                  className="text-xs px-2 sm:px-3 py-1"
+                  className={`flex items-center  text-sm ${
+    viewMode === "week" ?  'bg-green-500 text-white hover:bg-green-600' :'bg-white text-black border hover:bg-green-100' }`}
                 >
                   By Week
                 </Button>
@@ -262,7 +265,7 @@ export default function AppointmentBooking() {
                       onClick={() => handleDaySelect(day.date)}
                       className={`p-2 sm:p-3 rounded-lg text-center transition-colors ${
                         isSelected
-                          ? "bg-emerald-600 text-white"
+                          ? "bg-blue-500 text-white"
                           : isToday
                             ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
                             : "bg-gray-50 text-gray-700 hover:bg-gray-100"
