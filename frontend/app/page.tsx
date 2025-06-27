@@ -124,7 +124,7 @@ export default function LoginPage() {
             </Label>
             <Input
               id="email"
-              type="email"
+              type="text"
               placeholder="Enter your ID"
               className="w-full"
               value={id}

@@ -1,7 +1,10 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Calendar, Clock, Plus, Search, MoreHorizontal, X, Upload, FileText, Edit, Trash2, UserPlus, User, Users, ChevronDown, ChevronRight, Eye, File } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { AuthContext } from '@/context/auth-context';
+import { Description } from '@radix-ui/react-dialog';
 
 // Types based on the database structure
 interface Doctor {
@@ -62,7 +65,10 @@ const MedicalStudyInterface: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedStudyId, setExpandedStudyId] = useState<number | null>(null);
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  const {isLoadingAuth, user, isLoggedIn} = useContext(AuthContext);
+  const router = useRouter();
 
   // Helper: open DICOM viewer in a new tab using POST (required by backend)
   const openDicomInNewTab = (dicomUrl: string) => {
@@ -142,6 +148,18 @@ const MedicalStudyInterface: React.FC = () => {
       doctors: doctorsList.length ? doctorsList : undefined
     } as Study;
   };
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error",{description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied",{description:"You do not have access to admin privilegdes"});
+      router.push("/");
+    }
+  },[isLoadingAuth])
 
   // Fetch today's study count
   useEffect(() => {

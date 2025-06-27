@@ -9,6 +9,7 @@ import { AuthContext } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import { useContext, useEffect, useState } from "react"
 import axios from "axios"
+import { toast } from "sonner"
 
 interface DoctorScheduleColumnProps {
   dentist: Dentist
@@ -16,6 +17,14 @@ interface DoctorScheduleColumnProps {
   selectedWeek: string
   viewMode: "day" | "week"
   selectedDate: string
+}
+
+interface Blocked{
+  blocked_date_id:number
+  dentist_id: string
+  date: string
+  time_from: string
+  time_to: string
 }
 
 export function DoctorScheduleColumn({
@@ -27,10 +36,36 @@ export function DoctorScheduleColumn({
 }: DoctorScheduleColumnProps) {
   const dentistTimeSlots = generateDentistTimeSlots(dentist)
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [blocked, setBlocked] = useState<Blocked[]>([]);
+
+  const getDuration = (from: string, to: string) => {
+    const [fromHours, fromMinutes] = from.split(':').map(Number);
+    const [toHours, toMinutes] = to.split(':').map(Number);
+  
+    const fromDate = new Date(0, 0, 0, fromHours, fromMinutes);
+    const toDate = new Date(0, 0, 0, toHours, toMinutes);
+  
+    let diff = (toDate.getTime() - fromDate.getTime()) / 1000 / 60; // difference in minutes
+  
+    // Handle cases where time_to is past midnight (optional)
+    if (diff < 0) diff += 24 * 60;
+  
+    const hours = Math.floor(diff / 60);
+    const minutes = diff % 60;
+  
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  };
 
   const getAppointmentForSlot = (date: string, time: string): Appointment | null => {
     return (
-      appointments.find((apt) => apt.dentist_id === dentist.dentist_id && apt.date === date && apt.time === time) ||
+      appointments.find((apt) => apt.dentist_id === dentist.dentist_id && apt.date.split("T")[0] === date && apt.time_from === time) ||
+      null
+    )
+  }
+
+  const getBlockedForSlot = (date: string, time: string) => {
+    return (
+      blocked.find((blk) => blk.dentist_id === dentist.dentist_id && blk.date === date && blk.time_from === time) ||
       null
     )
   }
@@ -47,8 +82,9 @@ export function DoctorScheduleColumn({
     }
 
     const appointment = getAppointmentForSlot(day.date, timeSlot)
+    const block = getBlockedForSlot(day.date, timeSlot);
 
-    if (!appointment) {
+    if (!appointment && !block) {
       return (
         <div className="h-16 sm:h-20 bg-white border-2 border-gray-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors hover:border-gray-300">
           Available
@@ -56,22 +92,22 @@ export function DoctorScheduleColumn({
       )
     }
 
-    if (appointment.status === "blocked") {
+    if (appointment?.status === "confirmed" || appointment?.status == "pending") {
       return (
-        <div className="h-16 sm:h-20 bg-red-100 border-2 border-red-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-red-600 font-medium">
-          Blocked
+        <div className="h-16 sm:h-20 bg-green-100 border-2 border-green-200 rounded-lg p-1 sm:p-2 text-xs cursor-pointer hover:bg-green-200 transition-colors">
+          <div className="font-semibold text-green-800 truncate text-[10px] sm:text-xs leading-tight">
+            {appointment.patient.name}
+          </div>
+          <div className="text-green-700 text-[10px] sm:text-xs leading-tight truncate mt-1">{appointment.note}</div>
+          <div className="text-green-600 text-[10px] sm:text-xs mt-1">{getDuration(appointment.time_from, appointment.time_to)}</div>
         </div>
       )
     }
 
-    if (appointment.status === "booked") {
+    if (block) {
       return (
-        <div className="h-16 sm:h-20 bg-green-100 border-2 border-green-200 rounded-lg p-1 sm:p-2 text-xs cursor-pointer hover:bg-green-200 transition-colors">
-          <div className="font-semibold text-green-800 truncate text-[10px] sm:text-xs leading-tight">
-            {appointment.patient_name}
-          </div>
-          <div className="text-green-700 text-[10px] sm:text-xs leading-tight truncate mt-1">{appointment.service}</div>
-          <div className="text-green-600 text-[10px] sm:text-xs mt-1">{appointment.duration}</div>
+        <div className="h-16 sm:h-20 bg-red-100 border-2 border-red-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-red-600 font-medium">
+          Blocked
         </div>
       )
     }
@@ -89,7 +125,7 @@ export function DoctorScheduleColumn({
   // Get appointments for the selected date (for day view statistics)
   const dayAppointments =
     viewMode === "day"
-      ? appointments.filter((apt) => apt.dentist_id === dentist.dentist_id && apt.date === selectedDate)
+      ? appointments.filter((apt) => apt.dentist_id === dentist.dentist_id && apt.date.split("T")[0] === selectedDate)
       : []
 
   // Check if dentist is working on selected date (for day view)
@@ -102,6 +138,26 @@ export function DoctorScheduleColumn({
   const isWorkingSelectedDay = isDentistWorkingDay(dentist, selectedDayIndex)
 
   const [loadingAppointments, setLoadingAppointments] = useState(false);
+  const [loadingBlocked, setLoadingBlocked] = useState(false);
+
+  const fetchBlocked = async () => {
+    setLoadingBlocked(true);
+    try{
+      const response = await axios.get(
+        `${backendURL}/blocked-dates`
+      );
+      if(response.status == 500){
+        throw new Error("Error Fetching Blocked Slots");
+      }
+      setBlocked(response.data);
+    }
+    catch(err: any){
+      toast.error("Error",{description:err.message});
+    }
+    finally{
+      setLoadingBlocked(false);
+    }
+  }
 
   const fetchAppointments = async () => {
     setLoadingAppointments(true);
@@ -133,6 +189,7 @@ export function DoctorScheduleColumn({
       router.push("/");
     }
     fetchAppointments();
+    fetchBlocked();
   },[isLoadingAuth])
   
 

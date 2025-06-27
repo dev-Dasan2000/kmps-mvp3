@@ -18,12 +18,12 @@ export interface Dentist {
 export interface Appointment {
   id: string
   dentist_id: string
-  patient_name: string
-  service: string
+  patient: {name: string}
+  note: string
   date: string
-  time: string
-  duration: string
-  status: "available" | "booked" | "blocked"
+  time_from: string
+  time_to: string
+  status: string
   room_id?: string
 }
 

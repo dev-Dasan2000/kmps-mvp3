@@ -200,7 +200,7 @@ export default function RoomTable() {
     if (!isLoadingAuth && isLoggedIn) {
       fetchRooms();
     } else if (!isLoadingAuth && !isLoggedIn) {
-      router.push('/login');
+      router.push('/');
     }
   }, [isLoadingAuth, isLoggedIn, router]);
 

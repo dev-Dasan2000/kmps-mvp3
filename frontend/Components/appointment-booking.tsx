@@ -10,7 +10,6 @@ import { Calendar as CalendarComponent } from "@/Components/ui/calendar"
 import { DoctorScheduleColumn } from "./doctor-schedule-column"
 import { RoomView } from "./room-view"
 import { ListView } from "./list-view"
-import { mockDentists } from "@/lib/mock-data"
 import { Dentist, type DayOfWeek } from "@/types/dentist"
 import { AppointmentDialog } from '@/Components/AppointmentDialog'
 import { AuthContext } from "@/context/auth-context"
