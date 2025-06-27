@@ -84,8 +84,9 @@ router.put('/:room_id/:dentist_id/:date/:time_from/:time_to', /* authenticateTok
         room_id_dentist_id_date_time: {
           room_id,
           dentist_id,
-          date: new Date(decodeURIComponent(date)),
-          time,
+          date: new Date((date)),
+          time_from,
+          time_to
         },
       },
       data: updateData,
@@ -99,17 +100,18 @@ router.put('/:room_id/:dentist_id/:date/:time_from/:time_to', /* authenticateTok
 });
 
 // DELETE a room assignment
-router.delete('/:room_id/:dentist_id/:date/:time', /* authenticateToken, */ async (req, res) => {
+router.delete('/:room_id/:dentist_id/:date/:time_from/:time_to', /* authenticateToken, */ async (req, res) => {
   try {
-    const { room_id, dentist_id, date, time } = req.params;
+    const { room_id, dentist_id, date, time_from, time_to } = req.params;
 
     await prisma.room_assign.delete({
       where: {
         room_id_dentist_id_date_time: {
           room_id,
           dentist_id,
-          date: new Date(decodeURIComponent(date)),
-          time,
+          date: new Date((date)),
+          time_from,
+          time_to
         },
       },
     });

@@ -11,8 +11,21 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
 import { Plus, Calendar, Clock, User, Building, Search, CalendarIcon, X, Edit } from "lucide-react"
-import { mockDentists, mockRooms, mockRoomAssignments } from "@/lib/mock-data"
 import type { RoomAssignment } from "@/types/dentist"
+import axios from "axios"
+import { toast } from "sonner"
+
+interface Dentist {
+  dentist_id: string
+  name: string
+  email?: string
+  phone?: string
+}
+
+interface Room {
+  room_id: string
+  description: string
+}
 
 interface ExtendedRoomAssignment extends RoomAssignment {
   id: string
@@ -21,6 +34,7 @@ interface ExtendedRoomAssignment extends RoomAssignment {
 }
 
 export function RoomAssignmentInterface() {
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL
   const [assignments, setAssignments] = useState<ExtendedRoomAssignment[]>([])
   const [filteredAssignments, setFilteredAssignments] = useState<ExtendedRoomAssignment[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -30,6 +44,9 @@ export function RoomAssignmentInterface() {
   const [viewFilter, setViewFilter] = useState<"today" | "all">("today")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<ExtendedRoomAssignment | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [dentists, setDentists] = useState<any[]>([])
+  const [rooms, setRooms] = useState<any[]>([])
 
   // Form state
   const [formData, setFormData] = useState({
@@ -39,22 +56,72 @@ export function RoomAssignmentInterface() {
     time_to: "",
   })
 
-  // Initialize assignments with extended data
+  // Fetch dentists from backend
+  const fetchDentists = async () => {
+    try {
+      const response = await axios.get(`${backendURL}/dentists`)
+      setDentists(response.data)
+    } catch (error) {
+      console.error("Failed to fetch dentists:", error)
+      toast.error("Failed to load dentists")
+    }
+  }
+
+  // Fetch rooms from backend
+  const fetchRooms = async () => {
+    try {
+      const response = await axios.get(`${backendURL}/rooms`)
+      setRooms(response.data)
+    } catch (error) {
+      console.error("Failed to fetch rooms:", error)
+      toast.error("Failed to load rooms")
+    }
+  }
+
+  // Fetch room assignments from backend
+  const fetchAssignments = async () => {
+    setLoading(true)
+    try {
+      const response = await axios.get(`${backendURL}/rooms-assign`)
+
+      // Transform the data to match the ExtendedRoomAssignment interface
+      const extendedAssignments: ExtendedRoomAssignment[] = response.data.map((assignment: any, index: number) => {
+        const dentist = dentists.find((d: Dentist) => d.dentist_id === assignment.dentist_id)
+        const room = rooms.find((r: Room) => r.room_id === assignment.room_id)
+
+        const dateObj = new Date(assignment.date)
+        const formattedDate = dateObj.toISOString().split('T')[0]
+
+        return {
+          ...assignment,
+          id: `assignment_${index + 1}`,
+          dentist_name: dentist?.name || "Unknown Dentist",
+          room_description: room?.description || "Unknown Room",
+          date: formattedDate,
+        }
+      })
+
+      setAssignments(extendedAssignments)
+    } catch (error) {
+      console.error("Failed to fetch room assignments:", error)
+      toast.error("Failed to load room assignments")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Initialize data
   useEffect(() => {
-    const extendedAssignments: ExtendedRoomAssignment[] = mockRoomAssignments.map((assignment, index) => {
-      const dentist = mockDentists.find((d) => d.dentist_id === assignment.dentist_id)
-      const room = mockRooms.find((r) => r.room_id === assignment.room_id)
-
-      return {
-        ...assignment,
-        id: `assignment_${index + 1}`,
-        dentist_name: dentist?.name || "Unknown Dentist",
-        room_description: room?.description || "Unknown Room",
-      }
-    })
-
-    setAssignments(extendedAssignments)
+    fetchDentists()
+    fetchRooms()
   }, [])
+
+  // Fetch assignments after dentists and rooms are loaded
+  useEffect(() => {
+    if (dentists.length > 0 && rooms.length > 0) {
+      fetchAssignments()
+    }
+  }, [dentists, rooms])
 
   // Filter assignments based on search and date
   useEffect(() => {
@@ -84,57 +151,99 @@ export function RoomAssignmentInterface() {
     setFilteredAssignments(filtered)
   }, [assignments, searchTerm, selectedDate, viewFilter])
 
-  const handleAddAssignment = () => {
+  const handleAddAssignment = async () => {
     if (!selectedRoomId || !formData.dentist_id || !formData.date || !formData.time_from || !formData.time_to) {
+      toast.error("Please fill all required fields")
       return
     }
 
-    const dentist = mockDentists.find((d) => d.dentist_id === formData.dentist_id)
-    const room = mockRooms.find((r) => r.room_id === selectedRoomId)
+    setLoading(true)
+    try {
+      const payload = {
+        room_id: selectedRoomId,
+        dentist_id: formData.dentist_id,
+        date: formData.date,
+        time_from: formData.time_from,
+        time_to: formData.time_to,
+      }
+      await axios.post(`${backendURL}/rooms-assign`, payload)
 
-    const newAssignment: ExtendedRoomAssignment = {
-      id: `assignment_${assignments.length + 1}`,
-      room_id: selectedRoomId,
-      dentist_id: formData.dentist_id,
-      date: formData.date,
-      time_from: formData.time_from,
-      time_to: formData.time_to,
-      dentist_name: dentist?.name || "Unknown Dentist",
-      room_description: room?.description || "Unknown Room",
+      toast.success("Room assignment created successfully")
+      fetchAssignments() // Refresh the assignments list
+      resetForm()
+      setIsAddDialogOpen(false)
+      setSelectedRoomId("")
+    } catch (error) {
+      console.error("Failed to create room assignment:", error)
+      toast.error("Failed to create room assignment")
+    } finally {
+      setLoading(false)
     }
-
-    setAssignments([...assignments, newAssignment])
-    setFormData({ dentist_id: "", date: "", time_from: "", time_to: "" })
-    setIsAddDialogOpen(false)
-    setSelectedRoomId("")
   }
 
-  const handleEditAssignment = () => {
+  const handleEditAssignment = async () => {
     if (!editingAssignment || !formData.dentist_id || !formData.date || !formData.time_from || !formData.time_to) {
+      toast.error("Please fill all required fields")
       return
     }
 
-    const dentist = mockDentists.find((d) => d.dentist_id === formData.dentist_id)
-    const room = mockRooms.find((r) => r.room_id === editingAssignment.room_id)
+    setLoading(true)
+    try {
+      // Get the original data for creating the URL
+      const originalRoomId = editingAssignment.room_id
+      const originalDentistId = editingAssignment.dentist_id
+      const originalDate = encodeURIComponent(editingAssignment.date)
+      const originalTimeFrom = encodeURIComponent(editingAssignment.time_from)
+      const originalTimeTo = encodeURIComponent(editingAssignment.time_to)
 
-    const updatedAssignment: ExtendedRoomAssignment = {
-      ...editingAssignment,
-      dentist_id: formData.dentist_id,
-      date: formData.date,
-      time_from: formData.time_from,
-      time_to: formData.time_to,
-      dentist_name: dentist?.name || "Unknown Dentist",
-      room_description: room?.description || "Unknown Room",
+      // The new data to update to
+      const payload = {
+        room_id: editingAssignment.room_id,
+        dentist_id: formData.dentist_id,
+        date: formData.date,
+        time_from: formData.time_from,
+        time_to: formData.time_to,
+      }
+
+      await axios.put(
+        `${backendURL}/rooms-assign/${originalRoomId}/${originalDentistId}/${originalDate}/${originalTimeFrom}/${originalTimeTo}`,
+        payload
+      )
+
+      toast.success("Room assignment updated successfully")
+      fetchAssignments() // Refresh the assignments list
+      resetForm()
+      setIsEditDialogOpen(false)
+      setEditingAssignment(null)
+    } catch (error) {
+      console.error("Failed to update room assignment:", error)
+      toast.error("Failed to update room assignment")
+    } finally {
+      setLoading(false)
     }
-
-    setAssignments(assignments.map((a) => (a.id === editingAssignment.id ? updatedAssignment : a)))
-    setFormData({ dentist_id: "", date: "", time_from: "", time_to: "" })
-    setIsEditDialogOpen(false)
-    setEditingAssignment(null)
   }
 
-  const handleDeleteAssignment = (assignmentId: string) => {
-    setAssignments(assignments.filter((a) => a.id !== assignmentId))
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    const assignment = assignments.find(a => a.id === assignmentId)
+    if (!assignment) return
+
+    setLoading(true)
+    try {
+      const roomId = assignment.room_id
+      const dentistId = assignment.dentist_id
+      const date = encodeURIComponent(assignment.date)
+      const time = encodeURIComponent(assignment.time_from) // Using time_from as the time parameter
+
+      await axios.delete(`${backendURL}/rooms-assign/${roomId}/${dentistId}/${date}/${time}`)
+
+      toast.success("Room assignment deleted successfully")
+      fetchAssignments() // Refresh the assignments list
+    } catch (error) {
+      console.error("Failed to delete room assignment:", error)
+      toast.error("Failed to delete room assignment")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const openAddDialog = (roomId: string) => {
@@ -179,7 +288,7 @@ export function RoomAssignmentInterface() {
     return filteredAssignments.filter((assignment) => assignment.room_id === roomId)
   }
 
-  const selectedRoom = mockRooms.find((room) => room.room_id === selectedRoomId)
+  const selectedRoom = rooms.find((room) => room.room_id === selectedRoomId)
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -246,17 +355,17 @@ export function RoomAssignmentInterface() {
             Showing assignments for:{" "}
             <span className="font-medium text-gray-900">
               {viewFilter === "today" &&
-              selectedDate.toISOString().split("T")[0] === new Date().toISOString().split("T")[0]
+                selectedDate.toISOString().split("T")[0] === new Date().toISOString().split("T")[0]
                 ? "Today"
                 : viewFilter === "all" &&
-                    selectedDate.toISOString().split("T")[0] === new Date().toISOString().split("T")[0]
+                  selectedDate.toISOString().split("T")[0] === new Date().toISOString().split("T")[0]
                   ? "All Assignments"
                   : selectedDate.toLocaleDateString("en-US", {
-                      weekday: "long",
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
             </span>
           </span>
         </div>
@@ -264,7 +373,7 @@ export function RoomAssignmentInterface() {
 
       {/* Room Columns Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {mockRooms.map((room) => {
+        {rooms.map((room: Room) => {
           const roomAssignments = getAssignmentsForRoom(room.room_id)
 
           return (
@@ -379,7 +488,7 @@ export function RoomAssignmentInterface() {
       </div>
 
       {/* Empty State for No Rooms */}
-      {mockRooms.length === 0 && (
+      {(rooms.length === 0 || loading) && (
         <Card>
           <CardContent className="text-center py-12">
             <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -411,7 +520,7 @@ export function RoomAssignmentInterface() {
                   <SelectValue placeholder="Choose a dentist" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockDentists.map((dentist) => (
+                  {dentists.map((dentist: Dentist) => (
                     <SelectItem key={dentist.dentist_id} value={dentist.dentist_id}>
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-blue-600" />
@@ -466,8 +575,12 @@ export function RoomAssignmentInterface() {
               >
                 Cancel
               </Button>
-              <Button onClick={handleAddAssignment} className="bg-emerald-500 hover:bg-emerald-600">
-                Assign Dentist
+              <Button
+                onClick={handleAddAssignment}
+                className="bg-emerald-500 hover:bg-emerald-600"
+                disabled={loading}
+              >
+                {loading ? "Saving..." : "Assign Dentist"}
               </Button>
             </div>
           </div>
@@ -496,7 +609,7 @@ export function RoomAssignmentInterface() {
                   <SelectValue placeholder="Choose a dentist" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockDentists.map((dentist) => (
+                  {dentists.map((dentist: Dentist) => (
                     <SelectItem key={dentist.dentist_id} value={dentist.dentist_id}>
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-blue-600" />
@@ -552,8 +665,12 @@ export function RoomAssignmentInterface() {
               >
                 Cancel
               </Button>
-              <Button onClick={handleEditAssignment} className="bg-blue-500 hover:bg-blue-600">
-                Update Assignment
+              <Button
+                onClick={handleEditAssignment}
+                className="bg-blue-500 hover:bg-blue-600"
+                disabled={loading}
+              >
+                {loading ? "Updating..." : "Update Assignment"}
               </Button>
             </div>
           </div>
