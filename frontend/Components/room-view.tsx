@@ -277,9 +277,7 @@ export function RoomView({ weekDays, selectedDate, viewMode }: RoomViewProps) {
                                 {assignment.time_from} - {assignment.time_to}
                               </div>
                               <div className="text-gray-500">{assignment.dentists.service_types}</div>
-                              <div className="text-gray-500">
-                                {assignment.dentists.appointment_duration} mins
-                              </div>
+                             
                             </div>
                           );
                         })
