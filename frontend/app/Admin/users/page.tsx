@@ -1,13 +1,14 @@
 "use client";
 import { use, useContext, useEffect, useState } from "react";
 import { Button } from "@/Components/ui/button";
-import { Eye, Trash2, Search, Plus, User, Phone, Mail, UserCheck } from "lucide-react";
+import { Eye, Trash2, Search, Plus, User, Phone, Mail, UserCheck, BarChart3 } from "lucide-react";
 import ViewUserDialog from "@/Components/ViewUserDialog";
 import InviteUserDialog from "@/Components/InviteUserDialog";
 import axios from "axios";
 import { AuthContext } from "@/context/auth-context";
 import { useRouter } from 'next/navigation';
 import {toast} from 'sonner';
+import DoctorPerformanceDashboard from "@/Components/DoctorPerformance";
 
 type Role = "Dentist" | "Receptionist" | "Radiologist";
 
@@ -28,7 +29,9 @@ export default function UserTable() {
 
   const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
 
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  // Separate state for each dialog
+  const [selectedUserForView, setSelectedUserForView] = useState<User | null>(null);
+  const [selectedUserForAnalytics, setSelectedUserForAnalytics] = useState<User | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -113,6 +116,11 @@ export default function UserTable() {
     } finally {
       setDeletingUser(false);
     }
+  };
+
+  const handleViewAnalytics = (user: User) => {
+    // Set the user for analytics dashboard
+    setSelectedUserForAnalytics(user);
   };
   
 
@@ -249,12 +257,26 @@ export default function UserTable() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => setSelectedUser(inuser)}
+                          onClick={() => setSelectedUserForView(inuser)}
                           className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="View User"
                         >
                           <Eye className="h-5 w-5 text-blue-600" />
                         </button>
-                        <button className="p-2 hover:bg-red-50 rounded-lg transition-colors" onClick={()=>{handleDelete(inuser.id, inuser.role)}}>
+                        {inuser.role === "Dentist" && (
+                          <button
+                            onClick={() => handleViewAnalytics(inuser)}
+                            className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
+                            title="View Analytics"
+                          >
+                            <BarChart3 className="h-5 w-5 text-purple-600" />
+                          </button>
+                        )}
+                        <button 
+                          className="p-2 hover:bg-red-50 rounded-lg transition-colors" 
+                          onClick={()=>{handleDelete(inuser.id, inuser.role)}}
+                          title="Delete User"
+                        >
                           <Trash2 className="h-5 w-5 text-red-500" />
                         </button>
                       </div>
@@ -309,12 +331,26 @@ export default function UserTable() {
                 {/* Actions */}
                 <div className="flex flex-row sm:flex-col gap-2">
                   <button
-                    onClick={() => setSelectedUser(user)}
+                    onClick={() => setSelectedUserForView(user)}
                     className="flex items-center justify-center p-3 hover:bg-blue-50 rounded-lg transition-colors border border-blue-200"
+                    title="View User"
                   >
                     <Eye className="h-5 w-5 text-blue-600" />
                   </button>
-                  <button className="flex items-center justify-center p-3 hover:bg-red-50 rounded-lg transition-colors border border-red-200">
+                  {user.role === "Dentist" && (
+                    <button
+                      onClick={() => handleViewAnalytics(user)}
+                      className="flex items-center justify-center p-3 hover:bg-purple-50 rounded-lg transition-colors border border-purple-200"
+                      title="View Analytics"
+                    >
+                      <BarChart3 className="h-5 w-5 text-purple-600" />
+                    </button>
+                  )}
+                  <button 
+                    className="flex items-center justify-center p-3 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                    onClick={()=>{handleDelete(user.id, user.role)}}
+                    title="Delete User"
+                  >
                     <Trash2 className="h-5 w-5 text-red-500" />
                   </button>
                 </div>
@@ -343,8 +379,19 @@ export default function UserTable() {
           </div>
         )}
 
-        <ViewUserDialog user={selectedUser} onClose={() => setSelectedUser(null)} />
-        <InviteUserDialog open={inviteDialogOpen} onClose={() => setInviteDialogOpen(false)} />
+        {/* Dialogs with separate state */}
+        <ViewUserDialog 
+          user={selectedUserForView} 
+          onClose={() => setSelectedUserForView(null)} 
+        />
+        <InviteUserDialog 
+          open={inviteDialogOpen} 
+          onClose={() => setInviteDialogOpen(false)} 
+        />
+        <DoctorPerformanceDashboard 
+          user={selectedUserForAnalytics} 
+          onClose={() => setSelectedUserForAnalytics(null)} 
+        />
 
       </div>
     </div>

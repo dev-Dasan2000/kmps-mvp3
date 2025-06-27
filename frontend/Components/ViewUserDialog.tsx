@@ -137,7 +137,7 @@ export default function ViewUserDialog({ user, onClose }: Props) {
 
   return (
     <Dialog open={!!user} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="md:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader className="border-b border-gray-100 pb-6">
           <DialogTitle className="text-xl font-semibold text-gray-900">
             Staff Profile
