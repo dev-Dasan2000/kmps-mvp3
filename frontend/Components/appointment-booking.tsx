@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, Search, Filter, CalendarIcon } from "lucide-react"
 import { Button } from "@/Components/ui/button"
 import { Input } from "@/Components/ui/input"
@@ -11,8 +11,11 @@ import { DoctorScheduleColumn } from "./doctor-schedule-column"
 import { RoomView } from "./room-view"
 import { ListView } from "./list-view"
 import { mockDentists } from "@/lib/mock-data"
-import type { DayOfWeek } from "@/types/dentist"
+import { Dentist, type DayOfWeek } from "@/types/dentist"
 import { AppointmentDialog } from '@/Components/AppointmentDialog'
+import { AuthContext } from "@/context/auth-context"
+import { useRouter } from "next/navigation"
+import axios from "axios"
 
 export default function AppointmentBooking() {
   const [selectedDate, setSelectedDate] = useState("2025-06-10")
@@ -22,8 +25,49 @@ export default function AppointmentBooking() {
   const [calendarOpen, setCalendarOpen] = useState(false)
   const [selectedWeekDate, setSelectedWeekDate] = useState("2025-06-10") // For week navigation
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [dentists, setDentists] = useState<Dentist[]>([]);
 
-  const filteredDentists = mockDentists.filter(
+  const [loadingDentists, setLoadingDentists] = useState(false);
+  
+  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext); 
+
+  const router = useRouter();
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  const fetchDentists = async() => {
+    setLoadingDentists(true);
+    try{
+      const response = await axios.get(
+        `${backendURL}/dentists`
+      );
+      if(response.status == 500){
+        throw new Error("Error Fetching Dentists");
+      }
+      setDentists(response.data);
+    }
+    catch(err: any){
+      window.alert(err.message);
+    }
+    finally{
+      setLoadingDentists(false);
+    }
+  }
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      window.alert("Please Log in");
+      router.push("/");
+    }
+    else if(user.role != "receptionist"){
+      window.alert("Access Denied");
+      router.push("/");
+    }
+    fetchDentists();
+  },[isLoadingAuth]);
+
+
+  const filteredDentists = dentists.filter(
     (dentist) =>
       dentist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       dentist.service_types?.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -83,7 +127,6 @@ export default function AppointmentBooking() {
 
   const handleAppointmentCreated = () => {
     setIsDialogOpen(false);
-    fetchAppointments();
   };
 
   const handleWeekNavigation = (direction: "prev" | "next") => {
@@ -259,7 +302,7 @@ export default function AppointmentBooking() {
         ) : (
           /* Doctor Schedule Columns */
           <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-4">
-            {filteredDentists.map((dentist) => (
+            {filteredDentists?.map((dentist) => (
               <DoctorScheduleColumn
                 key={dentist.dentist_id}
                 dentist={dentist}

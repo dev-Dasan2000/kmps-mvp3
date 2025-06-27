@@ -1,10 +1,14 @@
 "use client"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/Components/ui/avatar"
+import { Card, CardContent, CardHeader } from "@/Components/ui/card"
+import { Badge } from "@/Components/ui/badge"
 import { generateDentistTimeSlots, isDentistWorkingDay, mockAppointments } from "@/lib/mock-data"
 import type { Dentist, Appointment, DayOfWeek } from "@/types/dentist"
+import { AuthContext } from "@/context/auth-context"
+import { useRouter } from "next/navigation"
+import { useContext, useEffect, useState } from "react"
+import axios from "axios"
 
 interface DoctorScheduleColumnProps {
   dentist: Dentist
@@ -22,10 +26,11 @@ export function DoctorScheduleColumn({
   selectedDate,
 }: DoctorScheduleColumnProps) {
   const dentistTimeSlots = generateDentistTimeSlots(dentist)
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   const getAppointmentForSlot = (date: string, time: string): Appointment | null => {
     return (
-      mockAppointments.find((apt) => apt.dentist_id === dentist.dentist_id && apt.date === date && apt.time === time) ||
+      appointments.find((apt) => apt.dentist_id === dentist.dentist_id && apt.date === date && apt.time === time) ||
       null
     )
   }
@@ -84,13 +89,52 @@ export function DoctorScheduleColumn({
   // Get appointments for the selected date (for day view statistics)
   const dayAppointments =
     viewMode === "day"
-      ? mockAppointments.filter((apt) => apt.dentist_id === dentist.dentist_id && apt.date === selectedDate)
+      ? appointments.filter((apt) => apt.dentist_id === dentist.dentist_id && apt.date === selectedDate)
       : []
 
   // Check if dentist is working on selected date (for day view)
+  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const router = useRouter();
+
   const selectedDateObj = new Date(selectedDate)
   const selectedDayIndex = selectedDateObj.getDay()
   const isWorkingSelectedDay = isDentistWorkingDay(dentist, selectedDayIndex)
+
+  const [loadingAppointments, setLoadingAppointments] = useState(false);
+
+  const fetchAppointments = async () => {
+    setLoadingAppointments(true);
+    try{
+      const response = await axios.get(
+        `${backendURL}/appointments/fordentist/${dentist.dentist_id}`
+      );
+      if(response.status == 500){
+        throw new Error(`Error Fetching Appointments for Doctor : ${dentist.name}`);
+      }
+      setAppointments(response.data);
+    }
+    catch(err: any){
+      window.alert(err.message);
+    }
+    finally{
+      setLoadingAppointments(false);
+    }
+  };
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      window.alert("Please Log in");
+      router.push("/");
+    }
+    else if(user.role != "receptionist"){
+      window.alert("Access Denied");
+      router.push("/");
+    }
+    fetchAppointments();
+  },[isLoadingAuth])
+  
 
   return (
     <Card className="min-w-[280px] sm:min-w-[400px] lg:min-w-[600px] max-w-[600px] flex-shrink-0">
@@ -145,7 +189,7 @@ export function DoctorScheduleColumn({
         <div className={`grid gap-1 sm:gap-2 mb-3 sm:mb-4 ${viewMode === "day" ? "grid-cols-1" : "grid-cols-7"}`}>
           {displayDays.map((day, index) => {
             const isWorkingDay = isDentistWorkingDay(dentist, day.dayIndex)
-            const dayAppointmentCount = mockAppointments.filter(
+            const dayAppointmentCount = appointments.filter(
               (apt) => apt.dentist_id === dentist.dentist_id && apt.date === day.date,
             ).length
 
