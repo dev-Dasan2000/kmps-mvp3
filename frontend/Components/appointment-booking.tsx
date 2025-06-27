@@ -58,7 +58,7 @@ export default function AppointmentBooking() {
       window.alert("Please Log in");
       router.push("/");
     }
-    else if(user.role != "receptionist" || user.role != "admin"){
+    else if(user.role != "receptionist" && user.role != "admin"){
       window.alert("Access Denied");
       router.push("/");
     }
