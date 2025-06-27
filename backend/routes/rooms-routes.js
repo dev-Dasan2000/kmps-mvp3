@@ -30,6 +30,18 @@ router.get('/:room_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
+//room count
+router.get('/count/num', async (req, res) => {
+  try {
+    const count = await prisma.rooms.count();
+    res.json({ count });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to count rooms' });
+  }
+});
+
+
 // POST create a room
 router.post('/', async (req, res) => {
   try {

@@ -78,15 +78,15 @@ router.put('/:room_id/:dentist_id/:date/:time_from/:time_to', /* authenticateTok
   try {
     const { room_id, dentist_id, date, time_from, time_to } = req.params;
     const updateData = req.body;
-
+    console.debug('Update data:', updateData);
     const updated = await prisma.room_assign.update({
       where: {
-        room_id_dentist_id_date_time: {
+        room_id_dentist_id_date_time_to_time_from: {
           room_id,
           dentist_id,
-          date: new Date((date)),
+          date: new Date(decodeURIComponent(date)),
+          time_to: decodeURIComponent(time_to),
           time_from: decodeURIComponent(time_from),
-          time_to: decodeURIComponent(time_to)
         },
       },
       data: updateData,
