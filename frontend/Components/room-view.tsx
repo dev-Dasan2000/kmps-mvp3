@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
-import { mockRooms, mockAppointments, mockDentists, getDoctorColor } from "@/lib/mock-data"
+import { getDoctorColor } from "@/lib/mock-data"
 import type { DayOfWeek } from "@/types/dentist"
 import axios from "axios"
 import { useEffect, useState } from "react"
@@ -15,143 +15,305 @@ interface RoomViewProps {
 
 interface RoomAssignment {
   room_id: string
-  dentist:{dentist_id: string, name: string}
+  dentist_id: string
   date: string
   time_from: string
   time_to: string
+  rooms: {
+    room_id: string
+    description: string
+  }
+  dentists: {
+    dentist_id: string
+    name: string
+    email: string
+    phone_number: string | null
+    profile_picture: string | null
+    language: string | null
+    service_types: string | null
+    work_days_from: string | null
+    work_days_to: string | null
+    work_time_from: string | null
+    work_time_to: string | null
+    appointment_duration: string | null
+    appointment_fee: string | null
+  }
 }
 
 export function RoomView({ weekDays, selectedDate, viewMode }: RoomViewProps) {
-  const timeSlots = ["09:00", "09:30", "10:00"];
+  const [loadingRoomAssignments, setLoadingRoomAssignments] = useState(false)
+  const [roomAssignments, setRoomAssignments] = useState<RoomAssignment[]>([])
+  const [rooms, setRooms] = useState<{ room_id: string; description: string }[]>([])
 
-  const [loadingRoomAssignments, setLoadingRoomAssignments] = useState(false);
-  const [roomAssignments, setRoomAssignments] = useState<RoomAssignment[]>([]);
-
-  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL
 
   const fetchRoomAssignments = async () => {
     setLoadingRoomAssignments(true);
-    try{
-      const response = await axios.get(
-        `${backendURL}/rooms-assign/`
-      );
-      if(response.status == 500){
-        throw new Error("Error fetching Room Assignments");
+    try {
+      // First, fetch all rooms
+      const [assignmentsResponse, roomsResponse] = await Promise.all([
+        axios.get(`${backendURL}/rooms-assign/`),
+        axios.get(`${backendURL}/rooms/`)
+      ]);
+
+      if (assignmentsResponse.status === 200 && roomsResponse.status === 200) {
+        const assignments = assignmentsResponse.data;
+        const allRooms = roomsResponse.data;
+
+        // Update room assignments with proper typing
+        const formattedAssignments: RoomAssignment[] = assignments.map((assignment: any) => ({
+          ...assignment,
+          date: new Date(assignment.date).toISOString().split('T')[0], // Format date to YYYY-MM-DD
+          time_from: assignment.time_from,
+          time_to: assignment.time_to,
+          rooms: assignment.rooms || { room_id: assignment.room_id, description: '' },
+          dentists: assignment.dentists || { 
+            dentist_id: assignment.dentist_id, 
+            name: 'Unknown Dentist',
+            email: '',
+            phone_number: null,
+            profile_picture: null,
+            language: null,
+            service_types: null,
+            work_days_from: null,
+            work_days_to: null,
+            work_time_from: null,
+            work_time_to: null,
+            appointment_duration: null,
+            appointment_fee: null
+          }
+        }));
+
+        setRoomAssignments(formattedAssignments);
+        setRooms(allRooms);
+      } else {
+        throw new Error("Failed to fetch data");
       }
-      setRoomAssignments(response.data);
-    }
-    catch(err: any){
-      toast.error("Error",{description:err.message});
-    }
-    finally{
+    } catch (err: any) {
+      console.error('Error fetching data:', err);
+      toast.error("Error", { 
+        description: err.response?.data?.error || err.message || "Failed to load room assignments" 
+      });
+    } finally {
       setLoadingRoomAssignments(false);
     }
-  };
+  }
 
-  useEffect(()=>{
-    fetchRoomAssignments();
-  },[]);
+  useEffect(() => {
+    fetchRoomAssignments()
+  }, [])
 
   // Filter days based on view mode
   const displayDays = viewMode === "day" ? weekDays.filter((day) => day.date === selectedDate) : weekDays
 
-  const getAppointmentForRoomAndTime = (roomId: string, date: string, time: string) => {
-    return mockAppointments.find((apt) => apt.room_id === roomId && apt.date === date && apt.time_from === time)
+  // Get room assignments for specific room and date
+  const getRoomAssignmentsForDay = (roomId: string, date: string) => {
+    return roomAssignments.filter((assignment) => {
+      try {
+        const assignmentDate = new Date(assignment.date).toISOString().split('T')[0];
+        const targetDate = new Date(date).toISOString().split('T')[0];
+        return assignment.room_id === roomId && assignmentDate === targetDate;
+      } catch (error) {
+        console.error('Error processing assignment date:', error);
+        return false;
+      }
+    }).sort((a, b) => {
+      // Sort by time_from
+      return a.time_from.localeCompare(b.time_from);
+    });
   }
 
-  const getDentistInfo = (dentistId: string) => {
-    return mockDentists.find((d) => d.dentist_id === dentistId)
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    })
   }
 
-  const getAppointmentContent = (roomId: string, date: string, time: string) => {
-    const appointment = getAppointmentForRoomAndTime(roomId, date, time)
+  const formatDateShort = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
+  }
 
-    if (!appointment) {
-      return (
-        <div className="h-16 sm:h-20 bg-white border border-gray-200 rounded p-1 sm:p-2 flex items-center justify-center text-[10px] sm:text-xs text-gray-500">
-          Available
-        </div>
-      )
-    }
-
-    const dentist = getDentistInfo(appointment.dentist_id)
-    const colorClass = getDoctorColor(appointment.dentist_id)
-
+  if (loadingRoomAssignments) {
     return (
-      <div
-        className={`h-16 sm:h-20 border-2 rounded p-1 sm:p-2 text-[10px] sm:text-xs cursor-pointer hover:shadow-md transition-shadow ${colorClass}`}
-      >
-        <div className="font-semibold truncate">{dentist?.name}</div>
-        <div className="font-medium truncate mt-1">{appointment.patient.name}</div>
-        <div className="text-[9px] sm:text-[10px] leading-tight truncate mt-1">{appointment.note}</div>
-        <div className="text-[9px] sm:text-[10px] mt-1">{appointment.time_to}</div>
-      </div>
+      <Card className="bg-white">
+        <CardContent className="p-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading room assignments...</p>
+        </CardContent>
+      </Card>
     )
   }
 
+  if (viewMode === "day") {
+    return (
+      <Card className="bg-white">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            {/* Header Row - Single Day */}
+            <div className="border-b bg-gray-50">
+              <div className="text-center p-3 sm:p-4 border-b bg-blue-50">
+                <div className="font-medium text-sm sm:text-base">{formatDate(selectedDate)}</div>
+              </div>
+
+              {/* Room Headers */}
+              <div
+                className={`grid border-b bg-gray-100`}
+                style={{
+                  gridTemplateColumns: `repeat(${rooms.length}, 1fr)`,
+                }}
+              >
+                {rooms.map((room) => (
+                  <div
+                    key={room.room_id}
+                    className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium text-gray-700 border-r last:border-r-0"
+                  >
+                    {room.room_id}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Assignment Content */}
+            <div
+              className={`grid min-h-[400px]`}
+              style={{
+                gridTemplateColumns: `repeat(${rooms.length}, 1fr)`,
+              }}
+            >
+              {rooms.map((room) => {
+                const assignments = getRoomAssignmentsForDay(room.room_id, selectedDate)
+
+                return (
+                  <div key={room.room_id} className="p-2 border-r last:border-r-0 space-y-2">
+                    {assignments.length > 0 ? (
+                      assignments.map((assignment, index) => {
+                        const colorClass = getDoctorColor(assignment.dentist_id)
+
+                        return (
+                          <div
+                            key={index}
+                            className={`p-3 rounded-lg border-2 cursor-pointer hover:shadow-md transition-shadow ${colorClass}`}
+                          >
+                            <div className="font-semibold text-sm mb-1">{assignment.dentists.name}</div>
+                            <div className="text-xs text-gray-600 mb-1">
+                              {assignment.time_from} - {assignment.time_to}
+                            </div>
+                            <div className="text-xs text-gray-500">{assignment.dentists.service_types}</div>
+                            <div className="text-xs text-gray-500 mt-1">
+                              {assignment.dentists.appointment_duration} mins
+                            </div>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <div 
+                        className="p-3 text-center text-xs text-gray-500 bg-gray-50 rounded border-2 border-dashed border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
+                        onClick={() => {
+                          console.log('Add new assignment for:', room.room_id, selectedDate);
+                        }}
+                      >
+                        Available
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Week View - New Layout
   return (
     <Card className="bg-white">
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          {/* Header Row - Days and Rooms */}
-          <div
-            className={`grid border-b bg-gray-50 min-w-fit ${
-              viewMode === "day"
-                ? "grid-cols-[80px_repeat(3,minmax(100px,1fr))] sm:grid-cols-[120px_repeat(3,minmax(120px,1fr))]"
-                : "grid-cols-[80px_repeat(21,minmax(80px,1fr))] sm:grid-cols-[120px_repeat(21,minmax(100px,1fr))]"
-            }`}
-          >
-            {/*<div className="p-2 sm:p-3 border-r">
-              <span className="text-xs sm:text-sm font-medium text-gray-600">Time</span>
-            </div>*/}
+          {/* Week View Header */}
+          <div className="grid grid-cols-8 bg-gray-50 border-b">
+            <div className="p-3 text-center font-medium text-sm border-r bg-blue-50">Room</div>
             {displayDays.map((day) => (
-              <div key={day.date} className="col-span-3 border-r">
-                <div className="text-center p-2 sm:p-3 border-b bg-blue-50">
-                  <div className="font-medium text-xs sm:text-sm">
-                    {new Date(day.date).getDate()} {day.name} 2025
-                  </div>
-                </div>
-                <div className="grid grid-cols-3">
-                  {mockRooms.map((room) => (
-                    <div
-                      key={room.room_id}
-                      className="p-1 sm:p-2 text-center text-[10px] sm:text-xs font-medium text-gray-600 border-r last:border-r-0"
-                    >
-                      {room.description}
-                    </div>
-                  ))}
-                </div>
+              <div key={day.date} className="p-3 text-center font-medium text-sm border-r last:border-r-0 bg-blue-50">
+                <div>{formatDateShort(day.date)}</div>
               </div>
             ))}
           </div>
 
-          {/* Time Slots Rows */}
-          {timeSlots.map((timeSlot) => (
-            <div
-              key={timeSlot}
-              className={`grid border-b min-h-[80px] sm:min-h-[100px] min-w-fit ${
-                viewMode === "day"
-                  ? "grid-cols-[80px_repeat(3,minmax(100px,1fr))] sm:grid-cols-[120px_repeat(3,minmax(120px,1fr))]"
-                  : "grid-cols-[80px_repeat(21,minmax(80px,1fr))] sm:grid-cols-[120px_repeat(21,minmax(100px,1fr))]"
-              }`}
-            >
-              {/* Time Column */}
+          {/* Week View Content */}
+          {rooms.map((room, roomIndex) => (
+            <div key={room.room_id} className={`grid grid-cols-8 ${roomIndex < rooms.length - 1 ? 'border-b' : ''}`}>
+              {/* Room Name Column */}
+              <div className="p-3 text-center font-medium text-sm bg-gray-100 border-r flex items-center justify-center min-h-[120px]">
+                {room.room_id}
+              </div>
               
-
-              {/* Room Slots for each day */}
-              {displayDays.map((day) => (
-                <div key={day.date} className="col-span-3 border-r">
-                  <div className="grid grid-cols-3 h-full">
-                    {mockRooms.map((room) => (
-                      <div key={room.room_id} className="p-1 sm:p-2 border-r last:border-r-0">
-                        {getAppointmentContent(room.room_id, day.date, timeSlot)}
-                      </div>
-                    ))}
+              {/* Days Columns */}
+              {displayDays.map((day) => {
+                const assignments = getRoomAssignmentsForDay(room.room_id, day.date);
+                
+                return (
+                  <div key={`${room.room_id}-${day.date}`} className="p-2 border-r last:border-r-0 min-h-[120px]">
+                    <div className="space-y-1">
+                      {assignments.length > 0 ? (
+                        assignments.map((assignment, index) => {
+                          const colorClass = getDoctorColor(assignment.dentist_id);
+                          
+                          return (
+                            <div
+                              key={index}
+                              className={`p-2 rounded text-xs cursor-pointer hover:shadow-sm transition-shadow ${colorClass}`}
+                            >
+                              <div className="font-medium mb-1">{assignment.dentists.name}</div>
+                              <div className="text-gray-600 mb-1">
+                                {assignment.time_from} - {assignment.time_to}
+                              </div>
+                              <div className="text-gray-500">{assignment.dentists.service_types}</div>
+                              <div className="text-gray-500">
+                                {assignment.dentists.appointment_duration} mins
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div 
+                          className="p-2 text-center text-xs text-gray-500 bg-gray-50 rounded border border-dashed border-gray-300 hover:bg-gray-100 transition-colors cursor-pointer h-full flex items-center justify-center"
+                          onClick={() => {
+                            console.log('Add new assignment for:', room.room_id, day.date);
+                          }}
+                        >
+                          Available
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ))}
+        </div>
+
+        {/* Summary Information */}
+        <div className="p-4 bg-gray-50 border-t">
+          <div className="flex flex-wrap gap-4 text-xs text-gray-600">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div>
+              <span>Room Assignments ({roomAssignments.length})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-gray-50 border border-dashed border-gray-300 rounded"></div>
+              <span>Available Slots</span>
+            </div>
+            <div className="text-gray-500">Rooms: {rooms.map((room) => room.room_id).join(", ")}</div>
+          </div>
         </div>
       </CardContent>
     </Card>
