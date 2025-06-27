@@ -189,7 +189,8 @@ export function RoomAssignmentInterface() {
 
     setLoading(true)
     try {
-      const isoDate = new Date(formData.date + 'T00:00:00').toISOString()
+      // Interpret date-only string as UTC to avoid timezone offset issues
+      const isoDate = new Date(`${formData.date}T00:00:00Z`).toISOString()
       // Get the original data for creating the URL
       const originalRoomId = editingAssignment.room_id
       const originalDentistId = editingAssignment.dentist_id
@@ -233,9 +234,10 @@ export function RoomAssignmentInterface() {
       const roomId = assignment.room_id
       const dentistId = assignment.dentist_id
       const date = encodeURIComponent(assignment.date)
-      const time = encodeURIComponent(assignment.time_from) // Using time_from as the time parameter
+      const time_from = encodeURIComponent(assignment.time_from)
+      const time_to = encodeURIComponent(assignment.time_to)
 
-      await axios.delete(`${backendURL}/rooms-assign/${roomId}/${dentistId}/${date}/${time}`)
+      await axios.delete(`${backendURL}/rooms-assign/${roomId}/${dentistId}/${date}/${time_from}/${time_to}`)
 
       toast.success("Room assignment deleted successfully")
       fetchAssignments() // Refresh the assignments list
@@ -387,7 +389,7 @@ export function RoomAssignmentInterface() {
                       <Building className="w-5 h-5 text-emerald-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg font-semibold text-gray-900">{room.description}</CardTitle>
+                      <CardTitle className="text-lg font-semibold text-gray-900">{room.room_id}</CardTitle>
                       <p className="text-sm text-gray-600 mt-1">
                         {roomAssignments.length} assignment{roomAssignments.length !== 1 ? "s" : ""}
                       </p>
@@ -505,7 +507,7 @@ export function RoomAssignmentInterface() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building className="w-5 h-5 text-emerald-600" />
-              Assign Dentist to {selectedRoom?.description}
+              Assign Dentist to {selectedRoom?.id}
             </DialogTitle>
           </DialogHeader>
 
@@ -594,7 +596,7 @@ export function RoomAssignmentInterface() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="w-5 h-5 text-blue-600" />
-              Edit Assignment - {editingAssignment?.room_description}
+              Edit Assignment - {editingAssignment?.room_id}
             </DialogTitle>
           </DialogHeader>
 

@@ -106,12 +106,12 @@ router.delete('/:room_id/:dentist_id/:date/:time_from/:time_to', /* authenticate
 
     await prisma.room_assign.delete({
       where: {
-        room_id_dentist_id_date_time: {
+        room_id_dentist_id_date_time_to_time_from: {
           room_id,
           dentist_id,
-          date: new Date((date)),
-          time_from,
-          time_to
+          date: new Date(decodeURIComponent(date)),
+          time_to: decodeURIComponent(time_to),
+          time_from: decodeURIComponent(time_from),
         },
       },
     });
