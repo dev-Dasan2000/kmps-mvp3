@@ -56,18 +56,52 @@ export function DoctorScheduleColumn({
     return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
   };
 
+  // Helper to trim seconds from a time string (e.g. "09:00:00" -> "09:00")
+  const normalizeTime = (t: string) => {
+    if (!t) return "";
+    const trimmed = t.trim();
+    const match = trimmed.match(/^(\d{1,2}):(\d{2})/);
+    if (match) {
+      const h = match[1].padStart(2, "0");
+      const m = match[2].padStart(2, "0");
+      return `${h}:${m}`;
+    }
+    // Fallback – if regex fails, attempt simple split
+    const [rawH, rawM = "00"] = trimmed.split(":");
+    const h = (rawH || "0").padStart(2, "0");
+    const m = (rawM || "0").padStart(2, "0").replace(/\D+/g, ""); // strip non-digits
+    return `${h}:${m || "00"}`;
+  };
+
+  // Helper – convert ISO date string to local YYYY-MM-DD (avoids timezone offsets)
+  const normalizeDate = (iso: string) => {
+    const d = new Date(iso);
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, "0");
+    const da = `${d.getDate()}`.padStart(2, "0");
+    return `${y}-${m}-${da}`;
+  };
+
   const getAppointmentForSlot = (date: string, time: string): Appointment | null => {
+    const slotTime = normalizeTime(time);
     return (
-      appointments.find((apt) => apt.dentist_id === dentist.dentist_id && apt.date.split("T")[0] === date && apt.time_from === time) ||
-      null
-    )
+      appointments.find((apt) => {
+        const aptDate = normalizeDate(apt.date);
+        const aptTime = normalizeTime(apt.time_from);
+        return String(apt.dentist_id) === String(dentist.dentist_id) && aptDate === date && aptTime === slotTime;
+      }) || null
+    );
   }
 
   const getBlockedForSlot = (date: string, time: string) => {
+    const slotTime = normalizeTime(time);
     return (
-      blocked.find((blk) => blk.dentist_id === dentist.dentist_id && blk.date === date && blk.time_from === time) ||
-      null
-    )
+      blocked.find((blk) => {
+        const blkDate = normalizeDate(blk.date);
+        const blkTime = normalizeTime(blk.time_from);
+        return String(blk.dentist_id) === String(dentist.dentist_id) && blkDate === date && blkTime === slotTime;
+      }) || null
+    );
   }
 
   const getAppointmentContent = (day: DayOfWeek, timeSlot: string) => {
@@ -81,7 +115,7 @@ export function DoctorScheduleColumn({
       )
     }
 
-    const appointment = getAppointmentForSlot(day.date, timeSlot)
+    const appointment = getAppointmentForSlot(day.date, timeSlot);
     const block = getBlockedForSlot(day.date, timeSlot);
 
     if (!appointment && !block) {
@@ -89,19 +123,7 @@ export function DoctorScheduleColumn({
         <div className="h-16 sm:h-20 bg-white border-2 border-gray-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors hover:border-gray-300">
           Available
         </div>
-      )
-    }
-
-    if (appointment?.status === "confirmed" || appointment?.status == "pending") {
-      return (
-        <div className="h-16 sm:h-20 bg-green-100 border-2 border-green-200 rounded-lg p-1 sm:p-2 text-xs cursor-pointer hover:bg-green-200 transition-colors">
-          <div className="font-semibold text-green-800 truncate text-[10px] sm:text-xs leading-tight">
-            {appointment.patient.name}
-          </div>
-          <div className="text-green-700 text-[10px] sm:text-xs leading-tight truncate mt-1">{appointment.note}</div>
-          <div className="text-green-600 text-[10px] sm:text-xs mt-1">{getDuration(appointment.time_from, appointment.time_to)}</div>
-        </div>
-      )
+      );
     }
 
     if (block) {
@@ -109,14 +131,62 @@ export function DoctorScheduleColumn({
         <div className="h-16 sm:h-20 bg-red-100 border-2 border-red-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-red-600 font-medium">
           Blocked
         </div>
-      )
+      );
+    }
+
+    // 3. Any appointment present – style based on status
+    if (appointment) {
+      // Week view: only patient name, centered for space
+      if (viewMode === "week") {
+        const statusColours: Record<string, { bg: string; border: string; text: string }> = {
+          confirmed: { bg: "bg-green-100", border: "border-green-200", text: "text-green-800" },
+          pending: { bg: "bg-yellow-100", border: "border-yellow-200", text: "text-yellow-800" },
+          completed: { bg: "bg-gray-100", border: "border-gray-200", text: "text-gray-800" },
+        };
+        const colours = statusColours[appointment.status?.toLowerCase()] || statusColours.confirmed;
+        return (
+          <div
+            className={`h-16 sm:h-20 ${colours.bg} border-2 ${colours.border} rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-semibold ${colours.text}`}
+          >
+            {appointment.patient?.name ?? "Patient"}
+          </div>
+        );
+      }
+
+      // Day view: detailed view
+
+      // Choose styling by status
+      const statusColours: Record<string, { bg: string; border: string; text: string }> = {
+        confirmed: { bg: "bg-green-100", border: "border-green-200", text: "text-green-800" },
+        pending: { bg: "bg-yellow-100", border: "border-yellow-200", text: "text-yellow-800" },
+        completed: { bg: "bg-gray-100", border: "border-gray-200", text: "text-gray-800" },
+      };
+      const colours = statusColours[appointment.status?.toLowerCase()] || statusColours.confirmed;
+
+      return (
+        <div
+          className={`h-16 sm:h-20 ${colours.bg} border-2 ${colours.border} rounded-lg p-1 sm:p-2 text-xs cursor-pointer hover:opacity-90 transition-colors`}
+        >
+          <div className={`font-semibold truncate text-[10px] sm:text-xs leading-tight ${colours.text}`}>
+            {appointment.patient?.name ?? "Appointment"}
+          </div>
+          {appointment.note && (
+            <div className={`${colours.text.replace("800", "700")} text-[10px] sm:text-xs leading-tight truncate mt-1`}>
+              {appointment.note}
+            </div>
+          )}
+          <div className={`${colours.text.replace("800", "600")} text-[10px] sm:text-xs mt-1`}>
+            {getDuration(appointment.time_from, appointment.time_to)}
+          </div>
+        </div>
+      );
     }
 
     return (
-      <div className="h-16 sm:h-20 bg-white border-2 border-gray-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-gray-500 hover:bg-gray-50 cursor-pointer transition-colors hover:border-gray-300">
+      <div className="h-16 sm:h-20 bg-white border-2 border-gray-200 rounded-lg p-1 sm:p-2 flex items-center justify-center text-xs sm:text-sm text-gray-500">
         Available
       </div>
-    )
+    );
   }
 
   // Filter days based on view mode
@@ -194,7 +264,7 @@ export function DoctorScheduleColumn({
   
 
   return (
-    <Card className="min-w-[280px] sm:min-w-[400px] lg:min-w-[600px] max-w-[600px] flex-shrink-0">
+    <Card className="min-w-[340px] sm:min-w-[500px] lg:min-w-[700px] max-w-[700px] flex-shrink-0">
       <CardHeader className="pb-2 sm:pb-3">
         {/* Doctor Header */}
         <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
@@ -248,7 +318,7 @@ export function DoctorScheduleColumn({
           {displayDays.map((day, index) => {
             const isWorkingDay = isDentistWorkingDay(dentist, day.dayIndex)
             const dayAppointmentCount = appointments.filter(
-              (apt) => apt.dentist_id === dentist.dentist_id && apt.date === day.date,
+              (apt) => apt.dentist_id === dentist.dentist_id && apt.date.split("T")[0] === day.date,
             ).length
 
             return (
