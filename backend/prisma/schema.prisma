@@ -284,10 +284,11 @@ model room_assign {
   room_id   String
   dentist_id String
   date      DateTime
-  time      String
+  time_to      String
+  time_from    String
 
-  room      rooms    @relation(fields: [room_id], references: [room_id])
-  dentist   dentists @relation(fields: [dentist_id], references: [dentist_id])
+  rooms      rooms @relation(fields: [room_id], references: [room_id])
+  dentists   dentists @relation(fields: [dentist_id], references: [dentist_id])
 
-  @@id([room_id, dentist_id, date, time])
+  @@id([room_id, dentist_id, date, time_to, time_from])
 }
