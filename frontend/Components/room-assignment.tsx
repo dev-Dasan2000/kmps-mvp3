@@ -189,6 +189,7 @@ export function RoomAssignmentInterface() {
 
     setLoading(true)
     try {
+      const isoDate = new Date(formData.date + 'T00:00:00').toISOString()
       // Get the original data for creating the URL
       const originalRoomId = editingAssignment.room_id
       const originalDentistId = editingAssignment.dentist_id
@@ -200,7 +201,7 @@ export function RoomAssignmentInterface() {
       const payload = {
         room_id: editingAssignment.room_id,
         dentist_id: formData.dentist_id,
-        date: formData.date,
+        date: isoDate,
         time_from: formData.time_from,
         time_to: formData.time_to,
       }
