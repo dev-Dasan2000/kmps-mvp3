@@ -235,7 +235,7 @@ export default function AppointmentBooking() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setCalendarView("week")}>Week View</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCalendarView("week")}>Calendar View </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCalendarView("room")}>Room View</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCalendarView("list")}>List View</DropdownMenuItem>
               </DropdownMenuContent>
