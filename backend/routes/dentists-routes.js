@@ -140,4 +140,51 @@ router.delete('/:dentist_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
+//analytics - appointment counts for a dentist
+router.get('/appointment-counts/:dentist_id', /* authenticateToken, */ async (req, res) => {
+  try {
+    const dentistId = req.params.dentist_id;
+    const [total, completed, confirmed, pending, canceled] = await Promise.all([
+      prisma.appointments.count({ where: { dentist_id: dentistId } }),
+      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'COMPLETED' } }),
+      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'CONFIRMED' } }),
+      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'PENDING' } }),
+      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'CANCELED' } }),
+    ]);
+    res.json({ total, completed, confirmed, pending, canceled });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch appointment counts' });
+  }
+});
+
+//analytics - get earnings for a dentist
+router.get('/earnings/:dentist_id', /* authenticateToken, */ async (req, res) => {
+  try {
+    const dentistId = req.params.dentist_id;
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    const [totalAllTime, yearSum, monthSum, lastMonthSum] = await Promise.all([
+      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'COMPLETED' } }),
+      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'COMPLETED', date: { gte: startOfYear } } }),
+      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'COMPLETED', date: { gte: startOfMonth } } }),
+      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'COMPLETED', date: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
+    ]);
+    const toNumber = (value) => (value ? parseFloat(value.toString()) : 0);
+    res.json({
+      totalEarningsAllTime: toNumber(totalAllTime._sum.fee),
+      totalEarningsThisYear: toNumber(yearSum._sum.fee),
+      earningsThisMonth: toNumber(monthSum._sum.fee),
+      earningsLastMonth: toNumber(lastMonthSum._sum.fee),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch earnings' });
+  }
+});
+
+
 export default router;
