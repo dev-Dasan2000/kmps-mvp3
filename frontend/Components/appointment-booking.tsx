@@ -16,13 +16,18 @@ import { AuthContext } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import axios from "axios"
 
+// Helper function to get current date as string
+const getCurrentDateString = () => {
+  return new Date().toISOString().split("T")[0]
+}
+
 export default function AppointmentBooking() {
-  const [selectedDate, setSelectedDate] = useState("2025-06-10")
+  const [selectedDate, setSelectedDate] = useState(getCurrentDateString())
   const [viewMode, setViewMode] = useState<"day" | "week">("week")
   const [calendarView, setCalendarView] = useState<"week" | "room" | "list">("week")
   const [searchQuery, setSearchQuery] = useState("")
   const [calendarOpen, setCalendarOpen] = useState(false)
-  const [selectedWeekDate, setSelectedWeekDate] = useState("2025-06-10") // For week navigation
+  const [selectedWeekDate, setSelectedWeekDate] = useState(getCurrentDateString()) // For week navigation
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [dentists, setDentists] = useState<Dentist[]>([]);
 
