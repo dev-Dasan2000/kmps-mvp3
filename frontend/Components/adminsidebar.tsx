@@ -24,10 +24,8 @@ import Image from "next/image";
 import {
   LayoutGrid,
   KanbanSquare,
-  Ticket,
+  DoorOpen,
   ClipboardList,
-  BookText,
-  Users,
   UserCheck,
   Calendar,
 } from "lucide-react";
@@ -57,16 +55,21 @@ const items = [
     icon: User2,
   },
  
-   {
+  {
     title: "Payments",
     url: "/admin/payments",
     icon: KanbanSquare,
   },
-   {
+  {
     title: "Studies",
     url: "/admin/studies",
     icon: ClipboardList,
   },
+  {
+    title: "Add Rooms",
+    url: "/admin/rooms",
+    icon: DoorOpen,
+  }
 ];
 
 const AdminSidebar = () => {
