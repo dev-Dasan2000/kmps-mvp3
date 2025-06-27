@@ -167,27 +167,24 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
   };
 
   const monthlyEarningsChart = {
-    labels: ['Last Month', 'This Month', 'This Year', 'All Time'],
+    labels: ['Last Month', 'This Month',],
     datasets: [
       {
         label: 'Earnings ($)',
         data: [
           earningsData?.earningsLastMonth || 0,
           earningsData?.earningsThisMonth || 0,
-          earningsData?.totalEarningsThisYear || 0,
-          earningsData?.totalEarningsAllTime || 0
+         
         ],
         backgroundColor: [
           'rgba(16, 185, 129, 0.6)',
           'rgba(59, 130, 246, 0.6)',
-          'rgba(245, 158, 11, 0.6)',
-          'rgba(139, 92, 246, 0.6)'
+        
         ],
         borderColor: [
           'rgb(16, 185, 129)',
           'rgb(59, 130, 246)',
-          'rgb(245, 158, 11)',
-          'rgb(139, 92, 246)'
+        
         ],
         borderWidth: 2,
       }

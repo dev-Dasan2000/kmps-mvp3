@@ -62,9 +62,9 @@ export function RoomView({ weekDays, selectedDate, viewMode }: RoomViewProps) {
                 : "grid-cols-[80px_repeat(21,minmax(80px,1fr))] sm:grid-cols-[120px_repeat(21,minmax(100px,1fr))]"
             }`}
           >
-            <div className="p-2 sm:p-3 border-r">
+            {/*<div className="p-2 sm:p-3 border-r">
               <span className="text-xs sm:text-sm font-medium text-gray-600">Time</span>
-            </div>
+            </div>*/}
             {displayDays.map((day) => (
               <div key={day.date} className="col-span-3 border-r">
                 <div className="text-center p-2 sm:p-3 border-b bg-blue-50">
@@ -97,9 +97,7 @@ export function RoomView({ weekDays, selectedDate, viewMode }: RoomViewProps) {
               }`}
             >
               {/* Time Column */}
-              <div className="p-2 sm:p-4 border-r flex items-center bg-gray-50">
-                <span className="text-xs sm:text-sm font-medium text-gray-700">{timeSlot}</span>
-              </div>
+              
 
               {/* Room Slots for each day */}
               {displayDays.map((day) => (

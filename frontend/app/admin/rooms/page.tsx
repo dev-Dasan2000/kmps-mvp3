@@ -207,16 +207,22 @@ export default function RoomTable() {
   return (
     <div className="p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Manage Rooms</h1>
-          <Button
+         {/* Header */}
+                <div className="mb-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h1 className="text-3xl font-bold mt-7 md:mt-0 text-gray-900">Rooms</h1>
+                      <p className="text-gray-600 mt-1">Add and manage rooms</p>
+                    </div>
+                   <Button
             onClick={() => setAddDialogOpen(true)}
             className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2 w-full sm:w-auto"
           >
             <Plus size={20} />
             Add Room
           </Button>
-        </div>
+                  </div>
+                </div>
 
         {/* Search Bar */}
         <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
@@ -234,7 +240,7 @@ export default function RoomTable() {
         
         {loadingRooms ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
           </div>
         ) : (
           <>
@@ -242,7 +248,7 @@ export default function RoomTable() {
             <div className="hidden lg:block">
               <div className="overflow-hidden border border-gray-200 rounded-lg">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-emerald-50">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Room ID
