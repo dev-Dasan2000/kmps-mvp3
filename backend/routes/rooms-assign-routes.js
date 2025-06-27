@@ -62,7 +62,7 @@ router.post('/', async (req, res) => {
         dentist_id,
         date: new Date(date),
         time_from,
-        time_to,
+        time_to
       },
     });
 
@@ -85,8 +85,8 @@ router.put('/:room_id/:dentist_id/:date/:time_from/:time_to', /* authenticateTok
           room_id,
           dentist_id,
           date: new Date((date)),
-          time_from,
-          time_to
+          time_from: decodeURIComponent(time_from),
+          time_to: decodeURIComponent(time_to)
         },
       },
       data: updateData,
