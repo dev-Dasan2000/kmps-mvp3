@@ -146,10 +146,10 @@ router.get('/appointment-counts/:dentist_id', /* authenticateToken, */ async (re
     const dentistId = req.params.dentist_id;
     const [total, completed, confirmed, pending, canceled] = await Promise.all([
       prisma.appointments.count({ where: { dentist_id: dentistId } }),
-      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'COMPLETED' } }),
-      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'CONFIRMED' } }),
-      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'PENDING' } }),
-      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'CANCELED' } }),
+      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'completed' } }),
+      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'confirmed' } }),
+      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'pending' } }),
+      prisma.appointments.count({ where: { dentist_id: dentistId, status: 'canceled' } }),
     ]);
     res.json({ total, completed, confirmed, pending, canceled });
   } catch (error) {
@@ -168,10 +168,10 @@ router.get('/earnings/:dentist_id', /* authenticateToken, */ async (req, res) =>
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
     const [totalAllTime, yearSum, monthSum, lastMonthSum] = await Promise.all([
-      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'COMPLETED' } }),
-      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'COMPLETED', date: { gte: startOfYear } } }),
-      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'COMPLETED', date: { gte: startOfMonth } } }),
-      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'COMPLETED', date: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
+      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'completed' } }),
+      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'completed', date: { gte: startOfYear } } }),
+      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'completed', date: { gte: startOfMonth } } }),
+      prisma.appointments.aggregate({ _sum: { fee: true }, where: { dentist_id: dentistId, status: 'completed', date: { gte: startOfLastMonth, lte: endOfLastMonth } } }),
     ]);
     const toNumber = (value) => (value ? parseFloat(value.toString()) : 0);
     res.json({
