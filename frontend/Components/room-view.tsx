@@ -3,6 +3,9 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { mockRooms, mockAppointments, mockDentists, getDoctorColor } from "@/lib/mock-data"
 import type { DayOfWeek } from "@/types/dentist"
+import axios from "axios"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 interface RoomViewProps {
   weekDays: DayOfWeek[]
@@ -10,14 +13,50 @@ interface RoomViewProps {
   viewMode: "day" | "week"
 }
 
+interface RoomAssignment {
+  room_id: string
+  dentist:{dentist_id: string, name: string}
+  date: string
+  time_from: string
+  time_to: string
+}
+
 export function RoomView({ weekDays, selectedDate, viewMode }: RoomViewProps) {
-  const timeSlots = ["09:00", "09:30", "10:00"]
+  const timeSlots = ["09:00", "09:30", "10:00"];
+
+  const [loadingRoomAssignments, setLoadingRoomAssignments] = useState(false);
+  const [roomAssignments, setRoomAssignments] = useState<RoomAssignment[]>([]);
+
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  const fetchRoomAssignments = async () => {
+    setLoadingRoomAssignments(true);
+    try{
+      const response = await axios.get(
+        `${backendURL}/rooms-assign/`
+      );
+      if(response.status == 500){
+        throw new Error("Error fetching Room Assignments");
+      }
+      setRoomAssignments(response.data);
+    }
+    catch(err: any){
+      toast.error("Error",{description:err.message});
+    }
+    finally{
+      setLoadingRoomAssignments(false);
+    }
+  };
+
+  useEffect(()=>{
+    fetchRoomAssignments();
+  },[]);
 
   // Filter days based on view mode
   const displayDays = viewMode === "day" ? weekDays.filter((day) => day.date === selectedDate) : weekDays
 
   const getAppointmentForRoomAndTime = (roomId: string, date: string, time: string) => {
-    return mockAppointments.find((apt) => apt.room_id === roomId && apt.date === date && apt.time === time)
+    return mockAppointments.find((apt) => apt.room_id === roomId && apt.date === date && apt.time_from === time)
   }
 
   const getDentistInfo = (dentistId: string) => {
@@ -43,9 +82,9 @@ export function RoomView({ weekDays, selectedDate, viewMode }: RoomViewProps) {
         className={`h-16 sm:h-20 border-2 rounded p-1 sm:p-2 text-[10px] sm:text-xs cursor-pointer hover:shadow-md transition-shadow ${colorClass}`}
       >
         <div className="font-semibold truncate">{dentist?.name}</div>
-        <div className="font-medium truncate mt-1">{appointment.patient_name}</div>
-        <div className="text-[9px] sm:text-[10px] leading-tight truncate mt-1">{appointment.service}</div>
-        <div className="text-[9px] sm:text-[10px] mt-1">{appointment.duration}</div>
+        <div className="font-medium truncate mt-1">{appointment.patient.name}</div>
+        <div className="text-[9px] sm:text-[10px] leading-tight truncate mt-1">{appointment.note}</div>
+        <div className="text-[9px] sm:text-[10px] mt-1">{appointment.time_to}</div>
       </div>
     )
   }

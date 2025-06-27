@@ -43,7 +43,7 @@ router.post('/', async (req, res) => {
     const newBlockedDate = await prisma.blocked_dates.create({
       data: {
         dentist_id,
-        date,          // just pass as string
+        date,
         time_from,
         time_to,
       }
