@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { AuthContext } from '@/context/auth-context';
 import { Description } from '@radix-ui/react-dialog';
+import StorageCard from '@/Components/StorageCard';
 
 // Types based on the database structure
 interface Doctor {
@@ -791,26 +792,31 @@ const MedicalStudyInterface: React.FC = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-4 mb-6">
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="text-sm font-medium text-gray-600 mb-1">Total Studies</div>
-                <div className="text-3xl font-bold text-gray-900">{studies.length}</div>
-              </div>
-              <Calendar className="w-8 h-8 text-blue-500" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* Total Studies Card */}
+          <div className="bg-white rounded-lg p-6 shadow-sm flex items-center gap-4 justify-between">
+            <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center">
+              <Calendar className="w-7 h-7 text-blue-600" />
+            </div>
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="text-sm font-medium text-gray-600 mb-1">Total Studies</div>
+              <div className="text-3xl font-bold text-gray-900">{studies.length}</div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="text-sm font-medium text-gray-600 mb-1">Today's Scans</div>
-                <div className="text-3xl font-bold text-gray-900">{todayCount}</div>
-              </div>
-              <Clock className="w-8 h-8 text-green-500" />
+          {/* Today's Scans Card */}
+          <div className="bg-white rounded-lg p-6 shadow-sm flex items-center gap-4 justify-between">
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+              <Clock className="w-7 h-7 text-green-600" />
+            </div>
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="text-sm font-medium text-gray-600 mb-1">Today's Scans</div>
+              <div className="text-3xl font-bold text-gray-900">{todayCount}</div>
             </div>
           </div>
+
+          {/* Storage Usage Card */}
+          <StorageCard usedStorage={7.5} totalStorage={11} />
         </div>
 
         {/* Filters and Search */}
