@@ -2,12 +2,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, User, Mail, Phone, Upload, X, Camera } from 'lucide-react';
-import { Button } from '@/Components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/Components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
-import { Progress } from '@/Components/ui/progress';
-import { Alert, AlertDescription } from '@/Components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useRouter } from 'next/navigation';
 
 // Types

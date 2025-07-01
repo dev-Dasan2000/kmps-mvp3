@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useContext } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
-import { Badge } from '@/Components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Clock, Users, UserCheck, UserX, Activity } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';

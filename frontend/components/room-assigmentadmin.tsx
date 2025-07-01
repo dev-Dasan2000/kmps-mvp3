@@ -33,7 +33,7 @@ interface ExtendedRoomAssignment extends RoomAssignment {
   room_description?: string
 }
 
-export function RoomAssignmentInterface() {
+export function RoomAssignment() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL
   const [assignments, setAssignments] = useState<ExtendedRoomAssignment[]>([])
   const [filteredAssignments, setFilteredAssignments] = useState<ExtendedRoomAssignment[]>([])
@@ -339,19 +339,23 @@ export function RoomAssignmentInterface() {
   const selectedRoom = rooms.find((room) => room.room_id === selectedRoomId)
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Room Assignments</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Assign dentists to rooms by clicking the + button in each room column
-          </p>
-        </div>
-      </div>
+    <div className="p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header 
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 ">
+          <div>
+            <h1 className="text-2xl sm:text-3xl mt-7 md:mt-0 font-bold text-gray-900">
+              Appointments 
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
+              View and manage appointments.
+            </p>
+          </div>
+        </div>*/}
 
       {/* Filter and Date Selection */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
+         <div className="bg-white rounded-lg shadow-sm border p-4 md:mb-6 w-full">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
@@ -360,9 +364,13 @@ export function RoomAssignmentInterface() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
           />
+          </div>
         </div>
+        
 
-        <div className="flex gap-2">
+
+        <div className="bg-white rounded-lg shadow-sm border p-4 mb-6 flex gap-36 md:gap-2">
+          
           {/* Filter Dropdown */}
           <Select value={viewFilter} onValueChange={(value: "today" | "all") => setViewFilter(value)}>
             <SelectTrigger className="w-32">
@@ -373,6 +381,7 @@ export function RoomAssignmentInterface() {
               <SelectItem value="all">All</SelectItem>
             </SelectContent>
           </Select>
+          
 
           {/* Date Picker */}
           <Popover>
@@ -394,6 +403,8 @@ export function RoomAssignmentInterface() {
           </Popover>
         </div>
       </div>
+      
+      
 
       {/* Current View Indicator */}
       <div className="mb-4">
@@ -724,6 +735,7 @@ export function RoomAssignmentInterface() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
     </div>
   )
 }

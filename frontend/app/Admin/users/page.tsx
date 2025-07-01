@@ -1,14 +1,14 @@
 "use client";
 import { use, useContext, useEffect, useState } from "react";
-import { Button } from "@/Components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Search, Plus, User, Phone, Mail, UserCheck, BarChart3 } from "lucide-react";
-import ViewUserDialog from "@/Components/ViewUserDialog";
-import InviteUserDialog from "@/Components/InviteUserDialog";
+import ViewUserDialog from "@/components/ViewUserDialog";
+import InviteUserDialog from "@/components/InviteUserDialog";
 import axios from "axios";
 import { AuthContext } from "@/context/auth-context";
 import { useRouter } from 'next/navigation';
 import {toast} from 'sonner';
-import DoctorPerformanceDashboard from "@/Components/DoctorPerformance";
+import DoctorPerformanceDashboard from "@/components/DoctorPerformance";
 
 type Role = "Dentist" | "Receptionist" | "Radiologist";
 

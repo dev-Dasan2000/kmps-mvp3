@@ -114,7 +114,6 @@ const sendAppointmentCancelation = async (email, date, start_time, provider) => 
   
     try {
       const info = await transporter.sendMail(mailOptions);
-      console.log(info);
       return info;
     } catch (error) {
       console.error(`Error sending appointment cancellation to ${email}:`, error);
@@ -148,7 +147,6 @@ const sendAppointmentCancelation = async (email, date, start_time, provider) => 
   
     try {
       const info = await transporter.sendMail(mailOptions);
-      console.log(info);
       return info;
     } catch (error) {
       console.error(`Error sending account creation invite to ${email}:`, error);
@@ -178,7 +176,6 @@ const sendAppointmentCancelation = async (email, date, start_time, provider) => 
   
     try {
       const info = await transporter.sendMail(mailOptions);
-      console.log(info);
       return info;
     } catch (error) {
       console.error(`Error sending account creation notice to ${email}:`, error);
@@ -209,7 +206,6 @@ const sendAppointmentCancelation = async (email, date, start_time, provider) => 
   
     try {
       const info = await transporter.sendMail(mailOptions);
-      console.log(info);
       return info;
     } catch (error) {
       console.error(`Error sending account creation notice to ${email}:`, error);

@@ -1,13 +1,14 @@
 "use client";
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Calendar, Users, UserCheck, CreditCard, TrendingUp, Activity, MoreHorizontal, Router } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
-import { Badge } from '@/Components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import * as Chart from 'chart.js';
 import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+
 
 
 // Register Chart.js components - including DoughnutController
@@ -79,6 +80,10 @@ const DentalDashboard: React.FC = () => {
     monthlyRevenue: 0,
     pendingAppointments: 0
   });
+  // Time period state for filtering
+  type TimePeriod = 'overall' | 'day' | 'week' | 'month';
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('overall');
+  const [allAppointments, setAllAppointments] = useState<any[]>([]);
   const [appointmentStatus, setAppointmentStatus] = useState<AppointmentStatus[]>([
     { name: 'Completed', value: 0, color: '#10B981' },
     { name: 'Pending', value: 0, color: '#F59E0B' },
@@ -126,35 +131,64 @@ const DentalDashboard: React.FC = () => {
     }
   }
 
-  const fetchAppointmentCounts = async () => {
+  const fetchAllAppointments = async () => {
     setLoadingAppointmentCounts(true);
     try {
-      const [pendingRes, completedRes, confirmedRes] = await Promise.all([
-        axios.get(`${backendURL}/appointments/pending-count`),
-        axios.get(`${backendURL}/appointments/completed-count`),
-        axios.get(`${backendURL}/appointments/confirmed-count`),
-        
-      ]);
-
-      if (
-        pendingRes.status === 500 ||
-        completedRes.status === 500 ||
-        confirmedRes.status === 500
-      ) {
-        throw new Error("Internal Server Error");
+      const response = await axios.get(`${backendURL}/appointments`);
+      if (response.status === 200) {
+        setAllAppointments(response.data);
+        // Don't call filterAppointmentsByPeriod here to avoid race condition
+      } else {
+        throw new Error("Failed to fetch appointments");
       }
-
-      setAppointmentStatus([
-        { name: 'Completed', value: completedRes.data, color: '#10B981' },
-        { name: 'Pending', value: pendingRes.data, color: '#F59E0B' },
-        { name: 'Confirmed', value: confirmedRes.data, color: '#3B82F6' },
-      
-      ]);
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message || "Error fetching appointments");
     } finally {
       setLoadingAppointmentCounts(false);
     }
+  };
+
+  const filterAppointmentsByPeriod = (period: TimePeriod) => {
+    let filteredAppointments = [...allAppointments];
+    
+    if (period !== 'overall') {
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (period) {
+        case 'day':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+
+      filteredAppointments = allAppointments.filter(appointment => {
+        const appointmentDate = new Date(appointment.date);
+        return appointmentDate >= startDate && appointmentDate <= now;
+      });
+    }
+
+    // Count appointments by status
+    const counts = filteredAppointments.reduce((acc, appointment) => {
+      acc[appointment.status] = (acc[appointment.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    setAppointmentStatus([
+      { name: 'Completed', value: counts['completed'] || 0, color: '#10B981' },
+      { name: 'Pending', value: counts['pending'] || 0, color: '#F59E0B' },
+      { name: 'Confirmed', value: counts['confirmed'] || 0, color: '#3B82F6' },
+    ]);
+  };
+
+  const handleTimePeriodChange = (period: TimePeriod) => {
+    setTimePeriod(period);
+    filterAppointmentsByPeriod(period);
   };
 
   const fetchPaymentTrends = async () => {
@@ -176,10 +210,16 @@ const DentalDashboard: React.FC = () => {
     }
   }
 
+  // Initial data fetch
   useEffect(() => {
-    fetchMainCounts();
-    fetchAppointmentCounts();
-    fetchPaymentTrends();
+    const loadData = async () => {
+      await Promise.all([
+        fetchMainCounts(),
+        fetchAllAppointments(),
+        fetchPaymentTrends()
+      ]);
+    };
+    loadData();
   }, []);
 
   useEffect(()=>{
@@ -489,6 +529,25 @@ const DentalDashboard: React.FC = () => {
     }
   }, [paymentTrends, loadingPaymentTrends]);
 
+  // Update charts when data changes
+  useEffect(() => {
+    updatePieChart();
+    updateLineChart();
+    updateBarChart();
+  }, [appointmentStatus, paymentTrends, timePeriod]);
+
+  // Initial chart setup
+  useEffect(() => {
+    // This will run once when the component mounts
+    const timer = setTimeout(() => {
+      if (allAppointments.length > 0) {
+        filterAppointmentsByPeriod('overall');
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [allAppointments]);
+
   // Initialize bar chart (since serviceTypes is static)
   useEffect(() => {
     updateBarChart();
@@ -505,83 +564,114 @@ const DentalDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 overflow-auto">
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
         {/* Header */}
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl mt-6 md:mt-0 font-bold tracking-tight text-gray-900">
+            <h1 className="text-2xl sm:text-3xl mt-7 md:mt-0 font-bold text-gray-900">
               Dental Clinic Dashboard
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
               Welcome back! Here's what's happening with your appointment system.
             </p>
           </div>
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
           {metricCards.map((metric, index) => {
             const IconComponent = metric.icon;
             return (
-              <Card key={index} className="hover:shadow-md transition-shadow">
-                <CardContent className="flex items-center justify-between p-6">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-600">
+              <Card key={index} className="hover:shadow-md transition-shadow h-full">
+                <CardContent className="flex items-center justify-between p-3 sm:p-4 md:p-6">
+                  <div className="space-y-1 sm:space-y-2">
+                    <p className="text-xs xs:text-sm font-medium text-gray-600 truncate">
                       {metric.title}
                     </p>
-                    <p className="text-lg font-bold text-gray-900">
+                    <p className="text-base sm:text-lg font-bold text-gray-900">
                       {metric.value}
                     </p>
                   </div>
-                  <IconComponent className={`h-8 w-8 ${metric.color}`} />
+                  <IconComponent className={`h-6 w-6 sm:h-7 sm:w-7 ${metric.color}`} />
                 </CardContent>
               </Card>
             );
           })}
+        
         </div>
 
         {/* Main Analytics Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
           {/* Left Side - Appointment Status Analytics */}
           <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <div className="flex items-center justify-between">
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <CardTitle className="text-xl">Appointment Status</CardTitle>
-                  <CardDescription className="mt-1">
+                  <CardTitle className="text-lg sm:text-xl">Appointment Status</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     Distribution of appointment statuses
                   </CardDescription>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                  <Badge variant="secondary" className="text-xs">
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                  <Badge variant="secondary" className="text-[10px] sm:text-xs">
                     {loadingAppointmentCounts ? 'Loading...' : 'Live Data'}
                   </Badge>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="h-80 mb-6 flex items-center justify-center">
+            <CardContent className="p-4 sm:p-6 pt-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <h3 className="text-base sm:text-lg font-medium">Appointment Status</h3>
+                <div className="flex flex-wrap gap-1 sm:gap-2">
+                  <button
+                    onClick={() => handleTimePeriodChange('overall')}
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md whitespace-nowrap ${timePeriod === 'overall' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                  >
+                    Overall
+                  </button>
+                  <button
+                    onClick={() => handleTimePeriodChange('day')}
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md whitespace-nowrap ${timePeriod === 'day' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                  >
+                    Day
+                  </button>
+                  <button
+                    onClick={() => handleTimePeriodChange('week')}
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md whitespace-nowrap ${timePeriod === 'week' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                  >
+                    Week
+                  </button>
+                  <button
+                    onClick={() => handleTimePeriodChange('month')}
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded-md whitespace-nowrap ${timePeriod === 'month' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                  >
+                    Month
+                  </button>
+                </div>
+              </div>
+              <div className="mt-6 h-60 sm:h-72 md:h-80 mb-4 sm:mb-6 flex items-center justify-center">
                 {loadingAppointmentCounts ? (
-                  <div className="text-gray-500">Loading chart...</div>
+                  <div className="text-sm sm:text-base text-gray-500">Loading chart...</div>
                 ) : (
-                  <canvas ref={pieChartRef} className="max-w-full max-h-full"></canvas>
+                  <canvas ref={pieChartRef} className="max-w-full max-h-full w-full"></canvas>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {appointmentStatus.map((status, index) => (
                   <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: status.color }}
                     />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
+                    
+                    <div className="min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                         {status.name}
                       </p>
                       <p className="text-xs text-gray-600">
-                        {status.value} appointments
+                        {status.value} {status.value === 1 ? 'appointment' : 'appointments'}
                       </p>
                     </div>
                   </div>

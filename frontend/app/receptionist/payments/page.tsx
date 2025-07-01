@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Calendar, DollarSign, User, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/Components/ui/card';
-import { Badge } from '@/Components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/Components/ui/avatar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import axios from 'axios';
 import { toast } from 'sonner';
 

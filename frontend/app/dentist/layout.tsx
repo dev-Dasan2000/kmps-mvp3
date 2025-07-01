@@ -1,10 +1,10 @@
 "use client"
 
-import DoctorHeader from "@/Components/Doctorheader"
-import DoctorSidebar from "@/Components/Doctorsidebar"
-import PatientHeader from "@/Components/patientHeader"
+import DoctorHeader from "@/components/Doctorheader"
+import DoctorSidebar from "@/components/Doctorsidebar"
+import PatientHeader from "@/components/patientHeader"
 
-import { SidebarProvider } from "@/Components/ui/sidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
 import { usePathname } from "next/navigation"
 import type React from "react"
 

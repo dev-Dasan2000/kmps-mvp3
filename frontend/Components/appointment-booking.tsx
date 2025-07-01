@@ -2,16 +2,16 @@
 
 import { useContext, useEffect, useState } from "react"
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, Search, Filter, CalendarIcon } from "lucide-react"
-import { Button } from "@/Components/ui/button"
-import { Input } from "@/Components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/Components/ui/dropdown-menu"
-import { Popover, PopoverContent, PopoverTrigger } from "@/Components/ui/popover"
-import { Calendar as CalendarComponent } from "@/Components/ui/calendar"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { DoctorScheduleColumn } from "./doctor-schedule-column"
 import { RoomView } from "./room-view"
 import { ListView } from "./list-view"
 import { Dentist, type DayOfWeek } from "@/types/dentist"
-import { AppointmentDialog } from '@/Components/AppointmentDialog'
+import { AppointmentDialog } from '@/components/AppointmentDialog'
 import { AuthContext } from "@/context/auth-context"
 import { useRouter } from "next/navigation"
 import axios from "axios"

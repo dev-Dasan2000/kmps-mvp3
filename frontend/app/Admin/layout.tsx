@@ -1,7 +1,7 @@
 "use client"
 
-import AdminSidebar from "@/Components/adminsidebar"
-import { SidebarProvider } from "@/Components/ui/sidebar"
+import AdminSidebar from "@/components/adminsidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
 import { usePathname } from "next/navigation"
 import type React from "react"
 

@@ -5,10 +5,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/Components/ui/dialog";
-import { Input } from "@/Components/ui/input";
-import { Button } from "@/Components/ui/button";
-import { Label } from "@/Components/ui/label";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import axios from "axios";
 import {
   Select,
@@ -16,7 +16,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/Components/ui/select"
+} from "@/components/ui/select"
 import { toast } from "sonner";
 
 interface Props {

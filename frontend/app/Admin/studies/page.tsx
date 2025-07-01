@@ -4,8 +4,7 @@ import { Calendar, Clock, Plus, Search, MoreHorizontal, X, Upload, FileText, Edi
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { AuthContext } from '@/context/auth-context';
-import { Description } from '@radix-ui/react-dialog';
-import StorageCard from '@/Components/StorageCard';
+import StorageCard from '@/components/StorageCard';
 
 // Types based on the database structure
 interface Doctor {
@@ -816,7 +815,7 @@ const MedicalStudyInterface: React.FC = () => {
           </div>
 
           {/* Storage Usage Card */}
-          <StorageCard usedStorage={7.5} totalStorage={11} />
+          <StorageCard/>
         </div>
 
         {/* Filters and Search */}

@@ -2,13 +2,13 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useContext, useEffect, useMemo, useState } from "react";
-import { Button } from "@/Components/ui/button";
-import { Card } from "@/Components/ui/card";
-import { Calendar } from "@/Components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
 import { AuthContext } from '@/context/auth-context';
 import { toast } from "sonner";
 import axios from "axios";
-import CustomCalendar from "@/Components/CustomCalendar"
+import CustomCalendar from "@/components/CustomCalendar"
 
 import {
   Dialog,
@@ -16,8 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/Components/ui/dialog";
-import { Textarea } from "@/Components/ui/textarea";
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Dentist {
   dentist_id: string;

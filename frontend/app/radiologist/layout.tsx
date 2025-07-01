@@ -1,10 +1,10 @@
 "use client";
 
-import { SidebarProvider } from "@/Components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
 import type React from "react";
-import RadiologistSidebar from "@/Components/Radiologistsidebar";
-import RadiologistHeader from "@/Components/Radiologistheader";
+import RadiologistSidebar from "@/components/Radiologistsidebar";
+import RadiologistHeader from "@/components/Radiologistheader";
 
 export default function RadiologistLayout({
   children,

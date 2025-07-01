@@ -5,7 +5,7 @@ import { User, Mail, Phone, Lock, Shield, Camera, X } from 'lucide-react';
 import axios from 'axios';
 import { AuthContext } from '@/context/auth-context';
 import { toast } from 'sonner';
-import { Button } from "@/Components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 interface ClientData {

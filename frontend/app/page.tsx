@@ -2,11 +2,11 @@
 
 import { useRouter } from 'next/navigation';
 import React, { useContext, useEffect, useState } from 'react';
-import { LoadingButton } from "@/Components/ui/loading-button"
-import { Input } from "@/Components/ui/input"
-import { Label } from "@/Components/ui/label"
-import { Checkbox } from "@/Components/ui/checkbox"
-import { Card, CardContent, CardHeader } from "@/Components/ui/card"
+import { LoadingButton } from "@/components/ui/loading-button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import Link from "next/link"
 import Image from 'next/image';
 import { AuthContext } from '@/context/auth-context';

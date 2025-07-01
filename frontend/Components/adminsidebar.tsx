@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState, useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, LogOut, Settings, User2, Menu, X } from "lucide-react";
+import { BarChart3, LogOut, Settings, User2, Menu, X, Ticket } from "lucide-react";
 import { AuthContext } from "@/context/auth-context";
 import { toast } from "sonner";
 import Logo from "@/app/logo.png";
@@ -18,7 +18,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
-} from "@/Components/ui/sidebar";
+} from "@/components/ui/sidebar";
 
 import Image from "next/image";
 import {
@@ -29,7 +29,7 @@ import {
   UserCheck,
   Calendar,
 } from "lucide-react";
-import { Button } from "@/Components/ui/button";
+import { Button } from "@/components/ui/button";
 import axios from "axios";
 
 const items = [
@@ -66,10 +66,16 @@ const items = [
     icon: ClipboardList,
   },
   {
+    title: "Room Assignments",
+    url: `/admin/room-assignments`,
+    icon: Ticket,
+  },
+  {
     title: "Add Rooms",
     url: "/admin/rooms",
     icon: DoorOpen,
-  }
+  },
+  
 ];
 
 const AdminSidebar = () => {

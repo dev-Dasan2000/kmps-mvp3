@@ -14,8 +14,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/Components/ui/sidebar";
-import { Button } from "@/Components/ui/button";
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import {
   LayoutGrid,
   FileText,

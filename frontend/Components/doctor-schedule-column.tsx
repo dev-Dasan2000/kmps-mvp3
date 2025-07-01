@@ -1,8 +1,8 @@
 "use client"
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/Components/ui/avatar"
-import { Card, CardContent, CardHeader } from "@/Components/ui/card"
-import { Badge } from "@/Components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { generateDentistTimeSlots, isDentistWorkingDay, mockAppointments } from "@/lib/mock-data"
 import type { Dentist, Appointment, DayOfWeek } from "@/types/dentist"
 import { AuthContext } from "@/context/auth-context"

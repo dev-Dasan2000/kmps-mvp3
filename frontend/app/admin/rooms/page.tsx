@@ -1,6 +1,6 @@
 "use client";
 import { useContext, useEffect, useState } from "react";
-import { Button } from "@/Components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Search, Plus } from "lucide-react";
 import axios from "axios";
 import { AuthContext } from "@/context/auth-context";
@@ -13,9 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose
-} from "@/Components/ui/dialog";
-import { Input } from "@/Components/ui/input";
-import { Label } from "@/Components/ui/label";
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Room {
   room_id: string;

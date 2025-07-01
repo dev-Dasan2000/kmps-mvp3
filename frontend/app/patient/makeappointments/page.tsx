@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, use, useContext } from "react";
-import { Card } from "@/Components/ui/card";
-import { Button } from "@/Components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Filter, Search, MapPin, Clock, DollarSign } from "lucide-react";
 import { useRouter } from "next/navigation";
 import axios from "axios";

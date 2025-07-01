@@ -1,9 +1,9 @@
 "use client"
 
 
-import ReceptionistHeader from "@/Components/receptionistHeader"
-import ReceptionistSidebar from "@/Components/receptionistsidebar"
-import { SidebarProvider } from "@/Components/ui/sidebar"
+import ReceptionistHeader from "@/components/receptionistHeader"
+import ReceptionistSidebar from "@/components/receptionistsidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
 import { usePathname } from "next/navigation"
 import type React from "react"
 

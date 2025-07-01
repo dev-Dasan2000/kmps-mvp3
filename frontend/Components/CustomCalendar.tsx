@@ -70,8 +70,9 @@ export default function CustomCalendar({ selectedDate, onSelect, modifiers = {} 
   const renderDays = () => {
     const dateFormat = 'EEE';
     const days = [];
-    const startDate = new Date(currentMonth);
-    startDate.setDate(1);
+    // Create a date set to Sunday (0) of the current week
+    const startOfWeek = new Date(currentMonth);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
 
     for (let i = 0; i < 7; i++) {
       days.push(
@@ -79,7 +80,7 @@ export default function CustomCalendar({ selectedDate, onSelect, modifiers = {} 
           key={i}
           className="text-gray-500 text-sm font-medium text-center w-12 h-12 flex items-center justify-center"
         >
-          {format(addDays(startDate, i), dateFormat)}
+          {format(addDays(startOfWeek, i), dateFormat)}
         </div>
       );
     }

@@ -89,17 +89,115 @@ interface Props {
 export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
   const [activeTab, setActiveTab] = useState<'overview' | 'charts' | 'profile'>('overview');
   const [appointmentCounts, setAppointmentCounts] = useState<AppointmentCounts | null>(null);
+  const [allAppointments, setAllAppointments] = useState<any[]>([]);
+  const [filteredAppointments, setFilteredAppointments] = useState<any[]>([]);
   const [earningsData, setEarningsData] = useState<EarningsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [timePeriod, setTimePeriod] = useState<'overall' | 'day' | 'week' | 'month'>('overall');
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  // Fetch appointment counts and earnings data
+  // Fetch all appointments for filtering
+  const fetchAllAppointments = async () => {
+    if (!user) return;
+    
+    try {
+      // Try to fetch all appointments first
+      const response = await fetch(`${backendURL}/appointments`);
+      if (!response.ok) throw new Error('Failed to fetch appointments');
+      const allAppointments = await response.json();
+      
+      // Filter appointments by dentist ID
+      const dentistAppointments = allAppointments.filter(
+        (appt: any) => appt.dentist_id === user.id || appt.dentistId === user.id
+      );
+      
+      setAllAppointments(dentistAppointments);
+    } catch (err) {
+      console.error('Error fetching appointments:', err);
+      // Set empty arrays if there's an error
+      setAllAppointments([]);
+      setFilteredAppointments([]);
+    }
+  };
+
+  // Filter appointments based on time period
+  const filterAppointmentsByPeriod = (period: 'overall' | 'day' | 'week' | 'month') => {
+    if (!allAppointments || allAppointments.length === 0) {
+      setAppointmentCounts({
+        total: 0,
+        completed: 0,
+        confirmed: 0,
+        pending: 0,
+        canceled: 0
+      });
+      return;
+    }
+    
+    let filtered = [...allAppointments];
+    
+    if (period !== 'overall') {
+      const now = new Date();
+      const startDate = new Date();
+      
+      switch (period) {
+        case 'day':
+          startDate.setDate(now.getDate() - 1);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+      
+      filtered = allAppointments.filter(appointment => {
+        const appointmentDate = new Date(appointment.date);
+        return appointmentDate >= startDate && appointmentDate <= now;
+      });
+    }
+    
+    setFilteredAppointments(filtered);
+    updateAppointmentCounts(filtered);
+  };
+  
+  // Update appointment counts based on filtered appointments
+  const updateAppointmentCounts = (appointments: any[]) => {
+    const counts = {
+      total: appointments.length,
+      completed: appointments.filter(a => a.status === 'completed').length,
+      confirmed: appointments.filter(a => a.status === 'confirmed').length,
+      pending: appointments.filter(a => a.status === 'pending').length,
+      canceled: appointments.filter(a => a.status === 'canceled').length
+    };
+    
+    setAppointmentCounts(counts);
+  };
+
+  // Handle time period change
+  const handleTimePeriodChange = (period: 'overall' | 'day' | 'week' | 'month') => {
+    setTimePeriod(period);
+    filterAppointmentsByPeriod(period);
+  };
+
+  // Initialize component
   useEffect(() => {
     if (user && user.role === 'Dentist') {
-      fetchDentistData();
+      const loadData = async () => {
+        await fetchDentistData();
+        await fetchAllAppointments();
+      };
+      loadData();
     }
   }, [user]);
+  
+  // Apply filter whenever appointments or time period changes
+  useEffect(() => {
+    if (allAppointments.length > 0) {
+      filterAppointmentsByPeriod(timePeriod);
+    }
+  }, [allAppointments, timePeriod]);
 
   const fetchDentistData = async () => {
     if (!user) return;
@@ -108,15 +206,7 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
     setError(null);
     
     try {
-      // Fetch appointment counts
-      const appointmentResponse = await fetch(`${backendURL}/dentists/appointment-counts/${user.id}`);
-      if (!appointmentResponse.ok) {
-        throw new Error('Failed to fetch appointment data');
-      }
-      const appointmentData = await appointmentResponse.json();
-      setAppointmentCounts(appointmentData);
-
-      // Fetch earnings data
+      // Fetch earnings data (we'll handle appointment counts client-side)
       const earningsResponse = await fetch(`${backendURL}/dentists/earnings/${user.id}`);
       if (!earningsResponse.ok) {
         throw new Error('Failed to fetch earnings data');
@@ -330,8 +420,8 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
             />
             <MetricCard
               icon={<Clock className="w-8 h-8" />}
-              title="Pending"
-              value={appointmentCounts?.pending || 0}
+              title="Confirmed"
+              value={appointmentCounts?.confirmed || 0}
               subtitle="Appointments"
               color="text-yellow-600"
             />
@@ -394,8 +484,36 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
           {/* Appointment Status and Earnings */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
             <Card className="border border-gray-200 hover:shadow-lg transition-shadow duration-200">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg lg:text-xl font-semibold">Appointment Status Distribution</CardTitle>
+              <CardHeader className="pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <CardTitle className="text-lg lg:text-xl font-semibold">Appointment Status Distribution</CardTitle>
+                  <div className="flex space-x-1">
+                    <button
+                      onClick={() => handleTimePeriodChange('day')}
+                      className={`px-2 py-1 text-xs rounded-md ${timePeriod === 'day' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                    >
+                      Day
+                    </button>
+                    <button
+                      onClick={() => handleTimePeriodChange('week')}
+                      className={`px-2 py-1 text-xs rounded-md ${timePeriod === 'week' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                    >
+                      Week
+                    </button>
+                    <button
+                      onClick={() => handleTimePeriodChange('month')}
+                      className={`px-2 py-1 text-xs rounded-md ${timePeriod === 'month' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                    >
+                      Month
+                    </button>
+                    <button
+                      onClick={() => handleTimePeriodChange('overall')}
+                      className={`px-2 py-1 text-xs rounded-md ${timePeriod === 'overall' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'}`}
+                    >
+                      Overall
+                    </button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="h-64 sm:h-72 lg:h-80">
@@ -436,7 +554,7 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
                 <div className="text-center p-4 bg-yellow-50 rounded-lg">
                   <Clock className="w-8 h-8 text-yellow-600 mx-auto mb-2" />
                   <div className="text-2xl font-bold text-yellow-600">{appointmentCounts?.confirmed || 0}</div>
-                  <div className="text-sm text-gray-600">Pending</div>
+                  <div className="text-sm text-gray-600">Confirmed</div>
                 </div>
                 <div className="text-center p-4 bg-red-50 rounded-lg">
                   <XCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
@@ -607,6 +725,7 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
               <TrendingUp className="w-4 h-4" />
               <span className="hidden sm:inline">Charts</span>
             </Button>
+            
             <Button
              // variant={activeTab === 'profile' ? 'default' : 'outline'}
               size="sm"

@@ -1,4 +1,4 @@
-import { RoomAssignmentInterface } from '@/Components/room-assignment'
+import { RoomAssignmentInterface } from '@/components/room-assignment'
 import React from 'react'
 
 const page = () => {
