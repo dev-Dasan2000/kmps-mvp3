@@ -273,7 +273,95 @@ const sendAppointmentCancelation = async (email, date, start_time, provider, can
     }
 };
 
+const sendMedicalImageAddedNotice = async (email, date, patientName) => {
+  const mailOptions = {
+      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'New Medical Image Added – Kinross Dental Clinic',
+      html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px; background-color: #ffffff;">
+              <h2 style="color: #4CAF50;">Medical Image Uploaded</h2>
+              <p>Dear ${patientName},</p>
+              <p>We would like to inform you that a new medical image has been added to your record on <strong>${date}</strong>.</p>
+              <p>You can view this image by logging into your patient portal.</p>
 
-  
+              <p>If you have any questions or concerns, feel free to contact our team.</p>
 
-export {sendVerificationCode, sendAppointmentConfirmation, sendAppointmentCancelation, sendAccountCreationInvite, sendAccountCreationNotice, sendAccountCreationNoticeWithPassword, sendReminder};
+              <p>Best regards,<br><strong>Kinross Dental Clinic Team</strong></p>
+              <hr style="margin-top: 40px;">
+              <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | kinrossdentalclinic.com</p>
+          </div>
+      `,
+  };
+
+  try {
+      const info = await transporter.sendMail(mailOptions);
+      return info;
+  } catch (error) {
+      console.error(`Error sending image upload notice to ${email}:`, error);
+      throw new Error(`Failed to send medical image notice: ${error.message}`);
+  }
+};
+
+const sendMedicalReportAddedNotice = async (email, date, patientName) => {
+  const mailOptions = {
+      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'New Medical Report Added – Kinross Dental Clinic',
+      html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px; background-color: #ffffff;">
+              <h2 style="color: #4CAF50;">Medical Report Uploaded</h2>
+              <p>Dear ${patientName?? "user"},</p>
+              <p>A new medical report has been uploaded to your patient record on <strong>${date}</strong>.</p>
+              <p>You may view this report by logging into your patient portal.</p>
+
+              <p>If you need further clarification or assistance, don’t hesitate to reach out.</p>
+
+              <p>Best regards,<br><strong>Kinross Dental Clinic Team</strong></p>
+              <hr style="margin-top: 40px;">
+              <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | kinrossdentalclinic.com</p>
+          </div>
+      `,
+  };
+
+  try {
+      const info = await transporter.sendMail(mailOptions);
+      return info;
+  } catch (error) {
+      console.error(`Error sending report upload notice to ${email}:`, error);
+      throw new Error(`Failed to send medical report notice: ${error.message}`);
+  }
+};
+
+const sendMedicalImageAndReportAddedNotice = async (email, date, patientName) => {
+  const mailOptions = {
+      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: 'Medical Image and Report Added – Kinross Dental Clinic',
+      html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px; background-color: #ffffff;">
+              <h2 style="color: #4CAF50;">Medical Image & Report Uploaded</h2>
+              <p>Dear ${patientName},</p>
+              <p>We have added both a new medical image and its corresponding report to your records on <strong>${date}</strong>.</p>
+              <p>Please log in to your patient portal to review the new information at your convenience.</p>
+
+              <p>For questions or assistance, our team is always here to help.</p>
+
+              <p>Best regards,<br><strong>Kinross Dental Clinic Team</strong></p>
+              <hr style="margin-top: 40px;">
+              <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | kinrossdentalclinic.com</p>
+          </div>
+      `,
+  };
+
+  try {
+      const info = await transporter.sendMail(mailOptions);
+      return info;
+  } catch (error) {
+      console.error(`Error sending combined image/report notice to ${email}:`, error);
+      throw new Error(`Failed to send medical image and report notice: ${error.message}`);
+  }
+};
+
+
+export {sendVerificationCode, sendAppointmentConfirmation, sendAppointmentCancelation, sendAccountCreationInvite, sendAccountCreationNotice, sendAccountCreationNoticeWithPassword, sendReminder, sendMedicalImageAddedNotice, sendMedicalReportAddedNotice, sendMedicalImageAndReportAddedNotice};

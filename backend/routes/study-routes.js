@@ -1,5 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { sendMedicalImageAndReportAddedNotice, sendMedicalImageAddedNotice, sendMedicalReportAddedNotice } from '../utils/mailer.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -118,10 +119,11 @@ router.get('/dentist/:dentist_id', /* authenticateToken, */ async (req, res) => 
 });
 
 // Create a new study
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const data = { ...req.body };
     console.debug(data);
+
     const newStudy = await prisma.study.create({
       data,
       include: {
@@ -131,6 +133,26 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
       }
     });
 
+    const patientEmail = newStudy?.patient?.email;
+    const patientName = newStudy?.patient?.name;
+    const formattedDate = new Date(data.date).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+    if (patientEmail && patientName) {
+      try {
+        if (data.report_id && data.dicom_file_url) {
+          await sendMedicalImageAndReportAddedNotice(patientEmail, formattedDate, patientName);
+        } else if (!data.report_id && data.dicom_file_url) {
+          await sendMedicalImageAddedNotice(patientEmail, formattedDate, patientName);
+        } else if (data.report_id && !data.dicom_file_url) {
+          await sendMedicalReportAddedNotice(patientEmail, formattedDate, patientName);
+        }
+      } catch (emailErr) {
+        console.error('Failed to send email notice:', emailErr);
+      }
+    }
+
     res.status(201).json(newStudy);
   } catch (error) {
     console.error('Error creating study:', error);
@@ -138,59 +160,54 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-// Update a study
-router.put('/:study_id', /* authenticateToken, */ async (req, res) => {
+
+router.put('/:study_id', async (req, res) => {
   try {
     const studyId = parseInt(req.params.study_id);
-    console.debug("put method called");
+    console.debug("PUT method called");
     console.debug(req.body);
-    // Extract custom assignment fields
-    const { radiologist_id, doctor_ids, ...rest } = req.body;
 
-    // Build Prisma-compatible update payload
-    /** @type {import('@prisma/client').Prisma.studyUpdateInput} */
+    const { radiologist_id, doctor_ids, ...rest } = req.body;
     const updateData = { ...rest };
 
-    // Handle radiologist assignment (nullable)
     if (radiologist_id !== undefined) {
-      if (radiologist_id === null || radiologist_id === '') {
-        updateData.radiologist = { disconnect: true };
-      } else {
-        updateData.radiologist = {
-          connect: { radiologist_id } // ✅ no conversion
-        };
-      }
+      updateData.radiologist = radiologist_id ? {
+        connect: { radiologist_id }
+      } : { disconnect: true };
     }
 
-    // Handle dentists assignment through junction table DentistAssign
     if (Array.isArray(doctor_ids)) {
-      if (doctor_ids.length === 0) {
-        // User cleared all dentists
-        updateData.dentistAssigns = { deleteMany: {} };
-      } else {
-        // Replace existing dentists with provided list
-        updateData.dentistAssigns = {
-          deleteMany: {},
-          create: doctor_ids.map((dentistId) => ({
-            dentist: { connect: { dentist_id: dentistId.toString() } }
-          }))
-        };
-      }
+      updateData.dentistAssigns = doctor_ids.length === 0
+        ? { deleteMany: {} }
+        : {
+            deleteMany: {},
+            create: doctor_ids.map((dentistId) => ({
+              dentist: { connect: { dentist_id: dentistId.toString() } }
+            }))
+          };
     }
 
-    // Update study
     const updatedStudy = await prisma.study.update({
       where: { study_id: studyId },
       data: updateData,
       include: {
         radiologist: true,
-        dentistAssigns: {
-          include: {
-            dentist: true
-          }
-        }
+        dentistAssigns: { include: { dentist: true } },
+        patient: true
       }
     });
+
+    if (rest.report_id && updatedStudy.patient?.email) {
+      try {
+        const formattedDate = new Date(updatedStudy.date).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        });
+        await sendMedicalReportAddedNotice(updatedStudy.patient.email, formattedDate, updatedStudy.patient.name);
+      } catch (err) {
+        console.error("Error sending email:", err);
+      }
+    }
+
     console.debug("Updated successfully");
     res.json(updatedStudy);
   } catch (error) {
@@ -198,6 +215,7 @@ router.put('/:study_id', /* authenticateToken, */ async (req, res) => {
     res.status(500).json({ error: 'Failed to update study', details: error.message });
   }
 });
+
 
 // Delete a study
 router.delete('/:study_id', /* authenticateToken, */ async (req, res) => {
