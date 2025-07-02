@@ -83,7 +83,7 @@ router.delete('/:admin_id', /* authenticateToken, */ async (req, res) => {
 router.post('/invite', /* authenticateToken, */ async (req, res) => {
   try{
     const role = req.body.role.toLowerCase();
-    const URL = `http://localhost:3000/${role}Signup`
+    const URL = `${process.env.NEXT_PUBLIC_FRONTEND_URL}${role}Signup`
     sendAccountCreationInvite(req.body.email, req.body.role, URL);
   }
   catch(err){
