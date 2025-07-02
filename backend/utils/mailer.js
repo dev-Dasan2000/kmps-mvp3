@@ -6,21 +6,21 @@ dotenv.config();
 
 // Create a transporter object using SMTP transport
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
-    },
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
 });
 
 const sendVerificationCode = async (email, code) => {
-    const mailOptions = {
-        from: `"Kinross Dental Care" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Verification Code for Your Kinross Dental Care Account',
-        html: `
+  const mailOptions = {
+    from: `"Kinross Dental Care" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Verification Code for Your Kinross Dental Care Account',
+    html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
                 <h2 style="color: #4A90E2;">Kinross Dental Clinic Email Verification</h2>
                 <p>Dear user,</p>
@@ -36,23 +36,23 @@ const sendVerificationCode = async (email, code) => {
                 <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | Kinross Dental Clinic</p>
             </div>
         `,
-    };
+  };
 
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        return info;
-    } catch (error) {
-        console.error(`Error sending verification email to ${email}:`, error);
-        throw new Error(`Failed to send verification email: ${error.message}`);
-    }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error(`Error sending verification email to ${email}:`, error);
+    throw new Error(`Failed to send verification email: ${error.message}`);
+  }
 };
 
 const sendAppointmentConfirmation = async (email, date, start_time) => {
-    const mailOptions = {
-        from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Appointment Confirmation Notice',
-        html: `
+  const mailOptions = {
+    from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Appointment Confirmation Notice',
+    html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
                 <h2 style="color: #4CAF50;">Appointment Confirmed</h2>
                 <p>Dear user,</p>
@@ -73,31 +73,31 @@ const sendAppointmentConfirmation = async (email, date, start_time) => {
                 <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | Kinross Dental Clinic</p>
             </div>
         `,
-    };
+  };
 
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        return info;
-    } catch (error) {
-        console.error(`Error sending appointment confirmation to ${email}:`, error);
-        throw new Error(`Failed to send appointment confirmation: ${error.message}`);
-    }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error(`Error sending appointment confirmation to ${email}:`, error);
+    throw new Error(`Failed to send appointment confirmation: ${error.message}`);
+  }
 };
 
 const sendAppointmentCancelation = async (email, date, start_time, provider, cancelNote) => {
-    // Format the date to be more readable (e.g., "Monday, January 1, 2023")
-    const formattedDate = new Date(date).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-    
-    const mailOptions = {
-      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Appointment Cancellation Notice',
-      html: `
+  // Format the date to be more readable (e.g., "Monday, January 1, 2023")
+  const formattedDate = new Date(date).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const mailOptions = {
+    from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Appointment Cancellation Notice',
+    html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
           <h2 style="color: #e53935;">Appointment Cancelled</h2>
           <p>Dear user,</p>
@@ -123,23 +123,23 @@ const sendAppointmentCancelation = async (email, date, start_time, provider, can
           <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | Kinross Dental Clinic</p>
         </div>
       `,
-    };
-  
-    try {
-      const info = await transporter.sendMail(mailOptions);
-      return info;
-    } catch (error) {
-      console.error(`Error sending appointment cancellation to ${email}:`, error);
-      throw new Error(`Failed to send appointment cancellation: ${error.message}`);
-    }
   };
 
-  const sendAccountCreationInvite = async (email, role, link) => {
-    const mailOptions = {
-      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Your Kinross Dental Clinic Account Invitation',
-      html: `
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error(`Error sending appointment cancellation to ${email}:`, error);
+    throw new Error(`Failed to send appointment cancellation: ${error.message}`);
+  }
+};
+
+const sendAccountCreationInvite = async (email, role, link) => {
+  const mailOptions = {
+    from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Your Kinross Dental Clinic Account Invitation',
+    html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
           <h2 style="color: #43a047;">You're Invited to Join Kinross Dental Clinic</h2>
           <p>Dear user,</p>
@@ -156,23 +156,23 @@ const sendAppointmentCancelation = async (email, date, start_time, provider, can
           <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | Kinross Dental Clinic</p>
         </div>
       `,
-    };
-  
-    try {
-      const info = await transporter.sendMail(mailOptions);
-      return info;
-    } catch (error) {
-      console.error(`Error sending account creation invite to ${email}:`, error);
-      throw new Error(`Failed to send account creation invite: ${error.message}`);
-    }
   };
 
-  const sendAccountCreationNotice = async (email, ID) => {
-    const mailOptions = {
-      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Your Kinross Dental Clinic Account Has Been Created',
-      html: `
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error(`Error sending account creation invite to ${email}:`, error);
+    throw new Error(`Failed to send account creation invite: ${error.message}`);
+  }
+};
+
+const sendAccountCreationNotice = async (email, ID) => {
+  const mailOptions = {
+    from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Your Kinross Dental Clinic Account Has Been Created',
+    html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
           <h2 style="color: #43a047;">Welcome to Kinross Dental Clinic</h2>
           <p>Dear user,</p>
@@ -185,23 +185,23 @@ const sendAppointmentCancelation = async (email, date, start_time, provider, can
           <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | Kinross Dental Clinic</p>
         </div>
       `,
-    };
-  
-    try {
-      const info = await transporter.sendMail(mailOptions);
-      return info;
-    } catch (error) {
-      console.error(`Error sending account creation notice to ${email}:`, error);
-      throw new Error(`Failed to send account creation notice: ${error.message}`);
-    }
   };
 
-  const sendAccountCreationNoticeWithPassword = async (email, ID, password) => {
-    const mailOptions = {
-      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Your Kinross Dental Clinic Account Has Been Created',
-      html: `
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error(`Error sending account creation notice to ${email}:`, error);
+    throw new Error(`Failed to send account creation notice: ${error.message}`);
+  }
+};
+
+const sendAccountCreationNoticeWithPassword = async (email, ID, password) => {
+  const mailOptions = {
+    from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Your Kinross Dental Clinic Account Has Been Created',
+    html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px;">
           <h2 style="color: #43a047;">Welcome to Kinross Dental Clinic</h2>
           <p>Dear user,</p>
@@ -215,23 +215,23 @@ const sendAppointmentCancelation = async (email, date, start_time, provider, can
           <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | Kinross Dental Clinic</p>
         </div>
       `,
-    };
-  
-    try {
-      const info = await transporter.sendMail(mailOptions);
-      return info;
-    } catch (error) {
-      console.error(`Error sending account creation notice to ${email}:`, error);
-      throw new Error(`Failed to send account creation notice: ${error.message}`);
-    }
   };
 
-  const sendReminder = async (email, date, start_time, dentist_name) => {
-    const mailOptions = {
-        from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Appointment Reminder – Kinross Dental Clinic',
-        html: `
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error(`Error sending account creation notice to ${email}:`, error);
+    throw new Error(`Failed to send account creation notice: ${error.message}`);
+  }
+};
+
+const sendReminder = async (email, date, start_time, dentist_name) => {
+  const mailOptions = {
+    from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Appointment Reminder – Kinross Dental Clinic',
+    html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px; background-color: #ffffff;">
                 <h2 style="color: #4CAF50;">Upcoming Appointment Reminder</h2>
                 <p>Dear Patient,</p>
@@ -262,23 +262,23 @@ const sendAppointmentCancelation = async (email, date, start_time, provider, can
                 <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | kinrossdentalclinic.com</p>
             </div>
         `,
-    };
+  };
 
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        return info;
-    } catch (error) {
-        console.error(`Error sending appointment reminder to ${email}:`, error);
-        throw new Error(`Failed to send appointment reminder: ${error.message}`);
-    }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    return info;
+  } catch (error) {
+    console.error(`Error sending appointment reminder to ${email}:`, error);
+    throw new Error(`Failed to send appointment reminder: ${error.message}`);
+  }
 };
 
 const sendMedicalImageAddedNotice = async (email, date, patientName) => {
   const mailOptions = {
-      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'New Medical Image Added – Kinross Dental Clinic',
-      html: `
+    from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'New Medical Image Added – Kinross Dental Clinic',
+    html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px; background-color: #ffffff;">
               <h2 style="color: #4CAF50;">Medical Image Uploaded</h2>
               <p>Dear ${patientName},</p>
@@ -295,23 +295,23 @@ const sendMedicalImageAddedNotice = async (email, date, patientName) => {
   };
 
   try {
-      const info = await transporter.sendMail(mailOptions);
-      return info;
+    const info = await transporter.sendMail(mailOptions);
+    return info;
   } catch (error) {
-      console.error(`Error sending image upload notice to ${email}:`, error);
-      throw new Error(`Failed to send medical image notice: ${error.message}`);
+    console.error(`Error sending image upload notice to ${email}:`, error);
+    throw new Error(`Failed to send medical image notice: ${error.message}`);
   }
 };
 
 const sendMedicalReportAddedNotice = async (email, date, patientName) => {
   const mailOptions = {
-      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'New Medical Report Added – Kinross Dental Clinic',
-      html: `
+    from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'New Medical Report Added – Kinross Dental Clinic',
+    html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px; background-color: #ffffff;">
               <h2 style="color: #4CAF50;">Medical Report Uploaded</h2>
-              <p>Dear ${patientName?? "user"},</p>
+              <p>Dear ${patientName ?? "user"},</p>
               <p>A new medical report has been uploaded to your patient record on <strong>${date}</strong>.</p>
               <p>You may view this report by logging into your patient portal.</p>
 
@@ -325,20 +325,20 @@ const sendMedicalReportAddedNotice = async (email, date, patientName) => {
   };
 
   try {
-      const info = await transporter.sendMail(mailOptions);
-      return info;
+    const info = await transporter.sendMail(mailOptions);
+    return info;
   } catch (error) {
-      console.error(`Error sending report upload notice to ${email}:`, error);
-      throw new Error(`Failed to send medical report notice: ${error.message}`);
+    console.error(`Error sending report upload notice to ${email}:`, error);
+    throw new Error(`Failed to send medical report notice: ${error.message}`);
   }
 };
 
 const sendMedicalImageAndReportAddedNotice = async (email, date, patientName) => {
   const mailOptions = {
-      from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'Medical Image and Report Added – Kinross Dental Clinic',
-      html: `
+    from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: 'Medical Image and Report Added – Kinross Dental Clinic',
+    html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px; background-color: #ffffff;">
               <h2 style="color: #4CAF50;">Medical Image & Report Uploaded</h2>
               <p>Dear ${patientName},</p>
@@ -355,13 +355,12 @@ const sendMedicalImageAndReportAddedNotice = async (email, date, patientName) =>
   };
 
   try {
-      const info = await transporter.sendMail(mailOptions);
-      return info;
+    const info = await transporter.sendMail(mailOptions);
+    return info;
   } catch (error) {
-      console.error(`Error sending combined image/report notice to ${email}:`, error);
-      throw new Error(`Failed to send medical image and report notice: ${error.message}`);
+    console.error(`Error sending combined image/report notice to ${email}:`, error);
+    throw new Error(`Failed to send medical image and report notice: ${error.message}`);
   }
 };
 
-
-export {sendVerificationCode, sendAppointmentConfirmation, sendAppointmentCancelation, sendAccountCreationInvite, sendAccountCreationNotice, sendAccountCreationNoticeWithPassword, sendReminder, sendMedicalImageAddedNotice, sendMedicalReportAddedNotice, sendMedicalImageAndReportAddedNotice};
+export { sendVerificationCode, sendAppointmentConfirmation, sendAppointmentCancelation, sendAccountCreationInvite, sendAccountCreationNotice, sendAccountCreationNoticeWithPassword, sendReminder, sendMedicalImageAddedNotice, sendMedicalReportAddedNotice, sendMedicalImageAndReportAddedNotice };
