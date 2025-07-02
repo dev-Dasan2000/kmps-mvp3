@@ -30,6 +30,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    setIsLoading(true);
     try {
       const response = await axios.post(
         `${backendURL}/auth/login`,
