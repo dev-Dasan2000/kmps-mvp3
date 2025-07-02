@@ -225,6 +225,55 @@ const sendAppointmentCancelation = async (email, date, start_time, provider, can
       throw new Error(`Failed to send account creation notice: ${error.message}`);
     }
   };
+
+  const sendReminder = async (email, date, start_time, dentist_name) => {
+    const mailOptions = {
+        from: `"Kinross Dental Clinic" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'Appointment Reminder – Kinross Dental Clinic',
+        html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; padding: 20px; border-radius: 10px; background-color: #ffffff;">
+                <h2 style="color: #4CAF50;">Upcoming Appointment Reminder</h2>
+                <p>Dear Patient,</p>
+                <p>This is a friendly reminder that you have a dental appointment <strong>scheduled for tomorrow</strong> at <strong>Kinross Dental Clinic</strong>. Please find the appointment details below:</p>
+                
+                <table style="width: 100%; margin-top: 20px; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0;"><strong>Date:</strong></td>
+                        <td style="padding: 8px 0;">${date}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0;"><strong>Time:</strong></td>
+                        <td style="padding: 8px 0;">${start_time}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0;"><strong>Dentist:</strong></td>
+                        <td style="padding: 8px 0;">Dr. ${dentist_name}</td>
+                    </tr>
+                </table>
+
+                <p style="margin-top: 20px;">Please arrive a few minutes early and bring any necessary documents. If you have any questions or need to reschedule, feel free to contact us.</p>
+
+                <p>We look forward to seeing you tomorrow!</p>
+
+                <p>Best regards,<br><strong>Kinross Dental Clinic Team</strong></p>
+
+                <hr style="margin-top: 40px;">
+                <p style="font-size: 12px; color: #888;">Kinross Dental Clinic | kinrossdentalclinic.com</p>
+            </div>
+        `,
+    };
+
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        return info;
+    } catch (error) {
+        console.error(`Error sending appointment reminder to ${email}:`, error);
+        throw new Error(`Failed to send appointment reminder: ${error.message}`);
+    }
+};
+
+
   
 
-export {sendVerificationCode, sendAppointmentConfirmation, sendAppointmentCancelation, sendAccountCreationInvite, sendAccountCreationNotice, sendAccountCreationNoticeWithPassword};
+export {sendVerificationCode, sendAppointmentConfirmation, sendAppointmentCancelation, sendAccountCreationInvite, sendAccountCreationNotice, sendAccountCreationNoticeWithPassword, sendReminder};

@@ -37,6 +37,8 @@ import radiologistRouter from './routes/radiologist-routes.js';
 import reportsRouter from './routes/reports-routes.js';
 import dentistAssignRouter from './routes/dentist-assign-routes.js';
 
+import './routes/automated-routes.js';
+
 dotenv.config();
 
 const app = express();
