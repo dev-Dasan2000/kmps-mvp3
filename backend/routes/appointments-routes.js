@@ -276,7 +276,10 @@ router.get('/count/today', /* authenticateToken, */ async (req, res) => {
           lte: endOfDay,
         },
         patient_id: { not: null },
-        dentist_id: { not: null }
+        dentist_id: { not: null },
+        NOT: {
+          status: 'cancelled'
+        }
       }
     });
 
@@ -300,6 +303,9 @@ router.get('/count/today-checked-in', /* authenticateToken, */ async (req, res) 
           lte: endOfDay
         },
         status: "checkedin",
+        NOT: {
+          status: 'cancelled'
+        },
         patient_id: { not: null },
         dentist_id: { not: null }
       }
@@ -325,6 +331,9 @@ router.get('/count/today-not-checked-in', /* authenticateToken, */ async (req, r
           lte: endOfDay
         },
         status: { in: ["confirmed", "pending"] },
+        NOT: {
+          status: 'cancelled'
+        },
         patient_id: { not: null },
         dentist_id: { not: null }
       }
@@ -577,24 +586,54 @@ router.post('/', async (req, res) => {
 router.put('/:appointment_id', /* authenticateToken, */ async (req, res) => {
   try {
     const data = req.body;
-    console.log(data.status);
     if (data.date) data.date = new Date(data.date);
+    
+    // Update the appointment with the new data
     const updated = await prisma.appointments.update({
       where: { appointment_id: Number(req.params.appointment_id) },
       data,
     });
-    const appointment = await prisma.appointments.findUnique({where:{appointment_id:Number(req.params.appointment_id)}});
-    const patient = await prisma.patients.findUnique({where:{patient_id:appointment.patient_id}});
-    if(data.status == "cancelled"){
-      sendAppointmentCancelation(patient.email,appointment.date,appointment.time_from);
+    
+    // Fetch the updated appointment with related data
+    const appointment = await prisma.appointments.findUnique({
+      where: { appointment_id: Number(req.params.appointment_id) },
+      include: {
+        patient: true,
+        dentist: true
+      }
+    });
+    
+    // Send appropriate email based on status change
+    if (data.status === "cancelled") {
+      // Get the dentist name for the cancellation email
+      const dentist = await prisma.dentists.findUnique({
+        where: { dentist_id: appointment.dentist_id }
+      });
+      
+      // Send cancellation email with the note
+      sendAppointmentCancelation(
+        appointment.patient.email,
+        appointment.date,
+        appointment.time_from,
+        dentist?.name || 'the dentist',
+        data.cancel_note || null
+      );
+    } 
+    else if (data.status === "confirmed") {
+      sendAppointmentConfirmation(
+        appointment.patient.email,
+        appointment.date,
+        appointment.time_from
+      );
     }
-    else if(data.status == "confirmed"){
-      sendAppointmentConfirmation(patient.email,appointment.date,appointment.time_from);
-    }
+    
     res.status(202).json(updated);
   } catch(err) {
-    console.log(err);
-    res.status(500).json({ error: 'Failed to update appointment' });
+    console.error('Error updating appointment:', err);
+    res.status(500).json({ 
+      error: 'Failed to update appointment',
+      details: err.message 
+    });
   }
 });
 

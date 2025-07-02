@@ -138,11 +138,31 @@ export default function ServiceProviderPage() {
               {/* Mobile Layout */}
               <div className="block sm:hidden p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <img
-                    src={`${backendURL}${provider.profile_picture}`}
-                    alt={provider.name}
-                    className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-                  />
+                  <div className="relative w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {provider.profile_picture ? (
+                      <img
+                        src={`${backendURL}${provider.profile_picture}`}
+                        alt={provider.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = parent.querySelector('.profile-fallback');
+                            if (fallback) fallback.classList.remove('hidden');
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div className={`profile-fallback ${provider.profile_picture ? 'hidden' : ''} w-full h-full flex items-center justify-center bg-emerald-100 text-emerald-800 font-semibold text-lg`}>
+                      {provider.name
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()}
+                    </div>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 text-base mb-1">
                       {provider.name}
@@ -180,11 +200,31 @@ export default function ServiceProviderPage() {
               <div className="hidden sm:flex items-center p-4 lg:p-6">
                 {/* Profile Image */}
                 <div className="flex-shrink-0 mr-4 lg:mr-6">
-                  <img
-                    src={`${backendURL}${provider.profile_picture}`}
-                    alt={provider.name}
-                    className="w-12 h-12 lg:w-16 lg:h-16 rounded-full object-cover"
-                  />
+                  <div className="relative w-12 h-12 lg:w-16 lg:h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                    {provider.profile_picture ? (
+                      <img
+                        src={`${backendURL}${provider.profile_picture}`}
+                        alt={provider.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = parent.querySelector('.profile-fallback');
+                            if (fallback) fallback.classList.remove('hidden');
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div className={`profile-fallback ${provider.profile_picture ? 'hidden' : ''} w-full h-full flex items-center justify-center bg-emerald-100 text-emerald-800 font-semibold text-sm lg:text-lg`}>
+                      {provider.name
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Provider Info */}

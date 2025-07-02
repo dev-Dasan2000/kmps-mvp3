@@ -197,15 +197,32 @@ const ProfilePage = () => {
           <div className="bg-white px-6 py-8 sm:px-8">
             <div className="text-center">
               {/* Profile Avatar */}
-              <div className="relative mx-auto h-20 w-20 sm:h-24 sm:w-24 rounded-full bg-gray-100 flex items-center justify-center mb-4 overflow-hidden group">
+              <div className="relative mx-auto h-24 w-24 rounded-full border-2 border-emerald-500 overflow-hidden group">
                 {(editedData.newProfilePicturePreview || clientData.profile_picture) ? (
-                  <img 
-                    src={editedData.newProfilePicturePreview || `${process.env.NEXT_PUBLIC_BACKEND_URL}${clientData.profile_picture}`}
-                    alt={clientData.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <>
+                    <img 
+                      src={editedData.newProfilePicturePreview || `${process.env.NEXT_PUBLIC_BACKEND_URL}${clientData.profile_picture}`}
+                      alt={clientData.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling as HTMLElement;
+                        if (fallback) {
+                          fallback.style.display = 'flex';
+                        }
+                      }}
+                    />
+                    <div 
+                      className="initials-fallback w-full h-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-medium text-2xl hidden"
+                    >
+                      {clientData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    </div>
+                  </>
                 ) : (
-                  <User className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
+                  <div className="w-full h-full bg-emerald-100 flex items-center justify-center">
+                    <User className="h-12 w-12 text-emerald-700" />
+                  </div>
                 )}
                 
                 {isEditing && (

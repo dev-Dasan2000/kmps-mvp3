@@ -41,7 +41,7 @@ export function RoomAssignment() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<string>("")
-  const [viewFilter, setViewFilter] = useState<"today" | "all">("today")
+  const [viewFilter, setViewFilter] = useState<"today" | "all" | "custom">("today")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<ExtendedRoomAssignment | null>(null)
   const [loading, setLoading] = useState(false)
@@ -123,23 +123,11 @@ export function RoomAssignment() {
     }
   }, [dentists, rooms])
 
-  // Filter assignments based on search and date
+  // Filter assignments based on search, date, and view filter
   useEffect(() => {
-    let filtered = assignments
+    let filtered = [...assignments]
 
-    // Filter by date based on viewFilter and selectedDate
-    const today = new Date().toISOString().split("T")[0]
-    const selectedDateStr = selectedDate.toISOString().split("T")[0]
-
-    if (viewFilter === "today") {
-      filtered = filtered.filter((assignment) => assignment.date === today)
-    } else if (selectedDateStr !== today) {
-      // If a specific date is selected (not today), show assignments for that date
-      filtered = filtered.filter((assignment) => assignment.date === selectedDateStr)
-    }
-    // If viewFilter is "all" and selectedDate is today, show all assignments
-
-    // Filter by search term
+    // Filter by search term first
     if (searchTerm) {
       filtered = filtered.filter(
         (assignment) =>
@@ -148,7 +136,34 @@ export function RoomAssignment() {
       )
     }
 
-    setFilteredAssignments(filtered)
+    // Create a function to normalize dates to YYYY-MM-DD in local timezone
+    const toLocalDateString = (date: Date | string) => {
+      const d = new Date(date);
+      // Use toLocaleDateString with timezone to get consistent local date
+      return d.toLocaleDateString('en-CA'); // 'en-CA' gives YYYY-MM-DD format
+    };
+
+    const today = toLocalDateString(new Date());
+    const selectedDateStr = toLocalDateString(selectedDate);
+
+    if (viewFilter === "today") {
+      filtered = filtered.filter((assignment) => {
+        // Ensure we're comparing dates in the same timezone
+        const assignmentDate = toLocalDateString(assignment.date);
+        return assignmentDate === today;
+      });
+    } else if (viewFilter === "all") {
+      // Show all assignments, no date filtering
+    } else {
+      // Show assignments for the selected date
+      filtered = filtered.filter((assignment) => {
+        // Compare dates in local timezone
+        const assignmentDate = toLocalDateString(assignment.date);
+        return assignmentDate === selectedDateStr;
+      });
+    }
+
+      setFilteredAssignments(filtered)
   }, [assignments, searchTerm, selectedDate, viewFilter])
 
   // Check for overlapping time slots
@@ -325,7 +340,10 @@ export function RoomAssignment() {
   }
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("en-US", {
+    // Ensure consistent date formatting by using the full date string
+    const dateObj = new Date(date);
+    return dateObj.toLocaleDateString("en-US", {
+      timeZone: 'UTC', // Use UTC to prevent timezone shifting
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -372,13 +390,23 @@ export function RoomAssignment() {
         <div className="bg-white rounded-lg shadow-sm border p-4 mb-6 flex gap-36 md:gap-2">
           
           {/* Filter Dropdown */}
-          <Select value={viewFilter} onValueChange={(value: "today" | "all") => setViewFilter(value)}>
+          <Select 
+            value={viewFilter} 
+            onValueChange={(value: "today" | "all") => {
+              setViewFilter(value)
+              // Reset selected date when changing view filter to today or all
+              if (value === 'today' || value === 'all') {
+                setSelectedDate(new Date())
+              }
+            }}
+          >
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="today">Today</SelectItem>
               <SelectItem value="all">All</SelectItem>
+              <SelectItem value="custom">Custom</SelectItem>
             </SelectContent>
           </Select>
           
@@ -397,7 +425,13 @@ export function RoomAssignment() {
               <CalendarComponent
                 mode="single"
                 selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date)
+                    // Set view filter to custom when a specific date is selected
+                    setViewFilter('custom' as any)
+                  }
+                }}
               />
             </PopoverContent>
           </Popover>
@@ -413,18 +447,16 @@ export function RoomAssignment() {
           <span>
             Showing assignments for:{" "}
             <span className="font-medium text-gray-900">
-              {viewFilter === "today" &&
-                selectedDate.toISOString().split("T")[0] === new Date().toISOString().split("T")[0]
-                ? "Today"
-                : viewFilter === "all" &&
-                  selectedDate.toISOString().split("T")[0] === new Date().toISOString().split("T")[0]
+              {viewFilter === "today" 
+                ? "Today" 
+                : viewFilter === "all" 
                   ? "All Assignments"
                   : selectedDate.toLocaleDateString("en-US", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                      weekday: "long",
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
             </span>
           </span>
         </div>

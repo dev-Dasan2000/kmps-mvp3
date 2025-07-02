@@ -2,6 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { generateDentistTimeSlots, isDentistWorkingDay, mockAppointments } from "@/lib/mock-data"
 import type { Dentist, Appointment, DayOfWeek } from "@/types/dentist"
@@ -10,6 +11,7 @@ import { useRouter } from "next/navigation"
 import { useContext, useEffect, useState } from "react"
 import axios from "axios"
 import { toast } from "sonner"
+import { CancelAppointmentDialog } from "./cancel-appointment-dialog"
 
 interface DoctorScheduleColumnProps {
   dentist: Dentist
@@ -144,11 +146,20 @@ export function DoctorScheduleColumn({
           completed: { bg: "bg-gray-100", border: "border-gray-200", text: "text-gray-800" },
         };
         const colours = statusColours[appointment.status?.toLowerCase()] || statusColours.confirmed;
+        const isSelected = selectedAppointments.includes(appointment.appointment_id);
+        
         return (
           <div
-            className={`h-16 sm:h-20 ${colours.bg} border-2 ${colours.border} rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-semibold ${colours.text}`}
+            className={`h-16 sm:h-20 ${colours.bg} border-2 ${isSelected ? 'border-blue-500 border-4' : colours.border} rounded-lg flex items-center justify-center text-[10px] sm:text-xs font-semibold ${colours.text} relative`}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleAppointmentSelection(appointment.appointment_id);
+            }}
           >
             {appointment.patient?.name ?? "Patient"}
+            {isSelected && (
+              <div className="absolute top-1 right-1 w-3 h-3 bg-blue-500 rounded-full"></div>
+            )}
           </div>
         );
       }
@@ -163,10 +174,19 @@ export function DoctorScheduleColumn({
       };
       const colours = statusColours[appointment.status?.toLowerCase()] || statusColours.confirmed;
 
+      const isSelected = selectedAppointments.includes(appointment.appointment_id);
+      
       return (
         <div
-          className={`h-16 sm:h-20 ${colours.bg} border-2 ${colours.border} rounded-lg p-1 sm:p-2 text-xs cursor-pointer hover:opacity-90 transition-colors`}
+          className={`h-16 sm:h-20 ${colours.bg} border-2 ${isSelected ? 'border-blue-500 border-4' : colours.border} rounded-lg p-1 sm:p-2 text-xs cursor-pointer hover:opacity-90 transition-colors relative`}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleAppointmentSelection(appointment.appointment_id);
+          }}
         >
+          {isSelected && (
+            <div className="absolute top-1 right-1 w-3 h-3 bg-blue-500 rounded-full"></div>
+          )}
           <div className={`font-semibold truncate text-[10px] sm:text-xs leading-tight ${colours.text}`}>
             {appointment.patient?.name ?? "Appointment"}
           </div>
@@ -200,6 +220,65 @@ export function DoctorScheduleColumn({
 
   // Check if dentist is working on selected date (for day view)
   const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  
+  // Toggle selection of an appointment
+  const toggleAppointmentSelection = (appointmentId: number) => {
+    setSelectedAppointments(prev => 
+      prev.includes(appointmentId)
+        ? prev.filter(id => id !== appointmentId)
+        : [...prev, appointmentId]
+    );
+  };
+
+  // Toggle select all appointments
+  const toggleSelectAll = () => {
+    if (selectAll) {
+      setSelectedAppointments([]);
+    } else {
+      const allAppointmentIds = appointments.map(apt => apt.appointment_id);
+      setSelectedAppointments(allAppointmentIds);
+    }
+    setSelectAll(!selectAll);
+  };
+
+  // Handle cancellation with note
+  const handleCancelWithNote = async (note: string) => {
+    if (selectedAppointments.length === 0) return;
+    
+    try {
+      // Update each selected appointment's status to 'cancelled' with the note
+      const updatePromises = selectedAppointments.map(appointmentId => 
+        axios.put(
+          `${backendURL}/appointments/${appointmentId}`,
+          { 
+            status: 'cancelled',
+            cancel_note: note || null
+          }
+        )
+      );
+      
+      await Promise.all(updatePromises);
+      
+      toast.success(selectedAppointments.length > 1 
+        ? "Appointments cancelled successfully" 
+        : "Appointment cancelled successfully"
+      );
+      
+      setSelectedAppointments([]);
+      setSelectAll(false);
+      await fetchAppointments(); // Refresh the appointments list
+    } catch (err: any) {
+      console.error("Error cancelling appointments:", err);
+      throw err; // Re-throw to be handled by the dialog
+    }
+  };
+  
+  // Open the cancellation dialog
+  const openCancelDialog = () => {
+    if (selectedAppointments.length === 0) return;
+    setIsCancelDialogOpen(true);
+  };
+
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
 
@@ -209,6 +288,9 @@ export function DoctorScheduleColumn({
 
   const [loadingAppointments, setLoadingAppointments] = useState(false);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
+  const [selectedAppointments, setSelectedAppointments] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   const fetchBlocked = async () => {
     setLoadingBlocked(true);
@@ -231,19 +313,24 @@ export function DoctorScheduleColumn({
 
   const fetchAppointments = async () => {
     setLoadingAppointments(true);
-    try{
+    try {
       const response = await axios.get(
         `${backendURL}/appointments/fordentist/${dentist.dentist_id}`
       );
-      if(response.status == 500){
-        throw new Error(`Error Fetching Appointments for Doctor : ${dentist.name}`);
+      if (response.status == 500) {
+        throw new Error(`Error Fetching Appointments for Doctor: ${dentist.name}`);
       }
-      setAppointments(response.data);
-    }
-    catch(err: any){
-      window.alert(err.message);
-    }
-    finally{
+      // Filter out cancelled appointments
+      const activeAppointments = response.data.filter(
+        (appt: any) => appt.status?.toLowerCase() !== 'cancelled'
+      );
+      setAppointments(activeAppointments);
+    } catch (err: any) {
+      console.error("Error fetching appointments:", err);
+      toast.error("Failed to fetch appointments", { 
+        description: err.response?.data?.message || err.message 
+      });
+    } finally {
       setLoadingAppointments(false);
     }
   };
@@ -264,23 +351,72 @@ export function DoctorScheduleColumn({
   
 
   return (
-    <Card className="min-w-[340px] sm:min-w-[500px] lg:min-w-[700px] max-w-[700px] flex-shrink-0">
+    <Card className="min-w-[340px] sm:min-w-[500px] lg:min-w-[700px] max-w-[700px] flex-shrink-0 relative">
+        {/* Cancel Selected Button */}
+        {selectedAppointments.length > 0 && (
+          <div className="absolute top-2 right-2 z-10">
+            <Button 
+              variant="destructive" 
+              size="sm"
+              onClick={openCancelDialog}
+              className="text-xs px-2 py-1 h-auto"
+            >
+              Cancel Selected ({selectedAppointments.length})
+            </Button>
+          </div>
+        )}
+        
+        {/* Cancel Appointment Dialog */}
+        <CancelAppointmentDialog
+          open={isCancelDialogOpen}
+          onOpenChange={setIsCancelDialogOpen}
+          onCancel={handleCancelWithNote}
+          selectedCount={selectedAppointments.length}
+        />
+      
       <CardHeader className="pb-2 sm:pb-3">
         {/* Doctor Header */}
         <div className="flex items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
-          <Avatar className="h-10 w-10 sm:h-14 sm:w-14">
-            <AvatarImage src={dentist.profile_picture || "/placeholder.svg"} />
-            <AvatarFallback className="text-sm sm:text-lg">
-              {dentist.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative">
+            <Avatar className="h-12 w-12 sm:h-16 sm:w-16 ">
+              <AvatarImage 
+                src={dentist.profile_picture ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}` : "/placeholder.svg"} 
+                alt={dentist.name}
+                className="object-cover"
+                onError={(e) => {
+                  // Fallback to initials if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) {
+                    fallback.style.display = 'flex';
+                  }
+                }}
+              />
+              <AvatarFallback className="text-sm sm:text-lg bg-emerald-100 text-emerald-700 w-full h-full flex items-center justify-center">
+                {dentist.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
+              </AvatarFallback>
+            </Avatar>
+          </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-base sm:text-xl truncate">{dentist.name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-base sm:text-xl truncate">{dentist.name}</h3>
+              {appointments.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={toggleSelectAll}
+                  className="ml-2 text-xs h-6 px-2"
+                >
+                  {selectAll ? 'Deselect All' : 'Select All'}
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base text-gray-600 mt-1">
-              <span className="font-medium">${dentist.appointment_fee}</span>
+              <span className="font-medium">Rs: {dentist.appointment_fee}</span>
               <span>•</span>
               <span>{dentist.appointment_duration}min slots</span>
             </div>

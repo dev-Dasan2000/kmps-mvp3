@@ -75,6 +75,7 @@ model appointments {
   note           String?
   status         String?
   payment_status String?
+  cancel_note    String? 
 
   patient         patients? @relation(fields: [patient_id], references: [patient_id], onDelete: SetNull)
   dentist         dentists? @relation(fields: [dentist_id], references: [dentist_id], onDelete: SetNull)

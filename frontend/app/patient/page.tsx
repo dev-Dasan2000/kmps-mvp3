@@ -1,10 +1,11 @@
 "use client";
 import React, { useState, useEffect, useContext } from 'react';
-import { Calendar, DollarSign, MessageSquare, Clock, Edit2, X, Check, User, CreditCard, NotebookPen } from 'lucide-react';
+import { Calendar, DollarSign, MessageSquare, Clock, Edit2, X, Check, User, CreditCard, NotebookPen, Currency } from 'lucide-react';
 import axios from 'axios';
 import { AuthContext } from '@/context/auth-context';
 import { toast } from 'sonner';
 import { useRouter } from "next/navigation";
+import Image from 'next/image';
 
 
 interface Patient {
@@ -94,7 +95,34 @@ const HealthcareDashboard: React.FC = () => {
       if (response.status === 500) {
         throw new Error("Internal Server Error");
       }
-      setTodaysAppointments(response.data);
+      
+      // Fetch dentist profile pictures for each appointment
+      const appointmentsWithDentistPics = await Promise.all(
+        response.data.map(async (appointment: any) => {
+          if (appointment.dentist_id) {
+            try {
+              const dentistResponse = await axios.get(
+                `${backendURL}/dentists/${appointment.dentist_id}`,
+                { withCredentials: true }
+              );
+              if (dentistResponse.data) {
+                return {
+                  ...appointment,
+                  dentist: {
+                    ...appointment.dentist,
+                    profile_picture: dentistResponse.data.profile_picture || ''
+                  }
+                };
+              }
+            } catch (err) {
+              console.error('Error fetching dentist profile:', err);
+            }
+          }
+          return appointment;
+        })
+      );
+      
+      setTodaysAppointments(appointmentsWithDentistPics);
     } catch (err: any) {
       console.error("Error fetching today's appointments:", err.message);
     } finally {
@@ -113,7 +141,34 @@ const HealthcareDashboard: React.FC = () => {
       if (response.status === 500) {
         throw new Error("Internal Server Error");
       }
-      setUpcomingAppointments(response.data);
+      
+      // Fetch dentist profile pictures for each appointment
+      const appointmentsWithDentistPics = await Promise.all(
+        response.data.map(async (appointment: any) => {
+          if (appointment.dentist_id) {
+            try {
+              const dentistResponse = await axios.get(
+                `${backendURL}/dentists/${appointment.dentist_id}`,
+                { withCredentials: true }
+              );
+              if (dentistResponse.data) {
+                return {
+                  ...appointment,
+                  dentist: {
+                    ...appointment.dentist,
+                    profile_picture: dentistResponse.data.profile_picture || ''
+                  }
+                };
+              }
+            } catch (err) {
+              console.error('Error fetching dentist profile:', err);
+            }
+          }
+          return appointment;
+        })
+      );
+      
+      setUpcomingAppointments(appointmentsWithDentistPics);
     } catch (err: any) {
       console.error("Error fetching upcoming appointments:", err.message);
     } finally {
@@ -203,7 +258,7 @@ const HealthcareDashboard: React.FC = () => {
 
   // Calculate stats
   const newMessagesCount = messages.filter(msg => !msg.is_read).length;
-  const upcomingCount = upcomingAppointments.length;
+  const upcomingCount = upcomingAppointments.filter(appt => appt.status?.toLowerCase() !== 'cancelled').length;
 
   // Stats cards data
   const statsCards = [
@@ -389,10 +444,26 @@ const HealthcareDashboard: React.FC = () => {
                       {/* Dentist Avatar */}
                       <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {appointment.dentist?.profile_picture ? (
-                          <img
-                            src={appointment.dentist.profile_picture}
+                          <Image
+                            src={`${backendURL}${appointment.dentist.profile_picture}`}
                             alt={appointment.dentist?.name || 'Dentist'}
                             className="w-full h-full object-cover"
+                            height={12}
+                            width={12}
+                            onError={(e) => {
+                              // Fallback to initials if image fails to load
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                const initialSpan = document.createElement('span');
+                                initialSpan.className = 'text-sm font-medium text-gray-700';
+                                initialSpan.textContent = appointment.dentist?.name ? 
+                                  getInitials(appointment.dentist.name) : 
+                                  '';
+                                parent.appendChild(initialSpan);
+                              }
+                            }}
                           />
                         ) : (
                           <span className="text-sm font-medium text-gray-700">
@@ -431,7 +502,7 @@ const HealthcareDashboard: React.FC = () => {
                           </p>
                           {appointment.fee && (
                             <p className="text-sm text-gray-500 whitespace-nowrap flex items-center gap-1">
-                              <DollarSign className="h-4 w-4 text-yellow-500" />
+                              
                               Rs. {appointment.fee}
                             </p>
                           )}

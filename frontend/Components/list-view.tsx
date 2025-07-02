@@ -391,7 +391,10 @@ export function ListView({ selectedDate }: ListViewProps) {
                                 <span className="text-red-500 text-xs font-medium">Cancelled</span>
                               ) : appointment.status === "checkedin" ? (
                                 <CheckCircle className="text-green-600 w-4 h-4" />
-                              ) : (
+                              ) : appointment.status != "confirmed"? (
+                                <span className="text-orange-500 text-xs font-medium">Pending</span>
+                              ):
+                              (
                                 <Button
                                   size="sm"
                                   className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 text-xs px-2 py-1"

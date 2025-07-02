@@ -2,6 +2,7 @@
 import { use, useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Search, Plus, User, Phone, Mail, UserCheck, BarChart3 } from "lucide-react";
+import Image from "next/image";
 import ViewUserDialog from "@/components/ViewUserDialog";
 import InviteUserDialog from "@/components/InviteUserDialog";
 import axios from "axios";
@@ -18,9 +19,9 @@ interface User {
   email: string;
   phone_number?: string;
   role: Role;
+  profile_picture?: string;
   [key: string]: any; // Allow additional properties
 }
-
 
 export default function UserTable() {
 
@@ -51,12 +52,18 @@ export default function UserTable() {
         throw new Error("Internal Server Error");
       }
 
+      // Log the raw response to check the data structure
+      console.log('Dentists response:', dentistsRes.data);
+      console.log('Receptionists response:', receptionistsRes.data);
+      console.log('Radiologists response:', radiologistRes.data);
+
       const dentistUsers: any[] = dentistsRes.data.map((dentist: any) => ({
         id: dentist.dentist_id,
         name: dentist.name,
         email: dentist.email,
         phone_number: dentist.phone_number || '',
         role: "Dentist",
+        profile_picture: dentist.profile_picture || dentist.image_url || undefined,
         ...dentist // Spread the rest of the dentist properties
       }));
 
@@ -66,6 +73,7 @@ export default function UserTable() {
         email: receptionist.email,
         phone_number: receptionist.phone_number || '',
         role: "Receptionist",
+        profile_picture: receptionist.profile_picture || receptionist.image_url || undefined,
         ...receptionist // Spread the rest of the receptionist properties
       }));
 
@@ -75,6 +83,7 @@ export default function UserTable() {
         email: radiolodist.email,
         phone_number: radiolodist.phone_number || '',
         role: "Radiologist",
+        profile_picture: radiolodist.profile_picture || radiolodist.image_url || undefined,
         ...radiolodist // Spread the rest of the radiologist properties
       }));
 
@@ -151,6 +160,35 @@ export default function UserTable() {
     }
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  const getRandomColor = (str: string) => {
+    // Simple hash function to generate a consistent color based on the string
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    const colors = [
+      'bg-blue-100 text-blue-800',
+      'bg-green-100 text-green-800',
+      'bg-purple-100 text-purple-800',
+      'bg-pink-100 text-pink-800',
+      'bg-indigo-100 text-indigo-800',
+      'bg-yellow-100 text-yellow-800',
+      'bg-teal-100 text-teal-800',
+    ];
+    
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   useEffect(()=>{
     fetchUsers();
   },[]);
@@ -223,9 +261,35 @@ export default function UserTable() {
                   <tr key={inuser.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                          <User size={20} className="text-gray-600" />
-                        </div>
+                        {inuser.profile_picture ? (
+                          <div className="w-10 h-10 rounded-full overflow-hidden">
+                            <Image
+                              src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${inuser.profile_picture}`}
+                              alt={inuser.name}
+                              width={40}
+                              height={40}
+                              className="object-cover w-full h-full"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) {
+                                  fallback.style.display = 'flex';
+                                }
+                              }}
+                            />
+                            <div 
+                              className="initials-fallback w-full h-full hidden items-center justify-center"
+                              style={{ backgroundColor: getRandomColor(inuser.name).split(' ')[0] }}
+                            >
+                              <span className="font-medium text-sm">{getInitials(inuser.name)}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getRandomColor(inuser.name)}`}>
+                            <span className="font-medium text-sm">{getInitials(inuser.name)}</span>
+                          </div>
+                        )}
                         <div>
                           <div className="font-semibold text-gray-900">{inuser.name}</div>
                           <div className="text-sm text-gray-500">ID: {inuser.id}</div>
@@ -296,9 +360,35 @@ export default function UserTable() {
                 <div className="flex-1 space-y-3">
                   {/* User Info */}
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                      <User size={24} className="text-gray-600" />
-                    </div>
+                    {user.profile_picture ? (
+                      <div className="w-12 h-12 rounded-full overflow-hidden">
+                        <Image
+                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${user.profile_picture}`}
+                          alt={user.name}
+                          width={48}
+                          height={48}
+                          className="object-cover w-full h-full"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
+                        />
+                        <div 
+                          className="initials-fallback w-full h-full hidden items-center justify-center"
+                          style={{ backgroundColor: getRandomColor(user.name).split(' ')[0] }}
+                        >
+                          <span className="font-medium text-base">{getInitials(user.name)}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${getRandomColor(user.name)}`}>
+                        <span className="font-medium text-base">{getInitials(user.name)}</span>
+                      </div>
+                    )}
                     <div>
                       <div className="font-semibold text-lg text-gray-900">{user.name}</div>
                       <div className="text-sm text-gray-500">ID: {user.id}</div>

@@ -427,12 +427,28 @@ export default function DentistDashboard({ params }: DashboardProps) {
       {/* Patient Header */}
       <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={selectedPatient?.profile_picture} />
-            <AvatarFallback className="text-lg">
-              {selectedPatient?.name.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative h-16 w-16 rounded-full overflow-hidden bg-blue-100 flex-shrink-0">
+            {selectedPatient?.profile_picture ? (
+              <img
+                src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${selectedPatient.profile_picture}`}
+                alt={selectedPatient.name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) {
+                    fallback.style.display = 'flex';
+                  }
+                }}
+              />
+            ) : null}
+            <div className="absolute inset-0 flex items-center justify-center bg-blue-100 text-blue-700 font-medium text-xl">
+              {selectedPatient?.name 
+                ? selectedPatient.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                : '?'}
+            </div>
+          </div>
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-gray-900">{selectedPatient?.name}</h2>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-sm text-gray-600">
@@ -713,18 +729,33 @@ export default function DentistDashboard({ params }: DashboardProps) {
               {filteredPatients.map((patient) => (
                 <Card
                   key={patient.patient_id}
-                  className={`mb-2 cursor-pointer transition-colors hover:bg-gray-50 ${selectedPatient?.patient_id === patient.patient_id ? 'ring-2 ring-emerald-500' : ''
-                    }`}
+                  className={`mb-2 cursor-pointer transition-colors hover:bg-gray-50 ${selectedPatient?.patient_id === patient.patient_id ? 'ring-2 ring-emerald-500' : ''}`}
                   onClick={() => handlePatientSelect(patient)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={patient.profile_picture} />
-                        <AvatarFallback>
-                          {patient.name.split(' ').map(n => n[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative h-10 w-10 rounded-full overflow-hidden bg-blue-100 flex-shrink-0">
+                        {patient.profile_picture ? (
+                          <img
+                            src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${patient.profile_picture}`}
+                            alt={patient.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) {
+                                fallback.style.display = 'flex';
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <div className="absolute inset-0 flex items-center justify-center bg-blue-100 text-blue-700 font-medium text-sm">
+                          {patient.name 
+                            ? patient.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                            : '?'}
+                        </div>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-gray-900 truncate">{patient.name}</h3>
                         <p className="text-sm text-gray-500 truncate">{patient.email}</p>

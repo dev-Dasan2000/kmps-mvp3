@@ -655,7 +655,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
     }
   };
 
-  // Filter appointments based on selected date and search term
+  // Filter appointments based on selected date and search term (includes all statuses for left side)
   const filteredAppointments = appointments.filter(apt => {
     const aptDate = formatDate(apt.date);
     const matchesDate = aptDate === selectedDate;
@@ -664,6 +664,11 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
       apt.note?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesDate && matchesSearch;
   });
+  
+  // Filter for right side (excludes cancelled)
+  const filteredAppointmentsForRightSide = filteredAppointments.filter(
+    apt => apt.status !== 'cancelled'
+  );
 
   // Get appointments for different time periods
   const todayAppointments = appointments.filter(apt => formatDate(apt.date) === today);
@@ -781,10 +786,34 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
             appointmentList.map((appointment) => (
               <tr key={appointment.appointment_id} className="border-b">
                 <td className="p-2">
-                  <div>
-                    <div className="font-medium">{appointment.patient?.name || 'Unknown Patient'}</div>
-                    <div className="text-sm text-gray-600 sm:hidden">
-                      {appointment.note}
+                  <div className="flex items-center space-x-3">
+                    <div className="relative h-8 w-8 rounded-full overflow-hidden bg-blue-100 flex-shrink-0">
+                      {appointment.patient?.profile_picture ? (
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${appointment.patient.profile_picture}`}
+                          alt={appointment.patient?.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div className="absolute inset-0 flex items-center justify-center bg-blue-100 text-blue-700 font-medium text-sm">
+                        {appointment.patient?.name 
+                          ? appointment.patient.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+                          : '?'}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-medium">{appointment.patient?.name || 'Unknown Patient'}</div>
+                      <div className="text-sm text-gray-600 sm:hidden">
+                        {appointment.note}
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -980,18 +1009,18 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
                   </Dialog>
                 </div>
                 <div className="text-sm text-gray-500">
-                  Appointments for selected date: {filteredAppointments.length}
+                  Appointments for selected date: {filteredAppointments.filter(apt => apt.status !== 'cancelled').length}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3 overflow-y-auto flex-1 min-h-0"> {/* Scrollable content area */}
-                {filteredAppointments.length === 0 ? (
+              <CardContent className="space-y-3 overflow-y-auto flex-1 min-h-0">
+                {filteredAppointmentsForRightSide.length === 0 ? (
                   <div className="text-center py-4 text-gray-500">
                     No appointments for this date
                   </div>
                 ) : (
-                  filteredAppointments.map((appointment) => (
-                    <div key={appointment.appointment_id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400 ">
-                      <div className="flex items-center space-x-3 ">
+                  filteredAppointmentsForRightSide.map((appointment) => (
+                    <div key={appointment.appointment_id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                      <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
                           <User className="w-4 h-4 text-gray-600" />
                         </div>

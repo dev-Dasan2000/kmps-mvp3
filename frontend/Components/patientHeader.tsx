@@ -65,8 +65,24 @@ const PatientHeader = () => {
         {/* User Profile */}
         <div className="flex items-center gap-2">
           <Avatar>
-            <AvatarImage src={patient?.profile_picture} alt="Emily Johnson" />
-            <AvatarFallback className="text-xs font-semibold">PR</AvatarFallback>
+            <AvatarImage 
+              src={patient?.profile_picture ? `${backendURL}${patient.profile_picture}` : ''} 
+              alt={patient?.name || 'Patient'} 
+              onError={(e) => {
+                // If image fails to load, this will trigger the fallback
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+            <AvatarFallback className="text-xs font-semibold bg-gray-100">
+              {patient?.name 
+                ? patient.name
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                : 'PT'}
+            </AvatarFallback>
           </Avatar>
           <div className="text-right leading-tight">
             <p className="text-sm font-medium text-gray-900">{patient?.name}</p>

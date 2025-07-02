@@ -304,38 +304,53 @@ const PatientManagement = () => {
         {/* Desktop Table View */}
         <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
           <div className="bg-green-50 px-6 py-3 border-b border-green-200">
-            <div className="grid grid-cols-6 gap-4 text-sm font-medium text-gray-700">
-              <div>Profile</div>
-              <div>Patient ID</div>
-              <div>Name</div>
-              <div>Address</div>
-              <div>Email</div>
-              <div>Action</div>
+            <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700">
+              <div className="col-span-1">Profile</div>
+              <div className="col-span-1">Patient ID</div>
+              <div className="col-span-2">Name</div>
+              <div className="col-span-3">Address</div>
+              <div className="col-span-3">Email</div>
+              <div className="col-span-2">Action</div>
             </div>
           </div>
 
           <div className="divide-y divide-gray-200">
             {filteredPatients.map((patient) => (
               <div key={patient.patient_id} className="px-6 py-4 hover:bg-gray-50">
-                <div className="grid grid-cols-6 gap-4 items-center">
-                  <div className="flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center text-gray-700 font-medium">
-                      {patient.profile_picture ? (
-                        <img
-                          src={`${backendURL}/${patient.profile_picture}`}
-                          alt={patient.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        getInitials(patient.name)
-                      )}
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  <div className="flex items-center justify-center col-span-1">
+                    <div className="relative">
+                      <div className="w-10 h-10 rounded-full overflow-hidden">
+                        {patient.profile_picture ? (
+                          <img
+                            src={`${backendURL}${patient.profile_picture}`}
+                            alt={patient.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.parentElement?.querySelector('.initials-fallback') as HTMLElement;
+                              if (fallback) {
+                                fallback.style.display = 'flex';
+                              }
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className={`initials-fallback w-full h-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-medium ${patient.profile_picture ? 'hidden' : 'flex'}`}
+                        >
+                          {getInitials(patient.name)}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-900">{patient.patient_id}</div>
-                  <div className="text-sm text-gray-900">{patient.name}</div>
-                  <div className="text-sm text-gray-600">{patient.address}</div>
-                  <div className="text-sm text-gray-600">{patient.email}</div>
-                  <div className="flex items-center gap-2">
+                  <div className="text-sm text-gray-900 col-span-1">{patient.patient_id}</div>
+                  <div className="text-sm text-gray-900 col-span-2">{patient.name}</div>
+                  <div className="text-sm text-gray-600 col-span-3">{patient.address}</div>
+                  <div className="text-sm text-gray-600 col-span-3 truncate" title={patient.email}>
+                    {patient.email}
+                  </div>
+                  <div className="flex items-center gap-2 col-span-2">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -366,8 +381,29 @@ const PatientManagement = () => {
             <div key={patient.patient_id} className="bg-white rounded-lg shadow p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-medium text-lg">
-                    {getInitials(patient.name)}
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-500">
+                      {patient.profile_picture ? (
+                        <img
+                          src={`${backendURL}${patient.profile_picture}`}
+                          alt={patient.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.parentElement?.querySelector('.initials-fallback') as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className={`initials-fallback w-full h-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-medium text-lg ${patient.profile_picture ? 'hidden' : 'flex'}`}
+                      >
+                        {getInitials(patient.name)}
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{patient.name}</h3>

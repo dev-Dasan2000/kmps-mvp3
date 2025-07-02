@@ -117,15 +117,26 @@ const RadiologistHeader = () => {
           {isLoading ? (
             <div className="h-8 w-8 sm:h-10 sm:w-10 bg-gray-200 rounded-full animate-pulse" />
           ) : (
-            <Avatar
-              className="h-8 w-8 sm:h-10 sm:w-10 cursor-pointer hover:ring-2 hover:ring-emerald-300"
-              onClick={handleProfileClick}
-            >
-              <AvatarImage src={radiologistInfo?.avatar} alt={radiologistInfo?.name.split(" ")[0]} />
-              <AvatarFallback className="text-xs sm:text-sm font-semibold bg-emerald-100 text-emerald-800">
-                {radiologistInfo ? getInitials(radiologistInfo.name.split(" ")[0]) : "RD"}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative h-8 w-8 sm:h-10 sm:w-10 cursor-pointer hover:ring-2 hover:ring-emerald-300 rounded-full overflow-hidden" onClick={handleProfileClick}>
+              {radiologistInfo?.avatar ? (
+                <img
+                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${radiologistInfo.avatar}`}
+                  alt={radiologistInfo.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) {
+                      fallback.style.display = 'flex';
+                    }
+                  }}
+                />
+              ) : null}
+              <div className="absolute inset-0 flex items-center justify-center bg-emerald-100 text-emerald-800 font-semibold text-xs sm:text-sm">
+                {radiologistInfo ? getInitials(radiologistInfo.name) : "RD"}
+              </div>
+            </div>
           )}
           {/* Profile details - hidden on mobile */}
           <div className="hidden sm:flex flex-col text-right leading-tight">

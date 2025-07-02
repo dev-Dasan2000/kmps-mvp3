@@ -1,6 +1,7 @@
 "use client";
 import React, { useContext, useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, X, Phone, Mail, MapPin, User, Calendar, Droplets, Search } from 'lucide-react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -317,38 +318,57 @@ const PatientManagement = () => {
         {/* Desktop Table View */}
         <div className="hidden lg:block bg-white rounded-lg shadow overflow-hidden">
           <div className="bg-green-50 px-6 py-3 border-b border-green-200">
-            <div className="grid grid-cols-6 gap-4 text-sm font-medium text-gray-700">
-              <div>Profile</div>
-              <div>Patient ID</div>
-              <div>Name</div>
-              <div>Address</div>
-              <div>Email</div>
-              <div>Action</div>
+            <div className="grid grid-cols-[80px_100px_minmax(140px,1fr)_minmax(160px,1fr)_minmax(220px,1fr)_100px] gap-4 text-sm font-medium text-gray-700">
+              <div className="flex items-center justify-center">Profile</div>
+              <div className="flex items-center">Patient ID</div>
+              <div className="flex items-center">Name</div>
+              <div className="flex items-center">Address</div>
+              <div className="flex items-center">Email</div>
+              <div className="flex items-center justify-end pr-4">Action</div>
             </div>
           </div>
 
           <div className="divide-y divide-gray-200">
             {filteredPatients.map((patient) => (
               <div key={patient.patient_id} className="px-6 py-4 hover:bg-gray-50">
-                <div className="grid grid-cols-6 gap-4 items-center">
+                <div className="grid grid-cols-[80px_100px_minmax(140px,1fr)_minmax(160px,1fr)_minmax(220px,1fr)_100px] gap-4 items-center">
                   <div className="flex items-center justify-center">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-300 flex items-center justify-center text-gray-700 font-medium">
-                      {patient.profile_picture ? (
-                        <img
-                          src={`${backendURL}/${patient.profile_picture}`}
+                    <div className="relative w-10 h-10">
+                    {patient.profile_picture ? (
+                      <>
+                        <Image
+                          src={`${backendURL}${patient.profile_picture}`}
                           alt={patient.name}
-                          className="w-full h-full object-cover"
+                          width={40}
+                          height={40}
+                          className="rounded-full border border-gray-200 object-cover w-full h-full"
+                          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
                         />
-                      ) : (
-                        getInitials(patient.name)
-                      )}
-                    </div>
+                        <div 
+                          className="hidden items-center justify-center w-full h-full rounded-full border border-gray-200 bg-gray-100 text-gray-600 text-sm font-medium"
+                        >
+                          {getInitials(patient.name)}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-600 text-sm font-medium">
+                        {getInitials(patient.name)}
+                      </div>
+                    )}
+                  </div>
                   </div>
                   <div className="text-sm text-gray-900">{patient.patient_id}</div>
                   <div className="text-sm text-gray-900">{patient.name}</div>
                   <div className="text-sm text-gray-600">{patient.address}</div>
-                  <div className="text-sm text-gray-600">{patient.email}</div>
-                  <div className="flex items-center gap-2">
+                  <div className="text-sm text-gray-600 truncate pr-2" title={patient.email}>{patient.email}</div>
+                  <div className="flex items-center justify-end gap-2 pr-4">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -379,8 +399,35 @@ const PatientManagement = () => {
             <div key={patient.patient_id} className="bg-white rounded-lg shadow p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-medium text-lg">
-                    {getInitials(patient.name)}
+                  <div className="relative w-12 h-12">
+                    {patient.profile_picture ? (
+                      <>
+                        <Image
+                          src={`${backendURL}${patient.profile_picture}`}
+                          alt={patient.name}
+                          width={48}
+                          height={48}
+                          className="rounded-full border border-gray-200 object-cover w-full h-full"
+                          onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) {
+                              fallback.style.display = 'flex';
+                            }
+                          }}
+                        />
+                        <div 
+                          className="hidden items-center justify-center w-full h-full rounded-full border border-gray-200 bg-gray-100 text-gray-600 text-lg font-medium"
+                        >
+                          {getInitials(patient.name)}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-full h-full rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-600 text-lg font-medium">
+                        {getInitials(patient.name)}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">{patient.name}</h3>

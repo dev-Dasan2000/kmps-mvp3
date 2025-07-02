@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import { 
   User, 
   Mail, 
@@ -164,12 +165,15 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
   
   // Update appointment counts based on filtered appointments
   const updateAppointmentCounts = (appointments: any[]) => {
+    // Filter out cancelled appointments for the total count
+    const nonCancelledAppointments = appointments.filter(a => a.status !== 'cancelled');
+    
     const counts = {
-      total: appointments.length,
-      completed: appointments.filter(a => a.status === 'completed').length,
-      confirmed: appointments.filter(a => a.status === 'confirmed').length,
-      pending: appointments.filter(a => a.status === 'pending').length,
-      canceled: appointments.filter(a => a.status === 'canceled').length
+      total: nonCancelledAppointments.length,
+      completed: nonCancelledAppointments.filter(a => a.status === 'completed').length,
+      confirmed: nonCancelledAppointments.filter(a => a.status === 'confirmed').length,
+      pending: nonCancelledAppointments.filter(a => a.status === 'pending').length,
+      canceled: appointments.filter(a => a.status === 'canceled' || a.status === 'cancelled').length
     };
     
     setAppointmentCounts(counts);
@@ -582,16 +586,37 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
     <div className="space-y-6 lg:space-y-8">
       {/* Profile Header */}
       <div className="flex flex-col sm:flex-row items-start gap-6">
-        <Avatar className="w-24 h-24 sm:w-28 sm:h-28 border border-gray-200 mx-auto sm:mx-0">
-          <AvatarImage 
-            src={user.profile_picture} 
-            alt={user.name}
-            className="object-cover"
-          />
-          <AvatarFallback className="text-xl font-semibold bg-gray-100 text-gray-600">
-            {userInitials}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto sm:mx-0">
+          {user.profile_picture ? (
+            <>
+              <Image
+                src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${user.profile_picture}`}
+                alt={user.name}
+                width={112}
+                height={112}
+                className="rounded-full border border-gray-200 object-cover w-full h-full"
+                onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) {
+                    fallback.style.display = 'flex';
+                  }
+                }}
+              />
+              <div 
+                className="hidden items-center justify-center w-full h-full rounded-full border border-gray-200 bg-gray-100 text-gray-600 text-xl font-semibold"
+                style={{ display: 'none' }}
+              >
+                {userInitials}
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-600 text-xl font-semibold">
+              {userInitials}
+            </div>
+          )}
+        </div>
         
         <div className="flex-1 min-w-0 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">

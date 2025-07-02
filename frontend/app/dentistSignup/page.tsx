@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, ArrowLeft, User, Mail, Phone, Clock, DollarSign, Calendar, Globe, Upload, X, Camera } from 'lucide-react';
+import { ChevronDown, ArrowLeft, User, Mail, Phone, Clock, DollarSign, Calendar, Globe, Upload, X, Camera, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,6 +46,8 @@ interface DentistFormData {
 const DentistSignUp: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string>('');
   const router = useRouter();
@@ -514,33 +516,45 @@ const DentistSignUp: React.FC = () => {
                   {/* Password */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="password">
-                        Password <span className="text-red-500 ml-1">*</span>
-                      </Label>
-                      <Input
-                        id="password"
-                        required
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                        placeholder="••••••••"
-                        className="focus-visible:ring-emerald-200"
-                      />
-                      <p className="text-sm text-gray-500">Minimum 8 characters</p>
+                      <Label htmlFor="password">Password <span className="text-red-500">*</span></Label>
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
+                          placeholder="••••••••"
+                          className="focus-visible:ring-emerald-200 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500">Minimum 8 characters</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">
-                        Confirm Password <span className="text-red-500 ml-1">*</span>
-                      </Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        required
-                        value={formData.confirmPassword}
-                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        placeholder="••••••••"
-                        className="focus-visible:ring-emerald-200"
-                      />
+                      <Label htmlFor="confirmPassword">Confirm Password <span className="text-red-500">*</span></Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={formData.confirmPassword}
+                          onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                          placeholder="••••••••"
+                          className="focus-visible:ring-emerald-200 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
 

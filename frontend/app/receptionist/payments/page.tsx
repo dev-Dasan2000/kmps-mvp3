@@ -181,12 +181,22 @@ const PaymentsInterface: React.FC = () => {
                     <tr key={payment.appointment.appointment_id} className="border-b hover:bg-gray-50">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={payment.patient?.profile_picture} />
-                            <AvatarFallback className="bg-blue-100 text-blue-600">
-                              {getInitials(payment.patient?.name|| "deleted patient")}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-10 w-10 border-2 border-blue-200">
+                              <AvatarImage 
+                                src={payment.patient?.profile_picture ? `${backendURL}${payment.patient.profile_picture}` : ''} 
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
+                              />
+                              <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
+                                {getInitials(payment.patient?.name || 'PP')}
+                              </AvatarFallback>
+                            </Avatar>
+                          </div>
                           <div>
                             <div className="font-medium text-gray-900">{payment.patient?.name || "deleted patient" }</div>
                             <div className="text-sm text-gray-500">{payment.patient?.email || "N/A"}</div>
@@ -196,12 +206,22 @@ const PaymentsInterface: React.FC = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={payment.dentist?.profile_picture || "deleted dentist"} />
-                            <AvatarFallback className="bg-green-100 text-green-600">
-                              {getInitials(payment.dentist?.name || "deleted dentist")}
-                            </AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-10 w-10 border-2 border-green-200">
+                              <AvatarImage 
+                                src={payment.dentist?.profile_picture ? `${backendURL}${payment.dentist.profile_picture}` : ''} 
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
+                              />
+                              <AvatarFallback className="bg-green-100 text-green-600 text-sm">
+                                {getInitials(payment.dentist?.name || 'DD')}
+                              </AvatarFallback>
+                            </Avatar>
+                          </div>
                           <div>
                             <div className="font-medium text-gray-900">{payment.dentist?.name || "deleted dentist"}</div>
                             <div className="text-sm text-gray-500">{payment.dentist?.email || "N/A"}</div>
@@ -245,12 +265,22 @@ const PaymentsInterface: React.FC = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={payment.patient?.profile_picture} />
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
-                        {getInitials(payment?.patient?.name || "deleted patient")}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-12 w-12 border-2 border-blue-200">
+                        <AvatarImage 
+                          src={payment.patient?.profile_picture ? `${backendURL}${payment.patient.profile_picture}` : ''} 
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <AvatarFallback className="bg-blue-100 text-blue-600">
+                          {getInitials(payment.patient?.name || 'PP')}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
                     <div>
                       <CardTitle className="text-lg">{payment.patient?.name || "deleted patient"}</CardTitle>
                       <CardDescription className="text-sm">{payment.patient?.email || "N/A"}</CardDescription>
@@ -264,12 +294,22 @@ const PaymentsInterface: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={payment.dentist?.profile_picture} />
-                    <AvatarFallback className="bg-green-100 text-green-600">
-                      {getInitials(payment.dentist?.name || "deleted dentist")}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-10 w-10 border-2 border-green-200">
+                      <AvatarImage 
+                        src={payment.dentist?.profile_picture ? `${backendURL}${payment.dentist.profile_picture}` : ''} 
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.style.display = 'flex';
+                        }}
+                      />
+                      <AvatarFallback className="bg-green-100 text-green-600">
+                        {getInitials(payment.dentist?.name || 'DD')}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
                   <div>
                     <div className="font-medium text-gray-900">{payment.dentist?.name || "deleted dentist"}</div>
                     <div className="text-sm text-gray-500">{payment.dentist?.email || "N/A"}</div>

@@ -3,6 +3,7 @@
 import { useContext, useEffect, useState } from "react"
 import { ChevronDown, ChevronLeft, ChevronRight, Plus, Search, Filter, CalendarIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -32,6 +33,7 @@ export default function AppointmentBooking() {
   const [dentists, setDentists] = useState<Dentist[]>([]);
 
   const [loadingDentists, setLoadingDentists] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext); 
 
@@ -130,7 +132,15 @@ export default function AppointmentBooking() {
   }
 
   const handleAppointmentCreated = () => {
+    // Close the dialog
     setIsDialogOpen(false);
+    
+    // Show success message
+    toast.success("Appointment created successfully!");
+    
+    // Increment the refresh key to force re-render of all DoctorScheduleColumn components
+    // This will make each column refetch its appointments
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleWeekNavigation = (direction: "prev" | "next") => {
@@ -311,7 +321,7 @@ export default function AppointmentBooking() {
           <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-4">
             {filteredDentists?.map((dentist) => (
               <DoctorScheduleColumn
-                key={dentist.dentist_id}
+                key={`${dentist.dentist_id}-${refreshKey}`}
                 dentist={dentist}
                 weekDays={weekDays}
                 selectedWeek={formatWeekRange(weekDays)}

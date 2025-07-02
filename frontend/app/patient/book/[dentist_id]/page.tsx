@@ -370,6 +370,8 @@ export default function DentistBookingPage() {
           description: "Your appointment has been booked successfully!"
         });
         setNote('');
+        setSelectedTime(null);
+        setSelectedDate(new Date());
         fetchCurrentAppointments();
       } else {
         throw new Error(response.data.error || "Failed to book appointment");
@@ -456,11 +458,34 @@ export default function DentistBookingPage() {
               <div className="w-full lg:w-80 xl:w-96 p-4 sm:p-6 bg-gray-50 border-b lg:border-b-0 lg:border-r">
                 <div className="text-center lg:text-left">
                   <div className="flex flex-col sm:flex-row lg:flex-col items-center sm:items-start lg:items-center gap-4 sm:gap-6 lg:gap-3">
-                    <img
-                      src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}`}
-                      alt={dentist.name}
-                      className="w-16 h-16 sm:w-20 sm:h-20 lg:w-20 lg:h-20 rounded-lg object-cover flex-shrink-0"
-                    />
+                    <div className="relative w-16 h-16 sm:w-20 sm:h-20 lg:w-20 lg:h-20 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                      {dentist.profile_picture ? (
+                        <img
+                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}`}
+                          alt={dentist.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              const fallback = parent.querySelector('.profile-fallback');
+                              if (fallback) fallback.classList.remove('hidden');
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className={`profile-fallback ${dentist.profile_picture ? 'hidden' : ''} w-full h-full flex items-center justify-center bg-emerald-100 text-emerald-800 font-semibold text-xl`}
+                      >
+                        {dentist.name
+                          .split(' ')
+                          .map(n => n[0])
+                          .join('')
+                          .toUpperCase()
+                          .substring(0, 2)}
+                      </div>
+                    </div>
                     <div className="flex-1 sm:text-left lg:text-center">
                       <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1 capitalize">Dr. {dentist.name}</h2>
                       <h4 className="text-emerald-500 text-sm sm:text-base capitalize">{service?.service}</h4>

@@ -233,10 +233,26 @@ export default function DentistDirectory() {
             <Card key={dentist.dentist_id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex items-start space-x-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarImage src={dentist.profile_picture} alt={dentist.name} />
-                    <AvatarFallback>{getInitials(dentist.name)}</AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage 
+                        src={dentist.profile_picture ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}` : "/placeholder.svg"} 
+                        alt={dentist.name}
+                        className="object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const fallback = target.nextElementSibling as HTMLElement;
+                          if (fallback) {
+                            fallback.style.display = 'flex';
+                          }
+                        }}
+                      />
+                      <AvatarFallback className="bg-emerald-100 text-emerald-700 font-medium">
+                        {getInitials(dentist.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">{dentist.name}</h3>
                     <div className="mt-2 space-y-2">
@@ -300,10 +316,26 @@ export default function DentistDirectory() {
                     <tr key={dentist.dentist_id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={dentist.profile_picture} alt={dentist.name} />
-                            <AvatarFallback>{getInitials(dentist.name)}</AvatarFallback>
-                          </Avatar>
+                          <div className="relative">
+                            <Avatar className="h-10 w-10 ">
+                              <AvatarImage 
+                                src={dentist.profile_picture ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}` : "/placeholder.svg"} 
+                                alt={dentist.name}
+                                className="object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.nextElementSibling as HTMLElement;
+                                  if (fallback) {
+                                    fallback.style.display = 'flex';
+                                  }
+                                }}
+                              />
+                              <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-medium">
+                                {getInitials(dentist.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                          </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">
                               {dentist.name}

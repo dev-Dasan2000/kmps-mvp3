@@ -137,24 +137,35 @@ export default function ReceptionistDashboard() {
   
   const handleCheckIn = async (appointment_id: number) => {
     setCheckingIn(true);
-    try{
+    try {
       const response = await axios.put(
         `${backendURL}/appointments/${appointment_id}`,
         {
           status: "checkedin"
         }
       );
-      if(response.status != 202){
+      if (response.status != 202) {
         throw new Error("Error Changing Status");
       }
+      
+      // Update the UI immediately
+      const updatedAppointments = upcomingAppointments.map(apt => 
+        apt.appointment_id === appointment_id 
+          ? { ...apt, status: 'checkedin' } 
+          : apt
+      );
+      setUpcomingAppointments(updatedAppointments);
+      
+      // Refresh the counts
+      await fetchAllCounts();
+      
       toast.success("Patient Checked In");
-    
     }
-    catch(err: any){
+    catch (err: any) {
       toast.error(err.message);
     }
-    finally{
-      setCheckingIn(false)
+    finally {
+      setCheckingIn(false);
     }
   }
   

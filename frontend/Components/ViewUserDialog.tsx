@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import Image from "next/image";
 import { 
   User, 
   Mail, 
@@ -147,16 +148,36 @@ export default function ViewUserDialog({ user, onClose }: Props) {
         <div className="space-y-6 py-6">
           {/* Profile Header */}
           <div className="flex items-start gap-6">
-            <Avatar className="w-20 h-20 border border-gray-200">
-              <AvatarImage 
-                src={user.profile_picture} 
-                alt={user.name}
-                className="object-cover"
-              />
-              <AvatarFallback className="text-lg font-semibold bg-gray-100 text-gray-600">
-                {userInitials}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative w-20 h-20">
+              {user.profile_picture ? (
+                <>
+                  <Image
+                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${user.profile_picture}`}
+                    alt={user.name}
+                    width={80}
+                    height={80}
+                    className="rounded-full border border-gray-200 object-cover w-full h-full"
+                    onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) {
+                        fallback.style.display = 'flex';
+                      }
+                    }}
+                  />
+                  <div 
+                    className="hidden items-center justify-center w-full h-full rounded-full border border-gray-200 bg-gray-100 text-gray-600 text-lg font-semibold"
+                  >
+                    {userInitials}
+                  </div>
+                </>
+              ) : (
+                <div className="w-full h-full rounded-full border border-gray-200 bg-gray-100 flex items-center justify-center text-gray-600 text-lg font-semibold">
+                  {userInitials}
+                </div>
+              )}
+            </div>
             
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-4">

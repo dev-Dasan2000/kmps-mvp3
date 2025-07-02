@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { ArrowLeft, User, Mail, Phone, Upload, X, Camera } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, Upload, X, Camera, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,7 +41,9 @@ const RadiologistSignUp: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string>('');
   const [fetchedQuestions, setFetchedQuestions] = useState<SecurityQuestion[]>([]);
-  const [loadingQuestions, setLoadingQuestions] = useState(false);
+    const [loadingQuestions, setLoadingQuestions] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -433,28 +435,48 @@ const RadiologistSignUp: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="password">Password <span className="text-red-500 font-bold">*</span></Label>
-                      <Input
-                        id="password"
-                        required
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                        placeholder="••••••••"
-                        className="focus-visible:ring-emerald-200"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="password"
+                          required
+                          type={showPassword ? "text" : "password"}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
+                          placeholder="••••••••"
+                          className="focus-visible:ring-emerald-200 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-emerald-600"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                       <p className="text-xs text-gray-500">Minimum 8 characters</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="confirmPassword">Confirm Password <span className="text-red-500 font-bold">*</span></Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        required
-                        value={formData.confirmPassword}
-                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        placeholder="••••••••"
-                        className="focus-visible:ring-emerald-200"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          required
+                          value={formData.confirmPassword}
+                          onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                          placeholder="••••••••"
+                          className="focus-visible:ring-emerald-200 pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-emerald-600"
+                          tabIndex={-1}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
 

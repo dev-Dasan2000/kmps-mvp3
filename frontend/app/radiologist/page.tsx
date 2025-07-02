@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useContext } from 'react';
-import { Calendar, Clock, Plus, Search, MoreHorizontal, CheckCircle, X, Upload, FileText, Edit, Trash2, UserPlus, User, Users, Check, FileUp, ChevronDown, ChevronRight, Eye, File } from 'lucide-react';
+import { Calendar, Clock, Plus, Search, MoreHorizontal, CheckCircle, X, Upload, FileText, Edit, Trash2, UserPlus, User, Users, Check, FileUp, ChevronDown, ChevronRight, Eye, File, ScanLine } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -113,6 +113,47 @@ const MedicalStudyInterface: React.FC = () => {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  // Helper to open or download report files based on file type
+  const openReportFile = async (reportId: number) => {
+    try {
+      // First fetch the report data to get the file URL and determine file type
+      const reportResponse = await fetch(`${backendURL}/reports/${reportId}`);
+      if (!reportResponse.ok) {
+        throw new Error(`Failed to fetch report: ${reportResponse.status}`);
+      }
+      
+      const reportData = await reportResponse.json();
+      const fileUrl = reportData.report_file_url;
+      
+      if (!fileUrl) {
+        toast.error('Report file URL is missing');
+        return;
+      }
+      
+      // Check file type based on extension
+      const fileExtension = fileUrl.split('.').pop()?.toLowerCase();
+      
+      if (fileExtension === 'pdf') {
+        // For PDF files, open in a new tab
+        window.open(`${backendURL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`, '_blank');
+      } else {
+        // For Word documents and other files, trigger download
+        const fullUrl = `${backendURL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+        
+        // Create a temporary anchor element to trigger download
+        const link = document.createElement('a');
+        link.href = fullUrl;
+        link.setAttribute('download', ''); // This will force download instead of navigation
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Error opening report file:', error);
+      toast.error('Failed to open report file');
+    }
+  };
+
   const [newStudy, setNewStudy] = useState<NewStudyForm>({
     patient_id: '',
     patient_name: '',
@@ -137,6 +178,7 @@ const MedicalStudyInterface: React.FC = () => {
   const [reportedTodayCount, setReportedTodayCount] = useState<number>(0);
   const [radiologists, setRadiologists] = useState<Radiologist[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [patients, setPatients] = useState<Record<string, any>>({});
   const router = useRouter();
 
   // Helper to convert API study payload into UI-friendly shape
@@ -204,6 +246,31 @@ const MedicalStudyInterface: React.FC = () => {
     setRadiologistID(user.id)
   },[isLoadingAuth]);
 
+  // Function to fetch patient data
+  const fetchPatients = async (patientIds: string[]) => {
+    try {
+      const idsToFetch = patientIds.filter(id => !patients[id]);
+      if (idsToFetch.length === 0) return;
+
+      // Fetch patients individually
+      const fetchedPatients: Record<string, any> = {};
+      for (const id of idsToFetch) {
+        try {
+          const response = await fetch(`${backendURL}/patients/${id}`);
+          if (response.ok) {
+            const patient = await response.json();
+            fetchedPatients[patient.patient_id || id] = patient;
+          }
+        } catch (error) {
+          console.error(`Error fetching patient ${id}:`, error);
+        }
+      }
+      setPatients(prev => ({ ...prev, ...fetchedPatients }));
+    } catch (err) {
+      console.error('Error in fetchPatients:', err);
+    }
+  };
+
   // Fetch studies from the backend
   useEffect(() => {
     const fetchStudies = async () => {
@@ -219,7 +286,10 @@ const MedicalStudyInterface: React.FC = () => {
         // Keep only studies assigned to the radiologist in the URL
         const filtered = radiologistID ? normalized.filter((s: Study) => s.radiologist_id?.toString() === radiologistID) : normalized;
         setStudies(filtered);
-        console.log(normalized);
+        
+        // Extract unique patient IDs and fetch their details
+        const patientIds = Array.from(new Set(normalized.map((s: Study) => s.patient_id)));
+        fetchPatients(patientIds);
       } catch (err) {
         console.error('Failed to fetch studies:', err);
         setError('Failed to load studies. Please try again later.');
@@ -752,7 +822,9 @@ const MedicalStudyInterface: React.FC = () => {
                           {study.patient_id}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">John Doe</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {study.patient?.name || patients[study.patient_id]?.name || 'Unknown Patient'}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">{study.status}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">ACC-{study.assertion_number}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{study.modality}</td>
@@ -838,16 +910,16 @@ const MedicalStudyInterface: React.FC = () => {
                                       }}
                                       className="flex items-center justify-center gap-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded transition-colors"
                                     >
-                                      <Eye className="w-3 h-3" /> View DICOM
+                                      <ScanLine className="w-3 h-3" /> View DICOM
                                     </button>
                                   )}
                     
                                   {study.report_id && (
                                     <button
                                       onClick={() => {
-                                        window.open(`${backendURL}/reports/${study.report_id}`, '_blank');
-                                    }}
-                                    className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
+                                        openReportFile(study.report_id!);
+                                      }}
+                                      className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
                                       <File className="w-3 h-3" /> Open Report
                                     </button>
                                   )}
@@ -869,7 +941,9 @@ const MedicalStudyInterface: React.FC = () => {
             {displayedStudies.map((study) => (
               <div key={study.study_id} className="p-4">
                 <div className="flex justify-between items-start mb-2">
-                  <div className="font-medium text-gray-900">{study.patient_id} - John Doe</div>
+                  <div className="font-medium text-gray-900">
+                    {study.patient_id} - {study.patient?.name || patients[study.patient_id]?.name || 'Unknown Patient'}
+                  </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleEditStudy(study.study_id)}
@@ -911,15 +985,15 @@ const MedicalStudyInterface: React.FC = () => {
                         }}
                         className="flex items-center justify-center gap-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded transition-colors"
                       >
-                        <Eye className="w-3 h-3" /> View DICOM
+                        <ScanLine className="w-3 h-3" /> View DICOM
                       </button>
                     )}
       
                     {study.report_id && (
                       <button
                         onClick={() => {
-                          window.open(`${backendURL}/reports/${study.report_id}`, '_blank');
-                      }}
+                          openReportFile(study.report_id!);
+                        }}
                       className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
                         <File className="w-3 h-3" /> Open Report
                       </button>

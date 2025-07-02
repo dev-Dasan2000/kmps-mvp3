@@ -118,13 +118,20 @@ const DoctorHeader = () => {
         {/* User Profile */}
         <div className="flex items-center gap-3">
           {loadingDentist ? (
-            <div className="h-8 w-8 sm:h-10 sm:w-10 bg-gray-200 rounded-full animate-pulse"></div>
+            <div className="h-8 w-8 md:h-10 md:w-10 bg-gray-200 rounded-full animate-pulse"></div>
           ) : (
             <Avatar 
-              className="h-8 w-8 sm:h-10 sm:w-10 cursor-pointer hover:ring-2 hover:ring-emerald-300 transition-all duration-200" 
+              className="h-8 w-8  md:h-10 md:w-10 cursor-pointer hover:ring-2 hover:ring-emerald-300 transition-all duration-200" 
               onClick={handleProfileClick}
             >
-              <AvatarImage src={doctorInfo?.profile_picture} alt={doctorInfo?.name} />
+              <AvatarImage 
+                src={doctorInfo?.profile_picture ? `${backendURL}${doctorInfo.profile_picture}` : ''} 
+                alt={doctorInfo?.name} 
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
               <AvatarFallback className="text-xs sm:text-sm font-semibold bg-emerald-100 text-emerald-800">
                 {doctorInfo ? getDoctorInitials(doctorInfo.name) : 'DR'}
               </AvatarFallback>

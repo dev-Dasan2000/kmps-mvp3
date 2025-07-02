@@ -19,9 +19,18 @@ interface Radiologist {
   specialization: string;
 }
 
+interface Patient {
+  patient_id: string;
+  name: string;
+  email?: string;
+  phone_number?: string;
+  profile_picture?: string;
+}
+
 interface Study {
   study_id: number;
   patient_id: string;
+  patient?: Patient;
   radiologist_id: string;
   radiologist?: Radiologist;
   doctors?: Doctor[];
@@ -69,6 +78,47 @@ const MedicalStudyInterface: React.FC = () => {
 
   const {isLoadingAuth, user, isLoggedIn} = useContext(AuthContext);
   const router = useRouter();
+
+  // Helper to open or download report files based on file type
+  const openReportFile = async (reportId: number) => {
+    try {
+      // First fetch the report data to get the file URL and determine file type
+      const reportResponse = await fetch(`${backendUrl}/reports/${reportId}`);
+      if (!reportResponse.ok) {
+        throw new Error(`Failed to fetch report: ${reportResponse.status}`);
+      }
+      
+      const reportData = await reportResponse.json();
+      const fileUrl = reportData.report_file_url;
+      
+      if (!fileUrl) {
+        toast.error('Report file URL is missing');
+        return;
+      }
+      
+      // Check file type based on extension
+      const fileExtension = fileUrl.split('.').pop()?.toLowerCase();
+      
+      if (fileExtension === 'pdf') {
+        // For PDF files, open in a new tab
+        window.open(`${backendUrl}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`, '_blank');
+      } else {
+        // For Word documents and other files, trigger download
+        const fullUrl = `${backendUrl}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+        
+        // Create a temporary anchor element to trigger download
+        const link = document.createElement('a');
+        link.href = fullUrl;
+        link.setAttribute('download', ''); // This will force download instead of navigation
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Error opening report file:', error);
+      toast.error('Failed to open report file');
+    }
+  };
 
   // Helper: open DICOM viewer in a new tab using POST (required by backend)
   const openDicomInNewTab = (dicomUrl: string) => {
@@ -128,6 +178,7 @@ const MedicalStudyInterface: React.FC = () => {
   });
 
   const [studies, setStudies] = useState<Study[]>([]);
+  const [patients, setPatients] = useState<Record<string, Patient>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [todayCount, setTodayCount] = useState<number>(0);
@@ -143,8 +194,20 @@ const MedicalStudyInterface: React.FC = () => {
       name: da.dentist?.name ?? da.dentist?.email ?? 'Dentist',
       specialization: da.dentist?.specialization ?? ''
     }));
+    
+    // Include patient data if available in the study response
+    const patientData = raw.patient ? {
+      patient: {
+        patient_id: raw.patient.patient_id || raw.patient_id,
+        name: raw.patient.name || 'Unknown Patient',
+        email: raw.patient.email,
+        phone_number: raw.patient.phone_number
+      }
+    } : {};
+    
     return {
       ...raw,
+      ...patientData,
       doctors: doctorsList.length ? doctorsList : undefined
     } as Study;
   };
@@ -179,6 +242,37 @@ const MedicalStudyInterface: React.FC = () => {
     fetchTodayCount();
   }, []);
 
+  // Fetch patients from the backend
+  const fetchPatients = async (patientIds: string[]) => {
+    try {
+      // Only fetch patients that we don't already have in state
+      const idsToFetch = patientIds.filter(id => !patients[id]);
+      if (idsToFetch.length === 0) return;
+
+      // Fetch patients one by one to handle potential 404s for individual patients
+      const fetchedPatients: Record<string, Patient> = {};
+      
+      for (const id of idsToFetch) {
+        try {
+          const response = await fetch(`${backendUrl}/patients/${id}`);
+          if (response.ok) {
+            const patient = await response.json();
+            fetchedPatients[patient.patient_id || id] = patient;
+          }
+        } catch (err) {
+          console.error(`Error fetching patient ${id}:`, err);
+        }
+      }
+      
+      setPatients(prev => ({
+        ...prev,
+        ...fetchedPatients
+      }));
+    } catch (err) {
+      console.error('Error in fetchPatients:', err);
+    }
+  };
+
   // Fetch studies from the backend
   useEffect(() => {
     const fetchStudies = async () => {
@@ -192,7 +286,11 @@ const MedicalStudyInterface: React.FC = () => {
         const data = await response.json();
         const normalized = data.map((s: any) => normalizeStudy(s));
         setStudies(normalized);
-        console.log(normalized);
+        
+        // Extract unique patient IDs and fetch patient data
+        const patientIds = [...new Set(normalized.map((study: Study) => study.patient_id))];
+        fetchPatients(patientIds);
+        
       } catch (err) {
         console.error('Failed to fetch studies:', err);
         setError('Failed to load studies. Please try again later.');
@@ -907,19 +1005,19 @@ const MedicalStudyInterface: React.FC = () => {
             <table className="w-full">
               <thead className="bg-green-50 border-b">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium">ID</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Name</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Accession</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Modality</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Description</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Time</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Report</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Source AE</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Radiologist</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Doctors</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-24">ID</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-48">Name</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-24">Status</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-32">Accession</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-24">Modality</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-48">Description</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-28">Date</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-20">Time</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-24">Report</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-32">Source AE</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-36">Radiologist</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-32">Doctors</th>
+                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-24">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -929,66 +1027,90 @@ const MedicalStudyInterface: React.FC = () => {
                       className={`hover:bg-gray-50 cursor-pointer ${expandedStudyId === study.study_id ? 'bg-gray-50' : ''}`}
                       onClick={() => setExpandedStudyId(expandedStudyId === study.study_id ? null : study.study_id)}
                     >
-                      <td className="px-4 py-3 text-sm text-gray-900">
+                      <td className="px-3 py-3 text-xs text-gray-900 truncate" title={study.patient_id}>
                         <div className="flex items-center">
                           {expandedStudyId === study.study_id ?
-                            <ChevronDown className="w-4 h-4 mr-1 text-gray-500" /> :
-                            <ChevronRight className="w-4 h-4 mr-1 text-gray-500" />
+                            <ChevronDown className="w-3 h-3 mr-1 flex-shrink-0 text-gray-500" /> :
+                            <ChevronRight className="w-3 h-3 mr-1 flex-shrink-0 text-gray-500" />
                           }
-                          {study.patient_id}
+                          <span className="truncate">{study.patient_id}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">John Doe</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.status}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">ACC-{study.assertion_number}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.modality}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.description}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.date}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.time}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.report?.status ?? 'No status'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.source}</td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-3 py-3 text-xs text-gray-900 truncate" title={study.patient?.name || patients[study.patient_id]?.name || 'Unknown Patient'}>
+                        {study.patient?.name || patients[study.patient_id]?.name || 'Unknown Patient'}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-900 truncate">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          study.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          study.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {study.status || 'N/A'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-900 font-mono">ACC-{study.assertion_number}</td>
+                      <td className="px-3 py-3 text-xs text-gray-900 font-medium">{study.modality || 'N/A'}</td>
+                      <td className="px-3 py-3 text-xs text-gray-600 truncate max-w-xs" title={study.description}>
+                        {study.description || 'No description'}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-900 whitespace-nowrap">
+                        {study.date ? new Date(study.date).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-900 whitespace-nowrap">
+                        {study.time || 'N/A'}
+                      </td>
+                      <td className="px-3 py-3 text-xs">
+                        <span className={`px-2 py-1 rounded-full ${
+                          study.report?.status === 'signed' ? 'bg-green-100 text-green-800' :
+                          study.report?.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {study.report?.status || 'No report'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-gray-600 font-mono">{study.source || 'N/A'}</td>
+                      <td className="px-3 py-3 text-xs">
                         {study.radiologist ? (
                           <div className="flex items-center gap-1 text-green-600">
-                            <User className="w-3 h-3" />
-                            <span className="text-xs">{study.radiologist.name}</span>
+                            <User className="w-3 h-3 flex-shrink-0" />
+                            <span className="truncate">{study.radiologist.name}</span>
                           </div>
                         ) : (
                           <span className="text-gray-400 text-xs">Not assigned</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-3 py-3 text-xs">
                         {study.doctors && study.doctors.length > 0 ? (
                           <div className="flex items-center gap-1 text-blue-600">
-                            <Users className="w-3 h-3" />
-                            <span className="text-xs">{study.doctors.length} doctor(s)</span>
+                            <Users className="w-3 h-3 flex-shrink-0" />
+                            <span>{study.doctors.length} doctor(s)</span>
                           </div>
                         ) : (
-                          <span className="text-gray-400 text-xs">Not assigned</span>
+                          <span className="text-gray-400">Not assigned</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex items-center gap-2">
+                      <td className="px-3 py-3 text-xs">
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleEditStudy(study.study_id); }}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                             title="Edit Study"
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDeleteStudy(study.study_id); }}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
                             title="Delete Study"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); openAssignModal(study.study_id); }}
-                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
                             title="Assign Staff"
                           >
-                            <UserPlus className="w-4 h-4" />
+                            <UserPlus className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -1042,7 +1164,7 @@ const MedicalStudyInterface: React.FC = () => {
                                   {study.report_id && (
                                     <button
                                       onClick={() => {
-                                        window.open(`${backendUrl}/reports/${study.report_id}`, '_blank');
+                                        openReportFile(study.report_id!);
                                       }}
                                       className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
                                       <File className="w-3 h-3" /> Open Report
@@ -1111,11 +1233,12 @@ const MedicalStudyInterface: React.FC = () => {
                         <Eye className="w-3 h-3" /> View DICOM
                       </button>
                     )}
-      
+
+
                     {study.report_id && (
                       <button
                         onClick={() => {
-                          window.open(`${backendURL}/reports/${study.report_id}`, '_blank');
+                          openReportFile(study.report_id!);
                       }}
                       className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
                         <File className="w-3 h-3" /> Open Report

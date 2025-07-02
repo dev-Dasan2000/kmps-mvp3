@@ -41,7 +41,7 @@ export function RoomAssignmentInterface() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<string>("")
-  const [viewFilter, setViewFilter] = useState<"today" | "all">("today")
+  const [viewFilter, setViewFilter] = useState<"today" | "all" | "custom">("today")
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<ExtendedRoomAssignment | null>(null)
   const [loading, setLoading] = useState(false)
@@ -123,21 +123,36 @@ export function RoomAssignmentInterface() {
     }
   }, [dentists, rooms])
 
-  // Filter assignments based on search and date
+  // Filter assignments based on search, date, and view filter
   useEffect(() => {
-    let filtered = assignments
+    let filtered = [...assignments]
 
-    // Filter by date based on viewFilter and selectedDate
-    const today = new Date().toISOString().split("T")[0]
-    const selectedDateStr = selectedDate.toISOString().split("T")[0]
+    // Create a function to normalize dates to YYYY-MM-DD in local timezone
+    const toLocalDateString = (date: Date | string) => {
+      const d = new Date(date);
+      // Use toLocaleDateString with timezone to get consistent local date
+      return d.toLocaleDateString('en-CA'); // 'en-CA' gives YYYY-MM-DD format
+    };
+
+    const today = toLocalDateString(new Date());
+    const selectedDateStr = toLocalDateString(selectedDate);
 
     if (viewFilter === "today") {
-      filtered = filtered.filter((assignment) => assignment.date === today)
-    } else if (selectedDateStr !== today) {
-      // If a specific date is selected (not today), show assignments for that date
-      filtered = filtered.filter((assignment) => assignment.date === selectedDateStr)
+      filtered = filtered.filter((assignment) => {
+        // Ensure we're comparing dates in the same timezone
+        const assignmentDate = toLocalDateString(assignment.date);
+        return assignmentDate === today;
+      });
+    } else if (viewFilter === "all") {
+      // Show all assignments, no date filtering
+    } else {
+      // Show assignments for the selected date
+      filtered = filtered.filter((assignment) => {
+        // Compare dates in local timezone
+        const assignmentDate = toLocalDateString(assignment.date);
+        return assignmentDate === selectedDateStr;
+      });
     }
-    // If viewFilter is "all" and selectedDate is today, show all assignments
 
     // Filter by search term
     if (searchTerm) {
@@ -325,7 +340,10 @@ export function RoomAssignmentInterface() {
   }
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString("en-US", {
+    // Ensure consistent date formatting by using the full date string
+    const dateObj = new Date(date);
+    return dateObj.toLocaleDateString("en-US", {
+      timeZone: 'UTC', // Use UTC to prevent timezone shifting
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -364,7 +382,16 @@ export function RoomAssignmentInterface() {
 
         <div className="flex gap-2">
           {/* Filter Dropdown */}
-          <Select value={viewFilter} onValueChange={(value: "today" | "all") => setViewFilter(value)}>
+          <Select 
+            value={viewFilter} 
+            onValueChange={(value: "today" | "all") => {
+              setViewFilter(value);
+              // Reset selected date when changing view filter to today or all
+              if (value === 'today' || value === 'all') {
+                setSelectedDate(new Date());
+              }
+            }}
+          >
             <SelectTrigger className="w-32">
               <SelectValue />
             </SelectTrigger>
@@ -388,7 +415,13 @@ export function RoomAssignmentInterface() {
               <CalendarComponent
                 mode="single"
                 selected={selectedDate}
-                onSelect={(date) => date && setSelectedDate(date)}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                    // Set view filter to custom when a specific date is selected
+                    setViewFilter('custom' as any);
+                  }
+                }}
               />
             </PopoverContent>
           </Popover>

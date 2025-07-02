@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useContext } from 'react';
 import { Search, Calendar, DollarSign, User, Clock } from 'lucide-react';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -204,12 +205,36 @@ const PaymentsInterface: React.FC = () => {
                       <td className="px-6 py-4">
                         {payment.patient ? (
                           <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={payment.patient?.profile_picture} />
-                              <AvatarFallback className="bg-blue-100 text-blue-600">
-                                {getInitials(payment.patient?.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <div className="relative w-10 h-10">
+                              {payment.patient?.profile_picture ? (
+                                <>
+                                  <Image
+                                    src={`${backendURL}${payment.patient.profile_picture}`}
+                                    alt={payment.patient.name}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full border border-gray-200 object-cover w-full h-full"
+                                    onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const fallback = target.nextElementSibling as HTMLElement;
+                                      if (fallback) {
+                                        fallback.style.display = 'flex';
+                                      }
+                                    }}
+                                  />
+                                  <div 
+                                    className="hidden items-center justify-center w-full h-full rounded-full border border-gray-200 bg-blue-100 text-blue-600 text-sm font-medium"
+                                  >
+                                    {getInitials(payment.patient.name)}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="w-full h-full rounded-full border border-gray-200 bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-medium">
+                                  {getInitials(payment.patient.name)}
+                                </div>
+                              )}
+                            </div>
                             <div>
                               <div className="font-medium text-gray-900">{payment.patient.name}</div>
                               <div className="text-sm text-gray-500">{payment.patient.email}</div>
@@ -223,12 +248,36 @@ const PaymentsInterface: React.FC = () => {
                       <td className="px-6 py-4">
                         {payment.dentist ? (
                           <div className="flex items-center space-x-3">
-                            <Avatar className="h-10 w-10">
-                              <AvatarImage src={payment.dentist?.profile_picture} />
-                              <AvatarFallback className="bg-green-100 text-green-600">
-                                {getInitials(payment.dentist?.name)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <div className="relative w-10 h-10">
+                              {payment.dentist?.profile_picture ? (
+                                <>
+                                  <Image
+                                    src={`${backendURL}${payment.dentist.profile_picture}`}
+                                    alt={payment.dentist.name}
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full border border-gray-200 object-cover w-full h-full"
+                                    onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const fallback = target.nextElementSibling as HTMLElement;
+                                      if (fallback) {
+                                        fallback.style.display = 'flex';
+                                      }
+                                    }}
+                                  />
+                                  <div 
+                                    className="hidden items-center justify-center w-full h-full rounded-full border border-gray-200 bg-green-100 text-green-600 text-sm font-medium"
+                                  >
+                                    {getInitials(payment.dentist.name)}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="w-full h-full rounded-full border border-gray-200 bg-green-100 flex items-center justify-center text-green-600 text-sm font-medium">
+                                  {getInitials(payment.dentist.name)}
+                                </div>
+                              )}
+                            </div>
                             <div>
                               <div className="font-medium text-gray-900">{payment.dentist.name}</div>
                               <div className="text-sm text-gray-500">{payment.dentist.email}</div>
@@ -276,20 +325,44 @@ const PaymentsInterface: React.FC = () => {
                 <div className="flex items-center justify-between">
                   {payment.patient ? (
                   <div className="flex items-center space-x-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={payment.patient?.profile_picture} />
-                      <AvatarFallback className="bg-blue-100 text-blue-600">
-                        {getInitials(payment.patient?.name)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative w-12 h-12">
+                      {payment.patient?.profile_picture ? (
+                        <>
+                          <Image
+                            src={`${backendURL}${payment.patient.profile_picture}`}
+                            alt={payment.patient.name}
+                            width={48}
+                            height={48}
+                            className="rounded-full border border-gray-200 object-cover w-full h-full"
+                            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) {
+                                fallback.style.display = 'flex';
+                              }
+                            }}
+                          />
+                          <div 
+                            className="hidden items-center justify-center w-full h-full rounded-full border border-gray-200 bg-blue-100 text-blue-600 text-base font-medium"
+                          >
+                            {getInitials(payment.patient.name)}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full rounded-full border border-gray-200 bg-blue-100 flex items-center justify-center text-blue-600 text-base font-medium">
+                          {getInitials(payment.patient.name)}
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <CardTitle className="text-lg">{payment.patient.name}</CardTitle>
                       <CardDescription className="text-sm">{payment.patient.email}</CardDescription>
                     </div>
                   </div>
-                ) : (
-                  <div className="text-red-500 italic">Patient deleted from system</div>
-                )}
+                  ) : (
+                    <div className="text-red-500 italic">Patient deleted from system</div>
+                  )}
                   <div className="flex items-center space-x-1">
                     <span className="text-gray-500">Rs</span>
                     <span className="font-bold text-lg text-gray-900">{payment.appointment.fee}</span>
@@ -299,12 +372,36 @@ const PaymentsInterface: React.FC = () => {
               <CardContent className="space-y-4">
                 {payment.dentist ? (
                   <div className="flex items-center space-x-3   bg-gray-50 rounded-lg">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={payment.dentist?.profile_picture} />
-                      <AvatarFallback className="bg-green-100 text-green-600">
-                        {getInitials(payment.dentist?.name)}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative w-10 h-10">
+                      {payment.dentist?.profile_picture ? (
+                        <>
+                          <Image
+                            src={`${backendURL}${payment.dentist.profile_picture}`}
+                            alt={payment.dentist.name}
+                            width={40}
+                            height={40}
+                            className="rounded-full border border-gray-200 object-cover w-full h-full"
+                            onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const fallback = target.nextElementSibling as HTMLElement;
+                              if (fallback) {
+                                fallback.style.display = 'flex';
+                              }
+                            }}
+                          />
+                          <div 
+                            className="hidden items-center justify-center w-full h-full rounded-full border border-gray-200 bg-green-100 text-green-600 text-sm font-medium"
+                          >
+                            {getInitials(payment.dentist.name)}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full rounded-full border border-gray-200 bg-green-100 flex items-center justify-center text-green-600 text-sm font-medium">
+                          {getInitials(payment.dentist.name)}
+                        </div>
+                      )}
+                    </div>
                     <div >
                       <div className="font-medium text-gray-900">{payment.dentist.name}</div>
                       <div className="text-sm text-gray-500">{payment.dentist.email}</div>
