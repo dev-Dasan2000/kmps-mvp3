@@ -141,11 +141,14 @@ router.post('/', async (req, res) => {
 
     if (patientEmail && patientName) {
       try {
-        if (data.report_id && data.dicom_file_url) {
+        const hasReport = newStudy.report?.report_file_url;
+        const hasImage = !!data.dicom_file_url;
+
+        if (hasReport && hasImage) {
           await sendMedicalImageAndReportAddedNotice(patientEmail, formattedDate, patientName);
-        } else if (!data.report_id && data.dicom_file_url) {
+        } else if (!hasReport && hasImage) {
           await sendMedicalImageAddedNotice(patientEmail, formattedDate, patientName);
-        } else if (data.report_id && !data.dicom_file_url) {
+        } else if (hasReport && !hasImage) {
           await sendMedicalReportAddedNotice(patientEmail, formattedDate, patientName);
         }
       } catch (emailErr) {
@@ -159,6 +162,7 @@ router.post('/', async (req, res) => {
     res.status(500).json({ error: 'Failed to create study', details: error.message });
   }
 });
+
 
 
 router.put('/:study_id', async (req, res) => {
@@ -193,11 +197,12 @@ router.put('/:study_id', async (req, res) => {
       include: {
         radiologist: true,
         dentistAssigns: { include: { dentist: true } },
-        patient: true
+        patient: true,
+        report: true
       }
     });
 
-    if (rest.report_id && updatedStudy.patient?.email) {
+    if (updatedStudy.report?.report_file_url && updatedStudy.patient?.email) {
       try {
         const formattedDate = new Date(updatedStudy.date).toLocaleDateString('en-US', {
           year: 'numeric', month: 'long', day: 'numeric'
