@@ -357,6 +357,7 @@ const MedicalStudyInterface: React.FC = () => {
 
       // Step 1: Validate required DICOM file
       if (newStudy.dicom_files.length === 0) {
+        toast.error('Please upload a DICOM file before submitting the study');
         setError('DICOM file is required');
         setLoading(false);
         return;
