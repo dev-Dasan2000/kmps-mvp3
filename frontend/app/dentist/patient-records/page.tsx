@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useContext } from 'react'
-import { Search, User, FileText, Calendar, Phone, Mail, Download, Upload, AlertCircle, Activity, X, ArrowLeft, Plus } from 'lucide-react'
+import { Search, User, FileText, Calendar, Phone, Mail, Download, Upload, AlertCircle, Activity, X, ArrowLeft, Plus, ClipboardCheck, Eye } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -135,10 +135,9 @@ export default function DentistDashboard({ params }: DashboardProps) {
   const [medicalHistory, setMedicalHistory] = useState<MedicalHistory[]>([]);
   const [medicalReport, setMedicalReport] = useState<MedicalReport[]>([]);
   const [soapNote, setSoapNote] = useState<SOAPNote[]>([]);
-
-  // Dialog states
   const [isAddNoteDialogOpen, setIsAddNoteDialogOpen] = useState(false);
   const [isUploadReportDialogOpen, setIsUploadReportDialogOpen] = useState(false);
+  const [isDetailsOverlayOpen, setIsDetailsOverlayOpen] = useState(false);
   const [newNoteText, setNewNoteText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [reportName, setReportName] = useState('');
@@ -470,7 +469,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
       {/* Patient Details */}
       <div className="flex-1 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-4 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+          <TabsList className="grid w-full grid-cols-5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="history" className="lg:hidden">History</TabsTrigger>
             <TabsTrigger value="history" className="hidden lg:block">Medical History</TabsTrigger>
@@ -478,6 +477,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
             <TabsTrigger value="reports" className="hidden lg:block">Medical Reports</TabsTrigger>
             <TabsTrigger value="notes" className="lg:hidden">Notes</TabsTrigger>
             <TabsTrigger value="notes" className="hidden lg:block">SOAP Notes</TabsTrigger>
+            <TabsTrigger value="consent">Consent Template</TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto mt-6">
@@ -700,14 +700,377 @@ export default function DentistDashboard({ params }: DashboardProps) {
                 )}
               </div>
             </TabsContent>
+            
+            {/* This card component should be integrate with the backend */}
+            <TabsContent value="consent" className="space-y-4 mt-0">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ClipboardCheck className="h-5 w-5" />
+                    Consent Template
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {selectedPatient && medicalHistory.map((history, index) => (
+                      <div key={`${history.patient_id}-${history.medical_question_id}`} className="border-l-4 border-blue-500 pl-4 py-2">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{history.question?.question}</p>
+                            <p className="text-gray-600 mt-1">{history.medical_question_answer}</p>
+                          </div>
+                          {history.medical_question_answer.toLowerCase().includes('yes') &&
+                            history.question?.question.toLowerCase().includes('disease') && (
+                              <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                            )}
+                        </div>
+                      </div>
+                    ))}
+                    {selectedPatient && medicalHistory.length === 0 && (
+                      <div className="text-center py-8">
+                        <ClipboardCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No consent template available</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </div>
         </Tabs>
       </div>
     </div>
   )
 
+  const OverlayPatientDetailsContent = () => (
+  <div className="h-full flex flex-col">
+    {/* Patient Header */}
+    <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex-shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="relative h-16 w-16 rounded-full overflow-hidden bg-blue-100 flex-shrink-0">
+          {selectedPatient?.profile_picture ? (
+            <img
+              src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${selectedPatient.profile_picture}`}
+              alt={selectedPatient.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) {
+                  fallback.style.display = 'flex';
+                }
+              }}
+            />
+          ) : null}
+          <div className="absolute inset-0 flex items-center justify-center bg-blue-100 text-blue-700 font-medium text-xl">
+            {selectedPatient?.name 
+              ? selectedPatient.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
+              : '?'}
+          </div>
+        </div>
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold text-gray-900">{selectedPatient?.name}</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-sm text-gray-600">
+            <div className="flex items-center gap-1">
+              <Mail className="h-4 w-4" />
+              <span>{selectedPatient?.email}</span>
+            </div>
+            {selectedPatient?.phone_number && (
+              <div className="flex items-center gap-1">
+                <Phone className="h-4 w-4" />
+                <span>{selectedPatient.phone_number}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Stacked Content Sections */}
+    <div className="flex-1 overflow-y-auto space-y-6">
+      {/* Patient Information */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Patient Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700">Date of Birth</label>
+              <p className="text-gray-900">{selectedPatient?.date_of_birth || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Gender</label>
+              <p className="text-gray-900">{selectedPatient?.gender || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">Blood Group</label>
+              <p className="text-gray-900">{selectedPatient?.blood_group || 'Not provided'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700">NIC</label>
+              <p className="text-gray-900">{selectedPatient?.NIC || 'Not provided'}</p>
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-sm font-medium text-gray-700">Address</label>
+              <p className="text-gray-900">{selectedPatient?.address || 'Not provided'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Medical History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Medical History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {selectedPatient && medicalHistory.map((history, index) => (
+              <div key={`${history.patient_id}-${history.medical_question_id}`} className="border-l-4 border-blue-500 pl-4 py-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{history.question?.question}</p>
+                    <p className="text-gray-600 mt-1">{history.medical_question_answer}</p>
+                  </div>
+                  {history.medical_question_answer.toLowerCase().includes('yes') &&
+                    history.question?.question.toLowerCase().includes('disease') && (
+                      <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                    )}
+                </div>
+              </div>
+            ))}
+            {selectedPatient && medicalHistory.length === 0 && (
+              <div className="text-center py-8">
+                <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No medical history available</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Medical Reports */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Medical Reports
+          </h3>
+          <Button
+            className='bg-emerald-500 hover:bg-emerald-600'
+            size="sm"
+            onClick={() => setIsUploadReportDialogOpen(true)}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Report
+          </Button>
+        </div>
+        <div className="grid gap-4">
+          {selectedPatient && medicalReport.map((report) => (
+            <Card key={report.report_id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <FileText className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">{report.record_name}</h4>
+                      <p className="text-xs text-gray-500">
+                        {new URL(`${backendURL}${report.record_url}`).pathname.split('/').pop()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-red-500 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteReport(report.report_id);
+                      }}
+                      disabled={deletingReportId === report.report_id}
+                    >
+                      {deletingReportId === report.report_id ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></div>
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button 
+                      className='hover:bg-emerald-100' 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFileDownload(report.record_url);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {selectedPatient && medicalReport.length === 0 && (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">No medical reports available</p>
+                <Button
+                  className='bg-emerald-500 hover:bg-emerald-600'
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsUploadReportDialogOpen(true)}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload First Report
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* SOAP Notes */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">SOAP Notes</h3>
+          <Button
+            className='bg-emerald-500 hover:bg-emerald-600'
+            size="sm"
+            onClick={() => setIsAddNoteDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Note
+          </Button>
+        </div>
+        <div className="space-y-4">
+          {selectedPatient && soapNote.map((note) => (
+            <Card key={note.note_id}>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-sm text-gray-500">
+                    {note.date}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-blue-500 hover:bg-blue-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditNote(note);
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                      </svg>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-red-500 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteNote(note.note_id);
+                      }}
+                      disabled={deletingNoteId === note.note_id}
+                    >
+                      {deletingNoteId === note.note_id ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></div>
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-gray-900 whitespace-pre-wrap">{note.note}</p>
+              </CardContent>
+            </Card>
+          ))}
+          {selectedPatient && soapNote.length === 0 && (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No SOAP notes available for this patient</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+      
+      {/* Consent Template */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ClipboardCheck className="h-5 w-5" />
+            Consent Template
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {selectedPatient && medicalHistory.map((history, index) => (
+              <div key={`${history.patient_id}-${history.medical_question_id}`} className="border-l-4 border-blue-500 pl-4 py-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900">{history.question?.question}</p>
+                    <p className="text-gray-600 mt-1">{history.medical_question_answer}</p>
+                  </div>
+                  {history.medical_question_answer.toLowerCase().includes('yes') &&
+                    history.question?.question.toLowerCase().includes('disease') && (
+                      <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                    )}
+                </div>
+              </div>
+            ))}
+            {selectedPatient && medicalHistory.length === 0 && (
+              <div className="text-center py-8">
+                <ClipboardCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No consent template available</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+);
+
+  // Full Screen Details Overlay
+  const renderDetailsOverlay = () => (
+    <div className="fixed inset-0 bg-white z-50 flex flex-col">
+      {/* Overlay Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+        <h2 className="text-xl font-semibold">Patient Details</h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsDetailsOverlayOpen(false)}
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Overlay Content */}
+      <div className="flex-1 overflow-auto p-6">
+        <OverlayPatientDetailsContent />
+      </div>
+    </div>
+  );
+
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      {isDetailsOverlayOpen && selectedPatient && renderDetailsOverlay()}
       <div className="flex flex-1 p-4 gap-4 overflow-hidden">
         {/* Sidebar - Patient List */}
         <div className={`${isMobileOverlayOpen ? 'hidden' : 'flex'} lg:flex w-full lg:w-96 bg-emerald-50 border rounded-3xl border-emerald-200 flex-col overflow-hidden`}>
@@ -778,6 +1141,19 @@ export default function DentistDashboard({ params }: DashboardProps) {
                             </Badge>
                           )}
                         </div>
+                      </div>
+                      <div>
+                        {/* An overlay will appear */}
+                        <Button
+                          variant="ghost"
+                          className='h-10 w-10 cursor-pointer'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsDetailsOverlayOpen(true);
+                          }}
+                        >
+                          <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" />
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
