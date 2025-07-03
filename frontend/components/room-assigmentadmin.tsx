@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Label } from "@/components/ui/label"
-import { Plus, Calendar, Clock, User, Building, Search, CalendarIcon, X, Edit } from "lucide-react"
+import { Plus, Calendar, Clock, User, Building, Search, CalendarIcon, X, Edit, Trash2 } from "lucide-react"
 import type { RoomAssignment } from "@/types/dentist"
 import axios from "axios"
 import { toast } from "sonner"
@@ -66,6 +66,23 @@ export function RoomAssignment() {
       toast.error("Failed to load dentists")
     }
   }
+
+  // Delete room
+  const handleDeleteRoom = async (roomId: string) => {
+    if (!confirm('Are you sure you want to delete this room? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${backendURL}/rooms/${roomId}`);
+      toast.success('Room deleted successfully');
+      fetchRooms(); // Refresh the rooms list
+      fetchAssignments(); // Refresh assignments as well
+    } catch (error) {
+      console.error('Failed to delete room:', error);
+      toast.error('Failed to delete room. Please try again.');
+    }
+  };
 
   // Fetch rooms from backend
   const fetchRooms = async () => {
@@ -484,14 +501,32 @@ export function RoomAssignment() {
                     </div>
                   </div>
 
-                  {/* Add Button */}
-                  <Button
-                    size="sm"
-                    onClick={() => openAddDialog(room.room_id)}
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 h-8 w-8"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </Button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openAddDialog(room.room_id);
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 h-8 w-8"
+                      title="Add assignment"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteRoom(room.room_id);
+                      }}
+                      className="text-white hover:bg-red-600 p-2 h-8 w-8"
+                      title="Delete room"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
 

@@ -70,11 +70,7 @@ const items = [
     url: `/admin/room-assignments`,
     icon: Ticket,
   },
-  {
-    title: "Add Rooms",
-    url: "/admin/rooms",
-    icon: DoorOpen,
-  },
+ 
   
 ];
 
