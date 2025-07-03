@@ -37,6 +37,13 @@ import radiologistRouter from './routes/radiologist-routes.js';
 import reportsRouter from './routes/reports-routes.js';
 import dentistAssignRouter from './routes/dentist-assign-routes.js';
 
+import workTypesRouter from './routes/work-types-routes.js';
+import shadesRouter from './routes/shades-routes.js';
+import materialTypesRouter from './routes/material-types-routes.js';
+import orderFilesRouter from './routes/order-files-routes.js';
+import orderRouter from './routes/order-routes.js';
+
+
 import './routes/automated-routes.js';
 
 dotenv.config();

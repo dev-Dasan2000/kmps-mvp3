@@ -293,3 +293,67 @@ model room_assign {
 
   @@id([room_id, dentist_id, date, time_to, time_from])
 }
+
+model lab {
+  lab_id         String   @id
+  name           String?
+  password       String?
+  contact_person String?
+  contact_number String?
+  email          String?
+  address        String?
+  specialties    String?
+
+  orders         orders[]
+}
+
+model work_types {
+  work_type_id Int     @id @default(autoincrement())
+  work_type    String?
+
+  orders       orders[]
+}
+
+model shades {
+  shade_type_id Int     @id @default(autoincrement())
+  shade         String?
+
+  orders        orders[]
+}
+
+model material_types {
+  material_id Int     @id @default(autoincrement())
+  material    String?
+
+  orders      orders[]
+}
+
+model orders {
+  order_id             Int              @id @default(autoincrement())
+  patient_id           String?
+  dentist_id           String?
+  lab_id               String?
+  work_type_id         Int?
+  due_date             DateTime?
+  file_types           String?
+  shade_type_id        Int?
+  material_id          Int?
+  priority             String?
+  special_instructions String?
+  status               String?
+
+  lab           lab?            @relation(fields: [lab_id], references: [lab_id])
+  work_type     work_types?     @relation(fields: [work_type_id], references: [work_type_id])
+  shade_type    shades?         @relation(fields: [shade_type_id], references: [shade_type_id])
+  material_type material_types? @relation(fields: [material_id], references: [material_id])
+
+  order_files   order_files[]
+}
+
+model order_files {
+  file_id  Int     @id @default(autoincrement())
+  url      String?
+  order_id Int?
+
+  order orders? @relation(fields: [order_id], references: [order_id])
+}
