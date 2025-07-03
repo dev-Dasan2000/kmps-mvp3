@@ -70,6 +70,12 @@ const items = [
     url: `/admin/room-assignments`,
     icon: Ticket,
   },
+  {
+    title: "Lab Management",
+    url: "/admin/labs",
+    icon: DoorOpen,
+    
+  }
  
   
 ];
