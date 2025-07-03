@@ -607,7 +607,7 @@ const DentalDashboard: React.FC = () => {
             <CardHeader className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <CardTitle className="text-lg sm:text-xl">Appointment Status</CardTitle>
+                  <CardTitle className=" -mt-5 text-lg sm:text-xl">Appointment Status</CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
                     Distribution of appointment statuses
                   </CardDescription>
@@ -619,10 +619,8 @@ const DentalDashboard: React.FC = () => {
                   </Badge>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 pt-0">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                <h3 className="text-base sm:text-lg font-medium">Appointment Status</h3>
+              <div className=" mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <h3 className="text-base sm:text-lg font-medium"></h3>
                 <div className="flex flex-wrap gap-1 sm:gap-2">
                   <button
                     onClick={() => handleTimePeriodChange('overall')}
@@ -677,7 +675,8 @@ const DentalDashboard: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </CardContent>
+            </CardHeader>
+            
           </Card>
 
           {/* Right Side - Payment Analysis */}
