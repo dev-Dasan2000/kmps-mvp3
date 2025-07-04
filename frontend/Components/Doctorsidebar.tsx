@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState, useContext, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, LogOut, Settings, User2, Menu, X } from "lucide-react";
+import { BarChart3, LogOut, Settings, User2, Menu, X, CalendarCheck } from "lucide-react";
 import { AuthContext } from "@/context/auth-context";
 import { toast } from "sonner";
 import Logo from "@/app/logo.png";
@@ -48,6 +48,11 @@ const DoctorSidebar = () => {
         title: "Dashboard",
         url: `/dentist`,
         icon: LayoutGrid,
+      },
+      {
+        title: "All Appointments",
+        url: `/dentist/all-appointments`,
+        icon: CalendarCheck,
       },
       {
         title: "Patient Records",
