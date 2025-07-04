@@ -39,6 +39,12 @@ type Stage = {
   name: string;
 };
 
+type StageWithStatus = Stage & {
+  completed: boolean;
+  date: string | null;
+};
+
+
 type StageAssign = {
   stage_assign_id: number;
   stage_id: number;
@@ -76,7 +82,7 @@ type Order = {
   priority: string;
   special_instructions: string;
   status: string;
-  order_files: OrderFile[]
+  order_files: OrderFile[];
 };
 
 // ======================== MOCK DATA ========================
@@ -205,15 +211,34 @@ const mockStageAssigns: StageAssign[] = [
 
 const DentalLabModule = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'requests' | 'orders' | 'labs'>('dashboard');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(mockOrders[0]);
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [orders, setOrders] = useState<Order[]>(mockOrders);
   const [labs, setLabs] = useState<Lab[]>(mockLabs);
   const [workTypes] = useState<WorkType[]>(mockWorkTypes);
   const [shades] = useState<Shade[]>(mockShades);
   const [materials] = useState<MaterialType[]>(mockMaterialTypes);
-  const [stages] = useState<Stage[]>(mockStages);
-  const [stageAssigns] = useState<StageAssign[]>(mockStageAssigns);
+  const [stages, setStages] = useState<StageWithStatus[]>([]);
+  const [stageAssigns, setStageAssigns] = useState<StageAssign[]>(mockStageAssigns);
+
+  function getStagesForOrder(orderId: number): StageWithStatus[] {
+    return mockStages.map(stage => {
+      const assignment = mockStageAssigns.find(sa => sa.order_id === orderId && sa.stage_id === stage.stage_id);
+      return {
+        ...stage,
+        completed: assignment?.completed ?? false,
+        date: assignment?.date || null
+      };
+    });
+  }
+  
+
+  useEffect(() => {
+    if (selectedOrder) {
+      const updatedStages = getStagesForOrder(selectedOrder.order_id);
+      setStages(updatedStages);
+    }
+  }, [selectedOrder]);
 
   const [newOrder, setNewOrder] = useState({
     patient_id: '',
@@ -557,7 +582,7 @@ const DentalLabModule = () => {
               <div className="space-y-2">
                 <p><span className="font-medium">Name:</span> {order.patient?.name || 'N/A'}</p>
                 <p><span className="font-medium">Patient ID:</span> {order.patient?.patient_id || 'N/A'}</p>
-                <p><span className="font-medium">Dentist:</span> Dr. {order.dentist_name}</p>
+                <p><span className="font-medium">Dentist:</span> Dr. {order.dentist?.name}</p>
               </div>
             </div>
 
@@ -566,9 +591,8 @@ const DentalLabModule = () => {
               <div className="space-y-2">
                 <p><span className="font-medium">Work Type:</span> {order.work_type?.work_type || 'N/A'}</p>
                 <p><span className="font-medium">Lab:</span> {order.lab?.name || 'N/A'}</p>
-                <p><span className="font-medium">Order Date:</span> {order.order_date}</p>
+                <p><span className="font-medium">Order Date:</span> {order.due_date}</p>
                 <p><span className="font-medium">Due Date:</span> {order.due_date}</p>
-                <p><span className="font-medium">Cost:</span> ${order.cost?.toFixed(2)}</p>
               </div>
             </div>
           </div>
@@ -576,7 +600,7 @@ const DentalLabModule = () => {
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Progress Tracking</h3>
             <div className="space-y-3">
-              {order.stages?.map((stage, index) => (
+              {stages?.map((stage, index) => (
                 <div key={index} className="flex items-center space-x-3">
                   <div className={`w-4 h-4 rounded-full ${stage.completed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                   <span className={`flex-1 ${stage.completed ? 'text-gray-900' : 'text-gray-500'}`}>
@@ -595,11 +619,11 @@ const DentalLabModule = () => {
             </div>
           </div>
 
-          {order.files && order.files.length > 0 && (
+          {order.order_files && order.order_files.length > 0 && (
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">Files</h3>
               <div className="space-y-2">
-                {order.files.map((file) => (
+                {order.order_files.map((file) => (
                   <div key={file.file_id} className="flex items-center justify-between bg-gray-50 p-3 rounded border">
                     <div className="flex items-center">
                       <FileText className="h-5 w-5 text-gray-400 mr-3" />
@@ -1062,7 +1086,7 @@ const DentalLabModule = () => {
         color: 'bg-red-500' 
       },
       { title: 'This Month', value: orders.filter(o => 
-        o.order_date && new Date(o.order_date).getMonth() === new Date().getMonth()).length.toString(), 
+        o.due_date && new Date(o.due_date).getMonth() === new Date().getMonth()).length.toString(), 
         color: 'bg-purple-500' 
       }
     ];
@@ -1093,7 +1117,7 @@ const DentalLabModule = () => {
             <div className="p-6">
               <div className="space-y-4">
                 {[...orders]
-                  .sort((a, b) => new Date(b.order_date || '').getTime() - new Date(a.order_date || '').getTime())
+                  .sort((a, b) => new Date(b.due_date || '').getTime() - new Date(a.due_date || '').getTime())
                   .slice(0, 5)
                   .map((order) => (
                     <div key={order.order_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
