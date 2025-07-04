@@ -76,7 +76,7 @@ type Order = {
   priority: string;
   special_instructions: string;
   status: string;
-  order_files: OrderFile
+  order_files: OrderFile[]
 };
 
 // ======================== MOCK DATA ========================
@@ -142,69 +142,49 @@ const mockLabs: Lab[] = [
   }
 ];
 
+const mockPatients: PatientType[] = [
+  { patient_id: 'P001', name: 'John Smith' },
+  { patient_id: 'P002', name: 'Mary Davis' }
+];
+
+const mockDentists: DenstistType[] = [
+  { dentist_id: 'D001', name: 'Sarah Johnson' },
+  { dentist_id: 'D002', name: 'Michael Chen' }
+];
+
 const mockOrders: Order[] = [
   {
     order_id: 1,
-    patient_id: 'P001',
-    dentist_id: 'D001',
-    lab_id: 'LAB-001',
-    work_type_id: 1,
+    patient: { patient_id: 'P001', name: 'John Smith' },
+    dentist: { dentist_id: 'D001', name: 'Sarah Johnson' },
+    lab: mockLabs[0],
+    work_type: { work_type_id: 1, work_type: 'Complete Denture' },
     due_date: '2025-01-22',
     file_types: 'STL,PDF,JPG',
-    shade_type_id: 2,
-    material_id: 4,
+    shade: { shade_type_id: 2, shade: 'A2' },
+    material: { material_id: 4, material: 'Acrylic Resin' },
     priority: 'Normal',
     special_instructions: 'Upper complete denture, standard shade A2',
     status: 'In Progress',
-    patient_name: 'John Smith',
-    dentist_name: 'Sarah Johnson',
-    lab_name: 'PrecisionDental Lab',
-    work_type: 'Complete Denture',
-    shade: 'A2',
-    material: 'Acrylic Resin',
-    cost: 450.00,
-    order_date: '2025-01-15',
-    stages: [
-      { stage_id: 1, name: 'Impression Sent', completed: true, date: '2025-01-15' },
-      { stage_id: 2, name: 'Wax Try-in', completed: true, date: '2025-01-18' },
-      { stage_id: 3, name: 'Final Processing', completed: false, date: null },
-      { stage_id: 4, name: 'Quality Check', completed: false, date: null },
-      { stage_id: 5, name: 'Delivery', completed: false, date: null }
-    ],
-    files: [
+    order_files: [
       { file_id: 1, url: '/files/order1-impression.stl', order_id: 1 },
       { file_id: 2, url: '/files/order1-prescription.pdf', order_id: 1 }
     ]
   },
   {
     order_id: 2,
-    patient_id: 'P002',
-    dentist_id: 'D002',
-    lab_id: 'LAB-002',
-    work_type_id: 3,
+    patient: { patient_id: 'P002', name: 'Mary Davis' },
+    dentist: { dentist_id: 'D002', name: 'Michael Chen' },
+    lab: mockLabs[1],
+    work_type: { work_type_id: 3, work_type: 'Crown & Bridge' },
     due_date: '2025-01-17',
     file_types: 'STL,PDF',
-    shade_type_id: 4,
-    material_id: 1,
+    shade: { shade_type_id: 4, shade: 'B1' },
+    material: { material_id: 1, material: 'Porcelain Fused to Metal' },
     priority: 'High',
     special_instructions: 'PFM crown #14, shade B1',
     status: 'Ready for Pickup',
-    patient_name: 'Mary Davis',
-    dentist_name: 'Michael Chen',
-    lab_name: 'Advanced Dental Solutions',
-    work_type: 'Crown & Bridge',
-    shade: 'B1',
-    material: 'Porcelain Fused to Metal',
-    cost: 320.00,
-    order_date: '2025-01-10',
-    stages: [
-      { stage_id: 1, name: 'Impression Sent', completed: true, date: '2025-01-10' },
-      { stage_id: 2, name: 'Wax Try-in', completed: true, date: '2025-01-13' },
-      { stage_id: 3, name: 'Final Processing', completed: true, date: '2025-01-16' },
-      { stage_id: 4, name: 'Quality Check', completed: true, date: '2025-01-17' },
-      { stage_id: 5, name: 'Delivery', completed: false, date: null }
-    ],
-    files: [
+    order_files: [
       { file_id: 3, url: '/files/order2-impression.stl', order_id: 2 },
       { file_id: 4, url: '/files/order2-prescription.pdf', order_id: 2 }
     ]
@@ -324,34 +304,39 @@ const DentalLabModule = () => {
 
     const orderDate = new Date().toISOString().split('T')[0];
     
+    // Find related entities
+    const patient = mockPatients.find(p => p.patient_id === newOrder.patient_id);
+    const dentist = mockDentists.find(d => d.dentist_id === newOrder.dentist_id);
+
+    if (!lab || !workType || !shade || !material || !patient || !dentist) {
+      setToast({
+        show: true,
+        message: 'Missing required order information',
+        type: 'error'
+      });
+      return;
+    }
+
     const newOrderWithId: Order = {
       order_id: orderId,
-      patient_id: newOrder.patient_id,
-      dentist_id: newOrder.dentist_id,
-      lab_id: newOrder.lab_id,
-      work_type_id: newOrder.work_type_id,
+      patient: {
+        patient_id: patient.patient_id,
+        name: patient.name
+      },
+      dentist: {
+        dentist_id: dentist.dentist_id,
+        name: dentist.name
+      },
+      lab: lab,
+      work_type: workType,
       due_date: newOrder.due_date,
       file_types: uploadedFiles.map(f => f.type.split('/')[1].toUpperCase()).join(','),
-      shade_type_id: newOrder.shade_type_id,
-      material_id: newOrder.material_id,
+      shade: shade,
+      material: material,
       priority: newOrder.priority,
       special_instructions: newOrder.special_instructions,
       status: 'Pending',
-      // Expanded fields
-      patient_name: newOrder.patient_name,
-      dentist_name: newOrder.dentist_name,
-      lab_name: lab?.name,
-      work_type: workType?.work_type,
-      shade: shade?.shade,
-      material: material?.material,
-      cost: calculateCost(newOrder.work_type_id, newOrder.priority),
-      order_date: orderDate,
-      stages: stages.map(stage => ({
-        ...stage,
-        completed: false,
-        date: null
-      })),
-      files: uploadedFiles.map((file, index) => ({
+      order_files: uploadedFiles.map((file, index) => ({
         file_id: orderId * 100 + index,
         url: `/uploads/${file.name}`,
         order_id: orderId
@@ -516,12 +501,12 @@ const DentalLabModule = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{order.patient_name}</div>
-                    <div className="text-sm text-gray-500">{order.patient_id}</div>
+                    <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
+                    <div className="text-sm text-gray-500">{order.patient?.patient_id || 'N/A'}</div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.work_type}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab_name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.work_type?.work_type || 'N/A'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab?.name || 'N/A'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
                     {order.status}
@@ -570,8 +555,8 @@ const DentalLabModule = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Patient Information</h3>
               <div className="space-y-2">
-                <p><span className="font-medium">Name:</span> {order.patient_name}</p>
-                <p><span className="font-medium">Patient ID:</span> {order.patient_id}</p>
+                <p><span className="font-medium">Name:</span> {order.patient?.name || 'N/A'}</p>
+                <p><span className="font-medium">Patient ID:</span> {order.patient?.patient_id || 'N/A'}</p>
                 <p><span className="font-medium">Dentist:</span> Dr. {order.dentist_name}</p>
               </div>
             </div>
@@ -579,8 +564,8 @@ const DentalLabModule = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Order Information</h3>
               <div className="space-y-2">
-                <p><span className="font-medium">Work Type:</span> {order.work_type}</p>
-                <p><span className="font-medium">Lab:</span> {order.lab_name}</p>
+                <p><span className="font-medium">Work Type:</span> {order.work_type?.work_type || 'N/A'}</p>
+                <p><span className="font-medium">Lab:</span> {order.lab?.name || 'N/A'}</p>
                 <p><span className="font-medium">Order Date:</span> {order.order_date}</p>
                 <p><span className="font-medium">Due Date:</span> {order.due_date}</p>
                 <p><span className="font-medium">Cost:</span> ${order.cost?.toFixed(2)}</p>
@@ -1114,7 +1099,7 @@ const DentalLabModule = () => {
                     <div key={order.order_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900">#{order.order_id}</p>
-                        <p className="text-sm text-gray-600">{order.patient_name} - {order.work_type}</p>
+                        <p className="text-sm text-gray-600">{order.patient.name} - {order.work_type.work_type}</p>
                       </div>
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
                         {order.status}
@@ -1138,12 +1123,12 @@ const DentalLabModule = () => {
                   .map((order) => (
                     <div key={order.order_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium text-gray-900">{order.patient_name}</p>
-                        <p className="text-sm text-gray-600">{order.work_type}</p>
+                        <p className="font-medium text-gray-900">{order.patient?.name || 'N/A'}</p>
+                        <p className="text-sm text-gray-600">{order.work_type?.work_type || 'N/A'}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium text-gray-900">{order.due_date}</p>
-                        <p className="text-xs text-gray-600">{order.lab_name}</p>
+                        <p className="text-xs text-gray-600">{order.lab?.name || 'N/A'}</p>
                       </div>
                     </div>
                   ))}
@@ -1197,12 +1182,12 @@ const DentalLabModule = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{order.patient_name}</div>
-                    <div className="text-sm text-gray-500">{order.patient_id}</div>
+                    <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
+                    <div className="text-sm text-gray-500">{order.patient?.patient_id || 'N/A'}</div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.work_type}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab_name}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.work_type?.work_type || 'N/A'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab?.name || 'N/A'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
                     {order.status}
