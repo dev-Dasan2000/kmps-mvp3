@@ -5,15 +5,16 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const orders = await prisma.orders.findMany(
-      {
-        include:
-        {
-          dentist: true,
-          patient: true
-        }
-      }
-    );
+    const orders = await prisma.orders.findMany({
+      include: {
+        lab: true,
+        work_type: true,
+        shade_type: true,
+        material_type: true,
+        order_files: true,
+        stage_assign: true,
+      },
+    });
     res.json(orders);
   } catch {
     res.status(500).json({ error: 'Failed to fetch orders' });
