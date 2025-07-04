@@ -42,6 +42,8 @@ import shadesRouter from './routes/shades-routes.js';
 import materialTypesRouter from './routes/material-types-routes.js';
 import orderFilesRouter from './routes/order-files-routes.js';
 import orderRouter from './routes/order-routes.js';
+import stagesRouter from './routes/stages-routes.js';
+import stageAssignRouter from './routes/stage-assign-routes.js'
 
 
 import './routes/automated-routes.js';
@@ -92,5 +94,13 @@ app.use('/studies', studyRouter);
 app.use('/radiologists', radiologistRouter);
 app.use('/reports', reportsRouter);
 app.use('/dentist-assign', dentistAssignRouter);
+
+app.use('/work-types', workTypesRouter);
+app.use('/shades', shadesRouter);
+app.use('/materia-types', materialTypesRouter);
+app.use('/order-files', orderFilesRouter);
+app.use('/orders', orderRouter);
+app.use('/stages', stagesRouter);
+app.use('stage-assign', stageAssignRouter);
 
 app.listen(PORT, () => console.log(`Server listening on ${PORT}`));

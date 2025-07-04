@@ -1,19 +1,25 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, AlertCircle, CheckCircle, Eye, Edit, Plus, Search, Filter, X } from 'lucide-react';
+import { Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, AlertCircle, CheckCircle, Eye, Edit, Plus, Search, Filter, X, CircleCheckBig } from 'lucide-react';
 
 type Stage = {
+  stage_id: number
   name: string;
-  completed: boolean;
-  date: string | null;
 };
 
+type stageAssign = {
+  stage_assign_id: number
+  stage_id: number
+  order_id: number
+  complete: boolean
+  date: string
+}
+
 type Order = {
-  id: string;
-  patientName: string;
-  patientId: string;
-  dentist: string;
+  id: number;
+  patient: {name: string, patient_id: string};
+  dentist: {name: string, dentist_id: string};
   labName: string;
   workType: string;
   status: string;
@@ -26,15 +32,14 @@ type Order = {
 };
 
 const DentalLabModule = () => {
-  const [activeTab, setActiveTab] = useState('requests');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [orders, setOrders] = useState<Order[]>([
     {
-      id: 'ORD-2025-001',
-      patientName: 'John Smith',
-      patientId: 'PAT-12345',
-      dentist: 'Dr. Sarah Johnson',
+      id: 1,
+      patient: {name: 'John Smith', patient_id: 'P001'},
+      dentist: {name: 'Sarah Johnson', dentist_id: 'knrsdent001'},
       labName: 'PrecisionDental Lab',
       workType: 'Complete Denture',
       status: 'In Progress',
@@ -52,10 +57,9 @@ const DentalLabModule = () => {
       ]
     },
     {
-      id: 'ORD-2025-002',
-      patientName: 'Mary Davis',
-      patientId: 'PAT-12346',
-      dentist: 'Dr. Michael Chen',
+      id: 2,
+      patient: {name: 'Mary Davis', patient_id: 'P002'},
+      dentist: {name: 'Michael Chen', dentist_id: 'knrsdent002'},
       labName: 'Advanced Dental Solutions',
       workType: 'Crown & Bridge',
       status: 'Ready for Pickup',
@@ -102,9 +106,8 @@ const DentalLabModule = () => {
   ]);
 
   const [newOrder, setNewOrder] = useState({
-    patientName: '',
-    patientId: '',
-    dentist: '',
+    patient: {name: '', patient_id: ''},
+    dentist: {name: '', dentist_id: ''},
     labName: '',
     workType: '',
     dueDate: '',
@@ -116,7 +119,7 @@ const DentalLabModule = () => {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [toast, setToast] = useState<{show: boolean; message: string; type: 'success' | 'error'}>({show: false, message: '', type: 'success'});
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -139,7 +142,7 @@ const DentalLabModule = () => {
   };
 
   const handleCreateOrder = () => {
-    const orderId = `ORD-2025-${String(orders.length + 1).padStart(3, '0')}`;
+    const orderId = (orders.length + 1);
     const newOrderWithId = {
       ...newOrder,
       id: orderId,
@@ -154,12 +157,11 @@ const DentalLabModule = () => {
         { name: 'Delivery', completed: false, date: null }
       ]
     };
-    
+
     setOrders([...orders, newOrderWithId]);
     setNewOrder({
-      patientName: '',
-      patientId: '',
-      dentist: '',
+      patient: {name: '', patient_id: ''},
+      dentist: {name: '', dentist_id: ''},
       labName: '',
       workType: '',
       dueDate: '',
@@ -182,7 +184,7 @@ const DentalLabModule = () => {
             New Order
           </button>
         </div>
-        
+
         <div className="flex gap-4 mb-4">
           <div className="flex-1 relative">
             <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
@@ -219,8 +221,8 @@ const DentalLabModule = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{order.patientName}</div>
-                    <div className="text-sm text-gray-500">{order.patientId}</div>
+                    <div className="text-sm font-medium text-gray-900">{order.patient?.name}</div>
+                    <div className="text-sm text-gray-500">{order.patient?.patient_id}</div>
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.workType}</td>
@@ -260,8 +262,8 @@ const DentalLabModule = () => {
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-900">Order Details - {order.id}</h2>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
@@ -273,9 +275,9 @@ const DentalLabModule = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900">Patient Information</h3>
               <div className="space-y-2">
-                <p><span className="font-medium">Name:</span> {order.patientName}</p>
-                <p><span className="font-medium">Patient ID:</span> {order.patientId}</p>
-                <p><span className="font-medium">Dentist:</span> {order.dentist}</p>
+                <p><span className="font-medium">Name:</span> {order.patient?.name}</p>
+                <p><span className="font-medium">Patient ID:</span> {order.patient?.patient_id}</p>
+                <p><span className="font-medium">Dentist:</span>{`Dr. ${order.dentist?.name}`}</p>
               </div>
             </div>
 
@@ -343,9 +345,9 @@ const DentalLabModule = () => {
     }
   });
 
-  const [uploadedFiles, setUploadedFiles] = useState<{id: number, name: string, size: number, type: string, category: string}[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<{ id: number, name: string, size: number, type: string, category: string }[]>([]);
 
-  const workTypeRequirements: {[key: string]: { required: string[]; optional: string[] }} = {
+  const workTypeRequirements: { [key: string]: { required: string[]; optional: string[] } } = {
     'Complete Denture': {
       required: ['Final impressions', 'Bite registration', 'Face-bow transfer', 'Shade selection', 'Clinical photos'],
       optional: ['Previous denture photos', 'Bite analysis', 'Patient preferences']
@@ -376,8 +378,12 @@ const DentalLabModule = () => {
     setUploadedFiles([...uploadedFiles, ...newFiles]);
   };
 
+  const handleRequestAcceptance = async (order_id: number) => {
+    window.alert(`${order_id} is accepted`);
+  }
+
   const removeFile = (fileId: string) => {
-    setUploadedFiles(uploadedFiles.filter(file => file.id !== fileId));
+    setUploadedFiles(uploadedFiles);
   };
 
   const NewOrderForm = () => (
@@ -385,7 +391,7 @@ const DentalLabModule = () => {
       <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
         <div className="p-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-900">Create New Lab Order</h2>
-          <button 
+          <button
             onClick={() => setShowNewOrder(false)}
             className="text-gray-400 hover:text-gray-600"
           >
@@ -402,8 +408,8 @@ const DentalLabModule = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name</label>
                 <input
                   type="text"
-                  value={newOrder.patientName}
-                  onChange={(e) => setNewOrder({...newOrder, patientName: e.target.value})}
+                  value={newOrder.patient?.name}
+                  onChange={(e) => setNewOrder({ ...newOrder, patient: {...newOrder.patient, name: e.target.value}})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -411,16 +417,16 @@ const DentalLabModule = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Patient ID</label>
                 <input
                   type="text"
-                  value={newOrder.patientId}
-                  onChange={(e) => setNewOrder({...newOrder, patientId: e.target.value})}
+                  value={newOrder.patient.patient_id}
+                  onChange={(e) => setNewOrder({ ...newOrder, patient: {...newOrder.patient, patient_id: e.target.value}  })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Dentist</label>
                 <select
-                  value={newOrder.dentist}
-                  onChange={(e) => setNewOrder({...newOrder, dentist: e.target.value})}
+                  value={newOrder.dentist.name}
+                  onChange={(e) => setNewOrder({ ...newOrder, dentist: {...newOrder.dentist, dentist_id: e.target.value }})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select Dentist</option>
@@ -433,7 +439,7 @@ const DentalLabModule = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Lab</label>
                 <select
                   value={newOrder.labName}
-                  onChange={(e) => setNewOrder({...newOrder, labName: e.target.value})}
+                  onChange={(e) => setNewOrder({ ...newOrder, labName: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select Lab</option>
@@ -446,7 +452,7 @@ const DentalLabModule = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Work Type</label>
                 <select
                   value={newOrder.workType}
-                  onChange={(e) => setNewOrder({...newOrder, workType: e.target.value})}
+                  onChange={(e) => setNewOrder({ ...newOrder, workType: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select Work Type</option>
@@ -463,7 +469,7 @@ const DentalLabModule = () => {
                 <input
                   type="date"
                   value={newOrder.dueDate}
-                  onChange={(e) => setNewOrder({...newOrder, dueDate: e.target.value})}
+                  onChange={(e) => setNewOrder({ ...newOrder, dueDate: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
@@ -504,7 +510,7 @@ const DentalLabModule = () => {
           {/* File Upload Section */}
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Digital Files & Documents</h3>
-            
+
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">Upload Files</label>
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
@@ -578,7 +584,7 @@ const DentalLabModule = () => {
                   ))}
                 </div>
               </div>
-              
+
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">Physical Items</h4>
                 <div className="space-y-2">
@@ -657,7 +663,7 @@ const DentalLabModule = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
                 <select
                   value={newOrder.priority}
-                  onChange={(e) => setNewOrder({...newOrder, priority: e.target.value})}
+                  onChange={(e) => setNewOrder({ ...newOrder, priority: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="Low">Low</option>
@@ -674,8 +680,8 @@ const DentalLabModule = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">Special Instructions</label>
             <textarea
               value={newOrder.notes}
-              onChange={(e) => setNewOrder({...newOrder, notes: e.target.value})}
-              rows="4"
+              onChange={(e) => setNewOrder({ ...newOrder, notes: e.target.value })}
+              rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Include specific instructions, patient preferences, anatomical considerations, contact points, occlusal requirements, etc."
             />
@@ -702,26 +708,26 @@ const DentalLabModule = () => {
 
   const handleSendInvite = async () => {
     if (!inviteEmail.trim()) return;
-    
+
     setIsSending(true);
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       setToast({
         show: true,
         message: `Invitation sent to ${inviteEmail}`,
         type: 'success'
       });
-      
+
       setInviteEmail('');
       setShowInviteDialog(false);
-      
+
       // Hide toast after 3 seconds
       setTimeout(() => {
-        setToast(prev => ({...prev, show: false}));
+        setToast(prev => ({ ...prev, show: false }));
       }, 3000);
-      
+
     } catch (error) {
       setToast({
         show: true,
@@ -741,7 +747,7 @@ const DentalLabModule = () => {
           <p className="text-sm text-gray-500 mt-1">Manage your partner dental laboratories</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-         
+
           <button
             className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors w-full sm:w-auto justify-center"
             onClick={() => setShowInviteDialog(true)}
@@ -759,11 +765,10 @@ const DentalLabModule = () => {
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 border-b border-gray-200">
                 <div className="flex justify-between items-start">
                   <h3 className="text-lg font-bold text-gray-900 truncate">{lab.name}</h3>
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                    lab.status === 'Active' ? 'bg-green-100 text-green-800' : 
-                    lab.status === 'Inactive' ? 'bg-gray-100 text-gray-800' : 
-                    'bg-yellow-100 text-yellow-800'
-                  }`}>
+                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${lab.status === 'Active' ? 'bg-green-100 text-green-800' :
+                      lab.status === 'Inactive' ? 'bg-gray-100 text-gray-800' :
+                        'bg-yellow-100 text-yellow-800'
+                    }`}>
                     {lab.status}
                   </span>
                 </div>
@@ -781,7 +786,7 @@ const DentalLabModule = () => {
                       <p className="text-sm font-medium text-gray-900">{lab.phone}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start">
                     <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3">
                       <Mail className="h-4 w-4" />
@@ -791,7 +796,7 @@ const DentalLabModule = () => {
                       <p className="text-sm font-medium text-gray-900 truncate">{lab.email}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-start">
                     <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3">
                       <MapPin className="h-4 w-4" />
@@ -807,8 +812,8 @@ const DentalLabModule = () => {
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Specialties</h4>
                   <div className="flex flex-wrap gap-2">
                     {lab.specialties.map((specialty, index) => (
-                      <span 
-                        key={index} 
+                      <span
+                        key={index}
                         className="bg-blue-50 text-blue-700 px-2.5 py-1 text-xs font-medium rounded-full flex items-center"
                       >
                         {specialty}
@@ -818,13 +823,13 @@ const DentalLabModule = () => {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end space-x-2">
-                  <button 
+                  <button
                     className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
                     title="View Details"
                   >
                     <Eye className="h-4 w-4" />
                   </button>
-                  <button 
+                  <button
                     className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
                     title="Edit Lab"
                   >
@@ -843,7 +848,7 @@ const DentalLabModule = () => {
           <div className="bg-white rounded-lg w-full max-w-md shadow-xl border border-gray-200">
             <div className="p-4 border-b border-gray-200 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-gray-900">Invite Lab</h3>
-              <button 
+              <button
                 onClick={() => {
                   setShowInviteDialog(false);
                   setInviteEmail('');
@@ -884,11 +889,10 @@ const DentalLabModule = () => {
                   type="button"
                   onClick={handleSendInvite}
                   disabled={!inviteEmail.trim() || isSending}
-                  className={`px-4 py-2 text-white rounded-lg ${
-                    !inviteEmail.trim() || isSending
+                  className={`px-4 py-2 text-white rounded-lg ${!inviteEmail.trim() || isSending
                       ? 'bg-emerald-400 cursor-not-allowed'
                       : 'bg-emerald-600 hover:bg-emerald-700'
-                  } flex items-center gap-2`}
+                    } flex items-center gap-2`}
                 >
                   {isSending ? (
                     <>
@@ -913,12 +917,11 @@ const DentalLabModule = () => {
 
       {/* Toast Notification */}
       {toast.show && (
-        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-          toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-        } text-white flex items-center`}>
+        <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+          } text-white flex items-center`}>
           <span>{toast.message}</span>
-          <button 
-            onClick={() => setToast(prev => ({...prev, show: false}))}
+          <button
+            onClick={() => setToast(prev => ({ ...prev, show: false }))}
             className="ml-4 text-white hover:text-gray-200"
           >
             <X className="h-4 w-4" />
@@ -1006,7 +1009,7 @@ const DentalLabModule = () => {
                   <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900">{order.id}</p>
-                      <p className="text-sm text-gray-600">{order.patientName} - {order.workType}</p>
+                      <p className="text-sm text-gray-600">{order.patient?.name} - {order.workType}</p>
                     </div>
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
                       {order.status}
@@ -1025,12 +1028,12 @@ const DentalLabModule = () => {
               <div className="space-y-4">
                 {orders
                   .filter(order => order.status !== 'Completed')
-                  .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+                  .sort((a, b) => Number(new Date(a.dueDate)) - Number(new Date(b.dueDate)))
                   .slice(0, 5)
                   .map((order) => (
                     <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
-                        <p className="font-medium text-gray-900">{order.patientName}</p>
+                        <p className="font-medium text-gray-900">{order.patient?.name}</p>
                         <p className="text-sm text-gray-600">{order.workType}</p>
                       </div>
                       <div className="text-right">
@@ -1049,17 +1052,17 @@ const DentalLabModule = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 overflow-auto">
-     
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            {/* Header */}
-        <div >
-          <h1 className="text-3xl font-bold mt-7 md:mt-0 text-gray-900 mb-2">Lab Management </h1>
-          <p className="text-gray-600">Manage your lab orders, requests, and partner labs.</p>
-        </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center py-6">
+          {/* Header */}
+          <div >
+            <h1 className="text-3xl font-bold mt-7 md:mt-0 text-gray-900 mb-2">Lab Management </h1>
+            <p className="text-gray-600">Manage your lab orders, requests, and partner labs.</p>
           </div>
         </div>
-      
+      </div>
+
 
       <div className=" -mt-3 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
@@ -1073,11 +1076,10 @@ const DentalLabModule = () => {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.key
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.key
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 {tab.label}
               </button>
@@ -1087,18 +1089,11 @@ const DentalLabModule = () => {
 
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'requests' && (
-          
+
           <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">Lab Requests</h2>
-                <button
-                  onClick={() => setShowNewOrder(true)}
-                  className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  New Request
-                </button>
               </div>
               <div className="flex gap-4 mb-4">
                 <div className="flex-1 relative">
@@ -1136,8 +1131,8 @@ const DentalLabModule = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.id}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{order.patientName}</div>
-                          <div className="text-sm text-gray-500">{order.patientId}</div>
+                          <div className="text-sm font-medium text-gray-900">{order.patient?.name}</div>
+                          <div className="text-sm text-gray-500">{order.patient?.patient_id}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.workType}</td>
@@ -1154,15 +1149,21 @@ const DentalLabModule = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="text-blue-600 hover:text-blue-900 mr-3"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
-                        <button className="text-gray-600 hover:text-gray-900">
-                          <Edit className="h-4 w-4" />
-                        </button>
+                        <div className="flex justify-evenly items-center w-full gap-x-1">
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            className="text-blue-600 hover:text-blue-900"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button className="text-gray-600 hover:text-gray-900">
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button className="text-green-500 hover:text-green-600" onClick={()=>{handleRequestAcceptance(order.id)}}>
+                            <CircleCheckBig className="h-4 w-4" />
+                          </button>
+                        </div>
+
                       </td>
                     </tr>
                   ))}

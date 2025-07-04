@@ -348,6 +348,7 @@ model orders {
   material_type material_types? @relation(fields: [material_id], references: [material_id])
 
   order_files   order_files[]
+  stage_assign stage_assign[]
 }
 
 model order_files {
@@ -356,4 +357,23 @@ model order_files {
   order_id Int?
 
   order orders? @relation(fields: [order_id], references: [order_id])
+}
+
+model stages {
+  stage_id     Int             @id @default(autoincrement())
+  name         String
+
+  stage_assign stage_assign[]
+}
+
+model stage_assign {
+  stage_assign_id  Int          @id @default(autoincrement())
+  stage_id  Int
+  order_id  Int
+  completed Boolean   @default(false)
+  date      DateTime
+
+  // Foreign key relations
+  stage     stages     @relation(fields: [stage_id], references: [stage_id])
+  order     orders     @relation(fields: [order_id], references: [order_id])
 }
