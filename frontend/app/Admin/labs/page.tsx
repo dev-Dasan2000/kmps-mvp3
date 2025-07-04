@@ -53,34 +53,33 @@ type OrderFile = {
   order_id: number;
 };
 
+type PatientType = {
+  patient_id: string;
+  name: string;
+}
+
+type DenstistType = {
+  dentist_id: string;
+  name: string;
+}
+
 type Order = {
   order_id: number;
-  patient_id: string | null;
-  dentist_id: string | null;
-  lab_id: string | null;
-  work_type_id: number | null;
+  patient: PatientType;
+  dentist: DenstistType;
+  lab: Lab;
+  work_type: WorkType;
   due_date: string | null;
   file_types: string | null;
-  shade_type_id: number | null;
-  material_id: number | null;
-  priority: string | null;
-  special_instructions: string | null;
-  status: string | null;
-  // Expanded fields for UI
-  patient_name?: string;
-  dentist_name?: string;
-  lab_name?: string;
-  work_type?: string;
-  shade?: string;
-  material?: string;
-  stages?: Array<Stage & { completed: boolean; date: string | null }>;
-  files?: OrderFile[];
-  cost?: number;
-  order_date?: string;
+  shade: Shade;
+  material: MaterialType;
+  priority: string;
+  special_instructions: string;
+  status: string;
+  order_files: OrderFile
 };
 
 // ======================== MOCK DATA ========================
-
 const mockStages: Stage[] = [
   { stage_id: 1, name: 'Impression Sent' },
   { stage_id: 2, name: 'Wax Try-in' },
@@ -426,7 +425,7 @@ const DentalLabModule = () => {
       message: `Order #${order_id} accepted and marked as In Progress`,
       type: 'success'
     });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false }), 3000));
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })));
   };
 
   const removeFile = (fileId: number) => {
