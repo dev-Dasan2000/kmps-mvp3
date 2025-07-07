@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Loader, Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, AlertCircle, CheckCircle, Eye, Edit, Plus, Search, Filter, X, CircleCheckBig } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -91,6 +91,7 @@ type Order = {
 const DentalLabModule = () => {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { user, isLoggedIn, isLoadingAuth } = useContext(AuthContext);
 
@@ -126,6 +127,7 @@ const DentalLabModule = () => {
   const [loadingShades, setLoadingShades] = useState(false);
   const [loadingMaterials, setLoadingMaterials] = useState(false);
   const [acceptingOrder, setAcceptingOrder] = useState(false);
+  const [creatingOrder, setCreatingOrder] = useState(false);
 
   function getStagesForOrder(orderId: number): StageWithStatus[] {
     return fetchedStages.map(stage => {
@@ -137,6 +139,18 @@ const DentalLabModule = () => {
       };
     });
   }
+
+  const getSelectedFileTypes = (checklist: typeof submissionChecklist) => {
+    const selected: string[] = [];
+
+    Object.entries(checklist).forEach(([categoryKey, categoryValue]) => {
+      Object.entries(categoryValue).forEach(([key, value]) => {
+        if (value) selected.push(key);
+      });
+    });
+
+    return selected.join(", ");
+  };
 
   const fetchOrders = async () => {
     setLoadingOrders(true);
@@ -301,46 +315,46 @@ const DentalLabModule = () => {
 
   const fetchShades = async () => {
     setLoadingShades(true);
-    try{
+    try {
       const res = await axios.get(
         `${backendURL}/shades`
       );
-      if(res.status == 500){
+      if (res.status == 500) {
         throw new Error("Internal Server Error");
       }
       setShades(res.data);
     }
-    catch(err: any){
+    catch (err: any) {
       setToast({
         show: true,
         message: err.message,
         type: 'error'
       });
     }
-    finally{
+    finally {
       setLoadingShades(false);
     }
   }
 
   const fetchMaterials = async () => {
     setLoadingMaterials(true);
-    try{
+    try {
       const res = await axios.get(
         `${backendURL}/material-types`
       );
-      if(res.status == 500){
+      if (res.status == 500) {
         throw new Error("Internal Server Error");
       }
       setMaterials(res.data);
     }
-    catch(err: any){
+    catch (err: any) {
       setToast({
         show: true,
         message: err.message,
         type: 'error'
       });
     }
-    finally{
+    finally {
       setLoadingMaterials(false);
     }
   }
@@ -385,16 +399,17 @@ const DentalLabModule = () => {
 
   const [newOrder, setNewOrder] = useState({
     patient_id: '',
-    patient_name: '',
     dentist_id: '',
-    dentist_name: '',
     lab_id: '',
     work_type_id: 0,
     due_date: '',
+    file_types: '',
+    shade_type_id: 0,
+    material_id: 0,
     priority: 'Normal',
     special_instructions: '',
-    shade_type_id: 0,
-    material_id: 0
+    status: ''
+
   });
 
   const [submissionChecklist, setSubmissionChecklist] = useState({
@@ -457,76 +472,50 @@ const DentalLabModule = () => {
     }
   };
 
-  const handleCreateOrder = () => {
-    /*const orderId = Math.max(...orders.map(o => o.order_id), 0) + 1;
-    const lab = labs.find(l => l.lab_id === newOrder.lab_id);
-    const workType = workTypes.find(w => w.work_type_id === newOrder.work_type_id);
-    const shade = shades.find(s => s.shade_type_id === newOrder.shade_type_id);
-    const material = materials.find(m => m.material_id === newOrder.material_id);
-
-    const orderDate = new Date().toISOString().split('T')[0];
-    
-    // Find related entities
-    const patient = mockPatients.find(p => p.patient_id === newOrder.patient_id);
-    const dentist = mockDentists.find(d => d.dentist_id === newOrder.dentist_id);
-
-    if (!lab || !workType || !shade || !material || !patient || !dentist) {
+  const handleCreateOrder = async () => {
+    setCreatingOrder(true);
+    try {
+      const res = await axios.post(
+        `${backendURL}/orders`,
+        {
+          patient_id: newOrder.patient_id,
+          dentist_id: newOrder.dentist_id,
+          lab_id: newOrder.lab_id,
+          work_type_id: newOrder.work_type_id,
+          due_date: new Date(newOrder.due_date),
+          file_types: getSelectedFileTypes(submissionChecklist),
+          shade_type_id: newOrder.shade_type_id,
+          material_id: newOrder.material_id,
+          priority: newOrder.priority,
+          special_instructions: newOrder.special_instructions,
+          status: "accepted"
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      );
+      if (res.status != 201) {
+        throw new Error("Error Creating an Order");
+      }
       setToast({
-        show: true,
-        message: 'Missing required order information',
-        type: 'error'
+        message: "Order created successfully.",
+        type: "success",
+        show: true
       });
-      return;
     }
-
-    const newOrderWithId: Order = {
-      order_id: orderId,
-      patient: {
-        patient_id: patient.patient_id,
-        name: patient.name
-      },
-      dentist: {
-        dentist_id: dentist.dentist_id,
-        name: dentist.name
-      },
-      lab: lab,
-      work_type: workType,
-      due_date: newOrder.due_date,
-      file_types: uploadedFiles.map(f => f.type.split('/')[1].toUpperCase()).join(','),
-      shade: shade,
-      material: material,
-      priority: newOrder.priority,
-      special_instructions: newOrder.special_instructions,
-      status: 'Pending',
-      order_files: uploadedFiles.map((file, index) => ({
-        file_id: orderId * 100 + index,
-        url: `/uploads/${file.name}`,
-        order_id: orderId
-      }))
-    };
-
-    setOrders([...orders, newOrderWithId]);
-    setNewOrder({
-      patient_id: '',
-      patient_name: '',
-      dentist_id: '',
-      dentist_name: '',
-      lab_id: '',
-      work_type_id: 0,
-      due_date: '',
-      priority: 'Normal',
-      special_instructions: '',
-      shade_type_id: 0,
-      material_id: 0
-    });
-    setUploadedFiles([]);
-    setShowNewOrder(false);
-    setToast({
-      show: true,
-      message: 'Order created successfully!',
-      type: 'success'
-    });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);*/
+    catch (err: any) {
+      setToast({
+        message: err.message,
+        type: "error",
+        show: true
+      })
+    }
+    finally {
+      setCreatingOrder(false);
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -543,32 +532,32 @@ const DentalLabModule = () => {
 
   const handleRequestAcceptance = async (order_id: number) => {
     setAcceptingOrder(true);
-    try{
+    try {
       const res = await axios.put(
         `${backendURL}/orders/${order_id}`,
         {
-          status:"accepted" 
+          status: "accepted"
         },
         {
-          withCredentials:true,
-          headers:{
-            "content-type":"application/json"
+          withCredentials: true,
+          headers: {
+            "content-type": "application/json"
           }
         }
       );
-      if(res.status != 202){
+      if (res.status != 202) {
         throw new Error("Error Accepting Request");
       }
       fetchOrders();
     }
-    catch(err: any){
+    catch (err: any) {
       setToast({
         show: true,
         message: err.message,
         type: 'error'
       });
     }
-    finally{
+    finally {
       setAcceptingOrder(false);
     }
   };
@@ -590,16 +579,16 @@ const DentalLabModule = () => {
         },
         {
           withCredentials: true,
-          headers:{
+          headers: {
             "content-type": "application/json"
           }
         }
       );
-      if(res.status == 500){
+      if (res.status == 500) {
         throw new Error("Error Sending Invite");
       }
       setToast({
-        message:"Invite Sent Successfully.",
+        message: "Invite Sent Successfully.",
         type: "success",
         show: true
       });
@@ -814,17 +803,17 @@ const DentalLabModule = () => {
             <h3 className="text-lg font-medium text-gray-900 mb-4">Order Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Patient Name</label>
-                <input
-                  type="text"
-                  value={newOrder.patient_name}
-                  onChange={(e) => setNewOrder({ ...newOrder, patient_name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Patient ID</label>
-                <select className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'>
+                <select
+                  value={newOrder.patient_id}
+                  onChange={(e) =>
+                    setNewOrder({
+                      ...newOrder,
+                      patient_id: e.target.value,
+
+                    })
+                  }
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'>
                   <option value="">Select patient</option>
                   {patients.map((p) => (
                     <option key={p.patient_id} value={p.patient_id}>
@@ -842,7 +831,7 @@ const DentalLabModule = () => {
                     setNewOrder({
                       ...newOrder,
                       dentist_id: e.target.value,
-                      dentist_name: e.target.options[e.target.selectedIndex].text,
+
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1388,8 +1377,12 @@ const DentalLabModule = () => {
                       onClick={() => handleRequestAcceptance(order.order_id)}
                       disabled={acceptingOrder}
                     >
-                      {acceptingOrder?(<Loader className="h-4 w-4"/>):(<CircleCheckBig className="h-4 w-4" />)}
-                      
+                      {acceptingOrder ? (
+                        <Loader className='h-4 w-4' />
+                      )
+                        :
+                        (<CircleCheckBig className="h-4 w-4" />)}
+
                     </button>
                   </div>
                 </td>
