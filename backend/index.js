@@ -43,7 +43,8 @@ import materialTypesRouter from './routes/material-types-routes.js';
 import orderFilesRouter from './routes/order-files-routes.js';
 import orderRouter from './routes/order-routes.js';
 import stagesRouter from './routes/stages-routes.js';
-import stageAssignRouter from './routes/stage-assign-routes.js'
+import stageAssignRouter from './routes/stage-assign-routes.js';
+import labRouter from './routes/lab-routes.js';
 
 
 import './routes/automated-routes.js';
@@ -101,6 +102,7 @@ app.use('/materia-types', materialTypesRouter);
 app.use('/order-files', orderFilesRouter);
 app.use('/orders', orderRouter);
 app.use('/stages', stagesRouter);
-app.use('stage-assign', stageAssignRouter);
+app.use('/stage-assign', stageAssignRouter);
+app.use('/labs',labRouter);
 
 app.listen(PORT, () => console.log(`Server listening on ${PORT}`));

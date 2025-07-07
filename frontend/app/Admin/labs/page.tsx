@@ -87,22 +87,6 @@ type Order = {
 };
 
 // ======================== MOCK DATA ========================
-const mockStages: Stage[] = [
-  { stage_id: 1, name: 'Impression Sent' },
-  { stage_id: 2, name: 'Wax Try-in' },
-  { stage_id: 3, name: 'Final Processing' },
-  { stage_id: 4, name: 'Quality Check' },
-  { stage_id: 5, name: 'Delivery' }
-];
-
-const mockWorkTypes: WorkType[] = [
-  { work_type_id: 1, work_type: 'Complete Denture' },
-  { work_type_id: 2, work_type: 'Partial Denture' },
-  { work_type_id: 3, work_type: 'Crown & Bridge' },
-  { work_type_id: 4, work_type: 'Implant Restoration' },
-  { work_type_id: 5, work_type: 'Reline' },
-  { work_type_id: 6, work_type: 'Repair' }
-];
 
 const mockShades: Shade[] = [
   { shade_type_id: 1, shade: 'A1' },
@@ -122,111 +106,28 @@ const mockMaterialTypes: MaterialType[] = [
   { material_id: 5, material: 'Chrome Cobalt' }
 ];
 
-const mockLabs: Lab[] = [
-  {
-    lab_id: 'LAB-001',
-    name: 'PrecisionDental Lab',
-    contact_person: 'James Wilson',
-    contact_number: '+1-555-0123',
-    email: 'orders@precisiondental.com',
-    address: '123 Lab Street, City, State 12345',
-    specialties: 'Complete Dentures, Partial Dentures, Relines',
-    rating: 4.8,
-    turnaround_time: '7-10 days',
-    status: 'Active'
-  },
-  {
-    lab_id: 'LAB-002',
-    name: 'Advanced Dental Solutions',
-    contact_person: 'Lisa Chen',
-    contact_number: '+1-555-0124',
-    email: 'lab@advanceddental.com',
-    address: '456 Tech Ave, City, State 12346',
-    specialties: 'Crown & Bridge, Implants, Orthodontics',
-    rating: 4.6,
-    turnaround_time: '5-7 days',
-    status: 'Active'
-  }
-];
-
-const mockPatients: PatientType[] = [
-  { patient_id: 'P001', name: 'John Smith' },
-  { patient_id: 'P002', name: 'Mary Davis' }
-];
-
-const mockDentists: DenstistType[] = [
-  { dentist_id: 'D001', name: 'Sarah Johnson' },
-  { dentist_id: 'D002', name: 'Michael Chen' }
-];
-
-const mockOrders: Order[] = [
-  {
-    order_id: 1,
-    patient: { patient_id: 'P001', name: 'John Smith' },
-    dentist: { dentist_id: 'D001', name: 'Sarah Johnson' },
-    lab: mockLabs[0],
-    work_type: { work_type_id: 1, work_type: 'Complete Denture' },
-    due_date: '2025-01-22',
-    file_types: 'STL,PDF,JPG',
-    shade: { shade_type_id: 2, shade: 'A2' },
-    material: { material_id: 4, material: 'Acrylic Resin' },
-    priority: 'Normal',
-    special_instructions: 'Upper complete denture, standard shade A2',
-    status: 'In Progress',
-    order_files: [
-      { file_id: 1, url: '/files/order1-impression.stl', order_id: 1 },
-      { file_id: 2, url: '/files/order1-prescription.pdf', order_id: 1 }
-    ]
-  },
-  {
-    order_id: 2,
-    patient: { patient_id: 'P002', name: 'Mary Davis' },
-    dentist: { dentist_id: 'D002', name: 'Michael Chen' },
-    lab: mockLabs[1],
-    work_type: { work_type_id: 3, work_type: 'Crown & Bridge' },
-    due_date: '2025-01-17',
-    file_types: 'STL,PDF',
-    shade: { shade_type_id: 4, shade: 'B1' },
-    material: { material_id: 1, material: 'Porcelain Fused to Metal' },
-    priority: 'High',
-    special_instructions: 'PFM crown #14, shade B1',
-    status: 'Ready for Pickup',
-    order_files: [
-      { file_id: 3, url: '/files/order2-impression.stl', order_id: 2 },
-      { file_id: 4, url: '/files/order2-prescription.pdf', order_id: 2 }
-    ]
-  }
-];
-
-const mockStageAssigns: StageAssign[] = [
-  { stage_assign_id: 1, stage_id: 1, order_id: 1, completed: true, date: '2025-01-15' },
-  { stage_assign_id: 2, stage_id: 2, order_id: 1, completed: true, date: '2025-01-18' },
-  { stage_assign_id: 3, stage_id: 3, order_id: 1, completed: false, date: '' },
-  { stage_assign_id: 4, stage_id: 1, order_id: 2, completed: true, date: '2025-01-10' },
-  { stage_assign_id: 5, stage_id: 2, order_id: 2, completed: true, date: '2025-01-13' },
-  { stage_assign_id: 6, stage_id: 3, order_id: 2, completed: true, date: '2025-01-16' },
-  { stage_assign_id: 7, stage_id: 4, order_id: 2, completed: true, date: '2025-01-17' }
-];
-
 // ======================== COMPONENT ========================
 const DentalLabModule = () => {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  const {user, isLoggedIn, isLoadingAuth} = useContext(AuthContext);
+  const { user, isLoggedIn, isLoadingAuth } = useContext(AuthContext);
 
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<'dashboard' | 'requests' | 'orders' | 'labs'>('dashboard');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(mockOrders[0]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>();
   const [showNewOrder, setShowNewOrder] = useState(false);
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
-  const [labs, setLabs] = useState<Lab[]>(mockLabs);
-  const [workTypes, setWorkTypes] = useState<WorkType[]>(mockWorkTypes);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [labs, setLabs] = useState<Lab[]>([]);
+  const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [shades, setShades] = useState<Shade[]>(mockShades);
   const [materials, setMaterials] = useState<MaterialType[]>(mockMaterialTypes);
   const [stages, setStages] = useState<StageWithStatus[]>([]);
-  const [stageAssigns, setStageAssigns] = useState<StageAssign[]>(mockStageAssigns);
+  const [fetchedStages, setFetchedStages] = useState<Stage[]>([]);
+  const [stageAssigns, setStageAssigns] = useState<StageAssign[]>([]);
+  const [patients, setPatients] = useState<PatientType[]>([]);
+  const [dentists, setDentists] = useState<DenstistType[]>([]);
 
   const [showNewLab, setShowNewLab] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -235,9 +136,15 @@ const DentalLabModule = () => {
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [loadingStages, setLoadingStages] = useState(false);
+  const [loadingStageAssigns, setLoadingStageAssigns] = useState(false);
+  const [loadingLabs, setLoadingLabs] = useState(false);
+  const [loadingWorkTypes, setLoadingWorkTypes] = useState(false);
+  const [loadingPatients, setLoadingPatients] = useState(false);
+  const [loadingDentists, setLoadingDentists] = useState(false);
 
   function getStagesForOrder(orderId: number): StageWithStatus[] {
-    return mockStages.map(stage => {
+    return fetchedStages.map(stage => {
       const assignment = stageAssigns.find(sa => sa.order_id === orderId && sa.stage_id === stage.stage_id);
       return {
         ...stage,
@@ -249,25 +156,151 @@ const DentalLabModule = () => {
 
   const fetchOrders = async () => {
     setLoadingOrders(true);
-    try{
+    try {
       const fetchedOrders = await axios.get(
         `${backendURL}/orders`
       );
-      if(fetchedOrders.status == 500){
+      if (fetchedOrders.status == 500) {
         throw new Error("Error fetching orders");
       }
       setOrders(fetchedOrders.data);
     }
-    catch(err: any){
+    catch (err: any) {
       toast.message = err.message;
       toast.type = 'error';
       toast.show = true;
     }
-    finally{
+    finally {
       setLoadingOrders(false);
     }
   }
-  
+
+  const fetchStages = async () => {
+    setLoadingStages(true);
+    try {
+      const stagesres = await axios.get(
+        `${backendURL}/stages`
+      );
+      if (stagesres.status == 500) {
+        throw new Error("Internal Server Error");
+      }
+      setFetchedStages(stagesres.data);
+    }
+    catch (err: any) {
+      toast.message = err.message;
+      toast.type = "error";
+      toast.show = true;
+    }
+    finally {
+      setLoadingStages(false);
+    }
+  }
+
+  const fetchStageAssigns = async () => {
+    setLoadingStageAssigns(true);
+    try {
+      const res = await axios.get(
+        `${backendURL}/stage-assign`
+      );
+      if (res.status == 500) {
+        throw new Error("Internal Server Error");
+      }
+      setStageAssigns(res.data);
+    }
+    catch (err: any) {
+      toast.message = err.message;
+      toast.type = "error";
+      toast.show = true;
+    }
+    finally {
+      setLoadingStageAssigns(false);
+    }
+  }
+
+  const fetchLabs = async () => {
+    setLoadingLabs(true);
+    try{
+      const res = await axios.get(
+        `${backendURL}/labs`
+      );
+      if(res.status == 500){
+        throw new Error("Internal Server Error");
+      }
+      setLabs(res.data);
+    }
+    catch(err: any){
+      toast.message = err.message;
+      toast.type = "error";
+      toast.show = true;
+    }
+    finally{
+      setLoadingLabs(false);
+    }
+  }
+
+  const fetchWorkTypes = async () => {
+    setLoadingWorkTypes(true);
+    try{
+      const res = await axios.get(
+        `${backendURL}/work-types`
+      );
+      if(res.status == 500){
+        throw new Error("Internal Server Error");
+      }
+      setWorkTypes(res.data);
+    }
+    catch(err: any){
+      toast.message = err.message;
+      toast.type = "error";
+      toast.show = true;
+    }
+    finally{
+      setLoadingWorkTypes(false);
+    }
+  }
+
+  const fetchPatients = async () => {
+    setLoadingPatients(true);
+    try{
+      const res = await axios. get(
+        `${backendURL}/patients`
+      );
+      if(res.status == 500){
+        throw new Error("Internal Server Error");
+      }
+      setPatients(res.data);
+    }
+    catch(err: any){
+      toast.message = err.message;
+      toast.type="error";
+      toast.show=true;
+    }
+    finally{
+      setLoadingPatients(false);
+    }
+  }
+
+  const fetchDentists = async () => {
+    setLoadingDentists(true);
+    try{
+      const res = await axios.get(
+        `${backendURL}/dentists`
+      );
+      if(res.status == 500){
+        throw new Error("Internal Server Error");
+      }
+      setDentists(res.data);
+    }
+    catch(err: any){
+      toast.message = err.message;
+      toast.type="error";
+      toast.show=true;
+    }
+    finally{
+      setLoadingDentists(false);
+    }
+  }
+
   useEffect(() => {
     if (selectedOrder) {
       const updatedStages = getStagesForOrder(selectedOrder.order_id);
@@ -275,16 +308,16 @@ const DentalLabModule = () => {
     }
   }, [selectedOrder]);
 
-  useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn){
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
       toast.message = "Please Log in";
       toast.type = "error";
       toast.show = true;
       router.push('/');
       return;
     }
-    if(user.role != "admin"){
+    if (user.role != "admin") {
       toast.message = "Access Denied";
       toast.type = "error";
       toast.show = true;
@@ -292,7 +325,13 @@ const DentalLabModule = () => {
       return;
     }
     fetchOrders();
-  },[isLoadingAuth])
+    fetchStages();
+    fetchStageAssigns();
+    fetchLabs();
+    fetchWorkTypes();
+    fetchPatients();
+    fetchDentists();
+  }, [isLoadingAuth])
 
   const [newOrder, setNewOrder] = useState({
     patient_id: '',
@@ -369,7 +408,7 @@ const DentalLabModule = () => {
   };
 
   const handleCreateOrder = () => {
-    const orderId = Math.max(...orders.map(o => o.order_id), 0) + 1;
+    /*const orderId = Math.max(...orders.map(o => o.order_id), 0) + 1;
     const lab = labs.find(l => l.lab_id === newOrder.lab_id);
     const workType = workTypes.find(w => w.work_type_id === newOrder.work_type_id);
     const shade = shades.find(s => s.shade_type_id === newOrder.shade_type_id);
@@ -437,7 +476,7 @@ const DentalLabModule = () => {
       message: 'Order created successfully!',
       type: 'success'
     });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);*/
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -453,7 +492,7 @@ const DentalLabModule = () => {
   };
 
   const handleRequestAcceptance = async (order_id: number) => {
-    setOrders(orders.map(order => 
+    setOrders(orders.map(order =>
       order.order_id === order_id ? { ...order, status: 'In Progress' } : order
     ));
     setToast({
@@ -547,7 +586,7 @@ const DentalLabModule = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {orders.map((order) => (
+            {orders.filter(or => or.status != "request").map((order) => (
               <tr key={order.order_id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -657,9 +696,9 @@ const DentalLabModule = () => {
                         <p className="text-sm font-medium text-gray-900">{file.url.split('/').pop()}</p>
                       </div>
                     </div>
-                    <a 
-                      href={file.url} 
-                      target="_blank" 
+                    <a
+                      href={file.url}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 text-sm"
                     >
@@ -721,8 +760,8 @@ const DentalLabModule = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Dentist</label>
                 <select
                   value={newOrder.dentist_id}
-                  onChange={(e) => setNewOrder({ 
-                    ...newOrder, 
+                  onChange={(e) => setNewOrder({
+                    ...newOrder,
                     dentist_id: e.target.value,
                     dentist_name: e.target.options[e.target.selectedIndex].text
                   })}
@@ -1107,13 +1146,15 @@ const DentalLabModule = () => {
     const stats = [
       { title: 'Active Orders', value: orders.filter(o => o.status === 'In Progress').length.toString(), color: 'bg-blue-500' },
       { title: 'Pending Pickup', value: orders.filter(o => o.status === 'Ready for Pickup').length.toString(), color: 'bg-green-500' },
-      { title: 'Overdue', value: orders.filter(o => 
-        o.due_date && new Date(o.due_date) < new Date() && o.status !== 'Completed').length.toString(), 
-        color: 'bg-red-500' 
+      {
+        title: 'Overdue', value: orders.filter(o =>
+          o.due_date && new Date(o.due_date) < new Date() && o.status !== 'Completed').length.toString(),
+        color: 'bg-red-500'
       },
-      { title: 'This Month', value: orders.filter(o => 
-        o.due_date && new Date(o.due_date).getMonth() === new Date().getMonth()).length.toString(), 
-        color: 'bg-purple-500' 
+      {
+        title: 'This Month', value: orders.filter(o =>
+          o.due_date && new Date(o.due_date).getMonth() === new Date().getMonth()).length.toString(),
+        color: 'bg-purple-500'
       }
     ];
 
@@ -1149,7 +1190,7 @@ const DentalLabModule = () => {
                     <div key={order.order_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                       <div>
                         <p className="font-medium text-gray-900">#{order.order_id}</p>
-                        <p className="text-sm text-gray-600">{order.patient.name} - {order.work_type.work_type}</p>
+                        <p className="text-sm text-gray-600">{order.patient?.name} - {order.work_type.work_type}</p>
                       </div>
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
                         {order.status}
@@ -1227,7 +1268,7 @@ const DentalLabModule = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {orders.map((order) => (
+            {orders.filter(or => or.status === "request").map((order) => (
               <tr key={order.order_id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -1260,8 +1301,8 @@ const DentalLabModule = () => {
                     <button className="text-gray-600 hover:text-gray-900">
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button 
-                      className="text-green-500 hover:text-green-600" 
+                    <button
+                      className="text-green-500 hover:text-green-600"
                       onClick={() => handleRequestAcceptance(order.order_id)}
                     >
                       <CircleCheckBig className="h-4 w-4" />
@@ -1300,8 +1341,8 @@ const DentalLabModule = () => {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.key
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
               >
                 {tab.label}
@@ -1369,8 +1410,8 @@ const DentalLabModule = () => {
                     onClick={handleSendInvite}
                     disabled={!inviteEmail.trim() || isSending}
                     className={`px-4 py-2 text-white rounded-lg ${!inviteEmail.trim() || isSending
-                        ? 'bg-emerald-400 cursor-not-allowed'
-                        : 'bg-emerald-600 hover:bg-emerald-700'
+                      ? 'bg-emerald-400 cursor-not-allowed'
+                      : 'bg-emerald-600 hover:bg-emerald-700'
                       } flex items-center gap-2`}
                   >
                     {isSending ? (

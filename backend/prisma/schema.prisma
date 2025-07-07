@@ -29,6 +29,7 @@ model patients {
   appointments         appointments[]
   soap_notes           soap_notes[]
   studies              study[]
+  orders               orders[]
 }
 
 model emergency_contacts {
@@ -62,6 +63,7 @@ model dentists {
   security_answers     dentist_security_question_answers[]
   dentistAssigns      DentistAssign[]
   room_assigns         room_assign[]
+  orders                orders[]
 }
 
 model appointments {
@@ -331,7 +333,7 @@ model material_types {
 model orders {
   order_id             Int              @id @default(autoincrement())
   patient_id           String?
-  dentist_id           String?
+  dentist_id           String
   lab_id               String?
   work_type_id         Int?
   due_date             DateTime?
@@ -346,6 +348,8 @@ model orders {
   work_type     work_types?     @relation(fields: [work_type_id], references: [work_type_id])
   shade_type    shades?         @relation(fields: [shade_type_id], references: [shade_type_id])
   material_type material_types? @relation(fields: [material_id], references: [material_id])
+  patient       patients?       @relation(fields: [patient_id], references: [patient_id])
+  dentist       dentists        @relation(fields: [dentist_id], references: [dentist_id])
 
   order_files   order_files[]
   stage_assign stage_assign[]
