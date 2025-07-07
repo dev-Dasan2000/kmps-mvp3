@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
-import { Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, AlertCircle, CheckCircle, Eye, Edit, Plus, Search, Filter, X, CircleCheckBig } from 'lucide-react';
+import { Loader, Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, AlertCircle, CheckCircle, Eye, Edit, Plus, Search, Filter, X, CircleCheckBig } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -86,25 +86,6 @@ type Order = {
   order_files: OrderFile[];
 };
 
-// ======================== MOCK DATA ========================
-
-const mockShades: Shade[] = [
-  { shade_type_id: 1, shade: 'A1' },
-  { shade_type_id: 2, shade: 'A2' },
-  { shade_type_id: 3, shade: 'A3' },
-  { shade_type_id: 4, shade: 'B1' },
-  { shade_type_id: 5, shade: 'B2' },
-  { shade_type_id: 6, shade: 'C1' },
-  { shade_type_id: 7, shade: 'D2' }
-];
-
-const mockMaterialTypes: MaterialType[] = [
-  { material_id: 1, material: 'Porcelain Fused to Metal' },
-  { material_id: 2, material: 'Zirconia' },
-  { material_id: 3, material: 'Lithium Disilicate' },
-  { material_id: 4, material: 'Acrylic Resin' },
-  { material_id: 5, material: 'Chrome Cobalt' }
-];
 
 // ======================== COMPONENT ========================
 const DentalLabModule = () => {
@@ -121,8 +102,8 @@ const DentalLabModule = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [labs, setLabs] = useState<Lab[]>([]);
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
-  const [shades, setShades] = useState<Shade[]>(mockShades);
-  const [materials, setMaterials] = useState<MaterialType[]>(mockMaterialTypes);
+  const [shades, setShades] = useState<Shade[]>([]);
+  const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [stages, setStages] = useState<StageWithStatus[]>([]);
   const [fetchedStages, setFetchedStages] = useState<Stage[]>([]);
   const [stageAssigns, setStageAssigns] = useState<StageAssign[]>([]);
@@ -142,6 +123,9 @@ const DentalLabModule = () => {
   const [loadingWorkTypes, setLoadingWorkTypes] = useState(false);
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [loadingDentists, setLoadingDentists] = useState(false);
+  const [loadingShades, setLoadingShades] = useState(false);
+  const [loadingMaterials, setLoadingMaterials] = useState(false);
+  const [acceptingOrder, setAcceptingOrder] = useState(false);
 
   function getStagesForOrder(orderId: number): StageWithStatus[] {
     return fetchedStages.map(stage => {
@@ -166,9 +150,11 @@ const DentalLabModule = () => {
       setOrders(fetchedOrders.data);
     }
     catch (err: any) {
-      toast.message = err.message;
-      toast.type = 'error';
-      toast.show = true;
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
     }
     finally {
       setLoadingOrders(false);
@@ -187,9 +173,11 @@ const DentalLabModule = () => {
       setFetchedStages(stagesres.data);
     }
     catch (err: any) {
-      toast.message = err.message;
-      toast.type = "error";
-      toast.show = true;
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
     }
     finally {
       setLoadingStages(false);
@@ -208,9 +196,11 @@ const DentalLabModule = () => {
       setStageAssigns(res.data);
     }
     catch (err: any) {
-      toast.message = err.message;
-      toast.type = "error";
-      toast.show = true;
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
     }
     finally {
       setLoadingStageAssigns(false);
@@ -219,85 +209,139 @@ const DentalLabModule = () => {
 
   const fetchLabs = async () => {
     setLoadingLabs(true);
-    try{
+    try {
       const res = await axios.get(
         `${backendURL}/labs`
       );
-      if(res.status == 500){
+      if (res.status == 500) {
         throw new Error("Internal Server Error");
       }
       setLabs(res.data);
     }
-    catch(err: any){
-      toast.message = err.message;
-      toast.type = "error";
-      toast.show = true;
+    catch (err: any) {
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
     }
-    finally{
+    finally {
       setLoadingLabs(false);
     }
   }
 
   const fetchWorkTypes = async () => {
     setLoadingWorkTypes(true);
-    try{
+    try {
       const res = await axios.get(
         `${backendURL}/work-types`
       );
-      if(res.status == 500){
+      if (res.status == 500) {
         throw new Error("Internal Server Error");
       }
       setWorkTypes(res.data);
     }
-    catch(err: any){
-      toast.message = err.message;
-      toast.type = "error";
-      toast.show = true;
+    catch (err: any) {
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
     }
-    finally{
+    finally {
       setLoadingWorkTypes(false);
     }
   }
 
   const fetchPatients = async () => {
     setLoadingPatients(true);
-    try{
-      const res = await axios. get(
+    try {
+      const res = await axios.get(
         `${backendURL}/patients`
       );
-      if(res.status == 500){
+      if (res.status == 500) {
         throw new Error("Internal Server Error");
       }
       setPatients(res.data);
     }
-    catch(err: any){
-      toast.message = err.message;
-      toast.type="error";
-      toast.show=true;
+    catch (err: any) {
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
     }
-    finally{
+    finally {
       setLoadingPatients(false);
     }
   }
 
   const fetchDentists = async () => {
     setLoadingDentists(true);
-    try{
+    try {
       const res = await axios.get(
         `${backendURL}/dentists`
       );
-      if(res.status == 500){
+      if (res.status == 500) {
         throw new Error("Internal Server Error");
       }
       setDentists(res.data);
     }
+    catch (err: any) {
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
+    }
+    finally {
+      setLoadingDentists(false);
+    }
+  }
+
+  const fetchShades = async () => {
+    setLoadingShades(true);
+    try{
+      const res = await axios.get(
+        `${backendURL}/shades`
+      );
+      if(res.status == 500){
+        throw new Error("Internal Server Error");
+      }
+      setShades(res.data);
+    }
     catch(err: any){
-      toast.message = err.message;
-      toast.type="error";
-      toast.show=true;
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
     }
     finally{
-      setLoadingDentists(false);
+      setLoadingShades(false);
+    }
+  }
+
+  const fetchMaterials = async () => {
+    setLoadingMaterials(true);
+    try{
+      const res = await axios.get(
+        `${backendURL}/material-types`
+      );
+      if(res.status == 500){
+        throw new Error("Internal Server Error");
+      }
+      setMaterials(res.data);
+    }
+    catch(err: any){
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
+    }
+    finally{
+      setLoadingMaterials(false);
     }
   }
 
@@ -311,16 +355,20 @@ const DentalLabModule = () => {
   useEffect(() => {
     if (isLoadingAuth) return;
     if (!isLoggedIn) {
-      toast.message = "Please Log in";
-      toast.type = "error";
-      toast.show = true;
+      setToast({
+        show: true,
+        message: 'Please Log in',
+        type: 'error'
+      });
       router.push('/');
       return;
     }
     if (user.role != "admin") {
-      toast.message = "Access Denied";
-      toast.type = "error";
-      toast.show = true;
+      setToast({
+        show: true,
+        message: 'Access Denied',
+        type: 'error'
+      });
       router.push('/');
       return;
     }
@@ -331,6 +379,8 @@ const DentalLabModule = () => {
     fetchWorkTypes();
     fetchPatients();
     fetchDentists();
+    fetchShades();
+    fetchMaterials();
   }, [isLoadingAuth])
 
   const [newOrder, setNewOrder] = useState({
@@ -492,15 +542,35 @@ const DentalLabModule = () => {
   };
 
   const handleRequestAcceptance = async (order_id: number) => {
-    setOrders(orders.map(order =>
-      order.order_id === order_id ? { ...order, status: 'In Progress' } : order
-    ));
-    setToast({
-      show: true,
-      message: `Order #${order_id} accepted and marked as In Progress`,
-      type: 'success'
-    });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })));
+    setAcceptingOrder(true);
+    try{
+      const res = await axios.put(
+        `${backendURL}/orders/${order_id}`,
+        {
+          status:"accepted" 
+        },
+        {
+          withCredentials:true,
+          headers:{
+            "content-type":"application/json"
+          }
+        }
+      );
+      if(res.status != 202){
+        throw new Error("Error Accepting Request");
+      }
+      fetchOrders();
+    }
+    catch(err: any){
+      setToast({
+        show: true,
+        message: err.message,
+        type: 'error'
+      });
+    }
+    finally{
+      setAcceptingOrder(false);
+    }
   };
 
   const removeFile = (fileId: number) => {
@@ -512,27 +582,32 @@ const DentalLabModule = () => {
 
     setIsSending(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
+      const res = await axios.post(
+        `${backendURL}/admins/invite`,
+        {
+          role: "lab",
+          email: inviteEmail
+        },
+        {
+          withCredentials: true,
+          headers:{
+            "content-type": "application/json"
+          }
+        }
+      );
+      if(res.status == 500){
+        throw new Error("Error Sending Invite");
+      }
       setToast({
-        show: true,
-        message: `Invitation sent to ${inviteEmail}`,
-        type: 'success'
+        message:"Invite Sent Successfully.",
+        type: "success",
+        show: true
       });
-
-      setInviteEmail('');
-      setShowInviteDialog(false);
-
-      setTimeout(() => {
-        setToast(prev => ({ ...prev, show: false }));
-      }, 3000);
-
-    } catch (error) {
+    } catch (error: any) {
       setToast({
-        show: true,
-        message: 'Failed to send invitation. Please try again.',
-        type: 'error'
+        message: error.message,
+        type: "error",
+        show: true
       });
     } finally {
       setIsSending(false);
@@ -602,7 +677,7 @@ const DentalLabModule = () => {
                     {order.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date?.split("T")[0]}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
                     {order.priority}
@@ -656,8 +731,8 @@ const DentalLabModule = () => {
               <div className="space-y-2">
                 <p><span className="font-medium">Work Type:</span> {order.work_type?.work_type || 'N/A'}</p>
                 <p><span className="font-medium">Lab:</span> {order.lab?.name || 'N/A'}</p>
-                <p><span className="font-medium">Order Date:</span> {order.due_date}</p>
-                <p><span className="font-medium">Due Date:</span> {order.due_date}</p>
+                <p><span className="font-medium">Order Date:</span> {order.due_date?.split("T")[0]}</p>
+                <p><span className="font-medium">Due Date:</span> {order.due_date?.split("T")[0]}</p>
               </div>
             </div>
           </div>
@@ -671,8 +746,8 @@ const DentalLabModule = () => {
                   <span className={`flex-1 ${stage.completed ? 'text-gray-900' : 'text-gray-500'}`}>
                     {stage.name}
                   </span>
-                  {stage.completed && stage.date && (
-                    <span className="text-sm text-gray-500">{stage.date}</span>
+                  {stage.completed && stage.date?.split("T")[0] && (
+                    <span className="text-sm text-gray-500">{stage.date.split("T")[0]}</span>
                   )}
                   {stage.completed ? (
                     <CheckCircle className="h-4 w-4 text-green-500" />
@@ -749,28 +824,35 @@ const DentalLabModule = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Patient ID</label>
-                <input
-                  type="text"
-                  value={newOrder.patient_id}
-                  onChange={(e) => setNewOrder({ ...newOrder, patient_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+                <select className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'>
+                  <option value="">Select patient</option>
+                  {patients.map((p) => (
+                    <option key={p.patient_id} value={p.patient_id}>
+                      {p.patient_id} - {p.name}
+                    </option>
+                  ))}
+                </select>
+
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Dentist</label>
                 <select
                   value={newOrder.dentist_id}
-                  onChange={(e) => setNewOrder({
-                    ...newOrder,
-                    dentist_id: e.target.value,
-                    dentist_name: e.target.options[e.target.selectedIndex].text
-                  })}
+                  onChange={(e) =>
+                    setNewOrder({
+                      ...newOrder,
+                      dentist_id: e.target.value,
+                      dentist_name: e.target.options[e.target.selectedIndex].text,
+                    })
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Select Dentist</option>
-                  <option value="D001">Dr. Sarah Johnson</option>
-                  <option value="D002">Dr. Michael Chen</option>
-                  <option value="D003">Dr. Emily Wilson</option>
+                  {dentists.map((dent) => (
+                    <option key={dent.dentist_id} value={dent.dentist_id}>
+                      {dent.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -803,7 +885,7 @@ const DentalLabModule = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
                 <input
                   type="date"
-                  value={newOrder.due_date}
+                  value={newOrder.due_date?.split("T")[0]}
                   onChange={(e) => setNewOrder({ ...newOrder, due_date: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
@@ -1218,7 +1300,7 @@ const DentalLabModule = () => {
                         <p className="text-sm text-gray-600">{order.work_type?.work_type || 'N/A'}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">{order.due_date}</p>
+                        <p className="text-sm font-medium text-gray-900">{order.due_date?.split("T")[0]}</p>
                         <p className="text-xs text-gray-600">{order.lab?.name || 'N/A'}</p>
                       </div>
                     </div>
@@ -1304,8 +1386,10 @@ const DentalLabModule = () => {
                     <button
                       className="text-green-500 hover:text-green-600"
                       onClick={() => handleRequestAcceptance(order.order_id)}
+                      disabled={acceptingOrder}
                     >
-                      <CircleCheckBig className="h-4 w-4" />
+                      {acceptingOrder?(<Loader className="h-4 w-4"/>):(<CircleCheckBig className="h-4 w-4" />)}
+                      
                     </button>
                   </div>
                 </td>

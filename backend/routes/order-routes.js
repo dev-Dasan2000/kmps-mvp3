@@ -9,6 +9,7 @@ router.get('/', async (req, res) => {
       include: {
         lab: true,
         patient: true,
+        dentist: true,
         work_type: true,
         shade_type: true,
         material_type: true,
@@ -52,8 +53,9 @@ router.put('/:id', async (req, res) => {
       where: { order_id: Number(req.params.id) },
       data: req.body,
     });
-    res.json(updated);
-  } catch {
+    res.status(202).json(updated);
+  } catch(err) {
+    console.log(err);
     res.status(500).json({ error: 'Failed to update order' });
   }
 });

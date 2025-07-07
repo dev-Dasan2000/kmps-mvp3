@@ -98,7 +98,7 @@ app.use('/dentist-assign', dentistAssignRouter);
 
 app.use('/work-types', workTypesRouter);
 app.use('/shades', shadesRouter);
-app.use('/materia-types', materialTypesRouter);
+app.use('/material-types', materialTypesRouter);
 app.use('/order-files', orderFilesRouter);
 app.use('/orders', orderRouter);
 app.use('/stages', stagesRouter);
