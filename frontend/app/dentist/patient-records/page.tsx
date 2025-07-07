@@ -14,6 +14,7 @@ import axios from 'axios'
 import { AuthContext } from '@/context/auth-context'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner';
+import MedicalHistoryForm from '@/Components/medicalhistoryform'
 
 interface Patient {
   patient_id: string
@@ -422,66 +423,16 @@ export default function DentistDashboard({ params }: DashboardProps) {
   }, [user]);
 
   const PatientDetailsContent = () => (
-    <div className="h-full flex flex-col">
-      {/* Patient Header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6 flex-shrink-0">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="relative h-16 w-16 rounded-full overflow-hidden bg-blue-100 flex-shrink-0">
-            {selectedPatient?.profile_picture ? (
-              <img
-                src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${selectedPatient.profile_picture}`}
-                alt={selectedPatient.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) {
-                    fallback.style.display = 'flex';
-                  }
-                }}
-              />
-            ) : null}
-            <div className="absolute inset-0 flex items-center justify-center bg-blue-100 text-blue-700 font-medium text-xl">
-              {selectedPatient?.name 
-                ? selectedPatient.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-                : '?'}
-            </div>
-          </div>
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold text-gray-900">{selectedPatient?.name}</h2>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-sm text-gray-600">
-              <div className="flex items-center gap-1">
-                <Mail className="h-4 w-4" />
-                <span>{selectedPatient?.email}</span>
-              </div>
-              {selectedPatient?.phone_number && (
-                <div className="flex items-center gap-1">
-                  <Phone className="h-4 w-4" />
-                  <span>{selectedPatient.phone_number}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Patient Details */}
-      <div className="flex-1 overflow-hidden">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsList className="grid w-full grid-cols-5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+    <div className="space-y-6 p-6">
+      <Tabs defaultValue="details" className="w-full" value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="details">Details</TabsTrigger>
-            <TabsTrigger value="history" className="lg:hidden">History</TabsTrigger>
-            <TabsTrigger value="history" className="hidden lg:block">Medical History</TabsTrigger>
-            <TabsTrigger value="reports" className="lg:hidden">Reports</TabsTrigger>
-            <TabsTrigger value="reports" className="hidden lg:block">Medical Reports</TabsTrigger>
-            <TabsTrigger value="notes" className="lg:hidden">Notes</TabsTrigger>
-            <TabsTrigger value="notes" className="hidden lg:block">SOAP Notes</TabsTrigger>
-            <TabsTrigger value="consent">Consent Template</TabsTrigger>
+          <TabsTrigger value="medical-history">Medical History</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="soap-notes">SOAP Notes</TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto mt-6">
-            <TabsContent value="details" className="space-y-4 mt-0">
+        <TabsContent value="details">
               <Card>
                 <CardHeader>
                   <CardTitle>Patient Information</CardTitle>
@@ -513,42 +464,19 @@ export default function DentistDashboard({ params }: DashboardProps) {
               </Card>
             </TabsContent>
 
-            <TabsContent value="history" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5" />
-                    Medical History
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {selectedPatient && medicalHistory.map((history, index) => (
-                      <div key={`${history.patient_id}-${history.medical_question_id}`} className="border-l-4 border-blue-500 pl-4 py-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{history.question?.question}</p>
-                            <p className="text-gray-600 mt-1">{history.medical_question_answer}</p>
+        <TabsContent value="medical-history" className="mt-0 h-full">
+          <div className="h-full">
+            {loadingMedicalHistory ? (
+              <div className="flex justify-center items-center h-48">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                           </div>
-                          {history.medical_question_answer.toLowerCase().includes('yes') &&
-                            history.question?.question.toLowerCase().includes('disease') && (
-                              <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+            ) : (
+              <MedicalHistoryForm patientId={selectedPatient?.patient_id} />
                             )}
                         </div>
-                      </div>
-                    ))}
-                    {selectedPatient && medicalHistory.length === 0 && (
-                      <div className="text-center py-8">
-                        <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No medical history available</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
             </TabsContent>
 
-            <TabsContent value="reports" className="space-y-4 mt-0">
+        <TabsContent value="reports">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <FileText className="h-5 w-5" />
@@ -633,7 +561,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
               </div>
             </TabsContent>
 
-            <TabsContent value="notes" className="space-y-4 mt-0">
+        <TabsContent value="soap-notes">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">SOAP Notes</h3>
                 <Button
@@ -700,45 +628,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
                 )}
               </div>
             </TabsContent>
-            
-            {/* This card component should be integrate with the backend */}
-            <TabsContent value="consent" className="space-y-4 mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ClipboardCheck className="h-5 w-5" />
-                    Consent Template
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {selectedPatient && medicalHistory.map((history, index) => (
-                      <div key={`${history.patient_id}-${history.medical_question_id}`} className="border-l-4 border-blue-500 pl-4 py-2">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{history.question?.question}</p>
-                            <p className="text-gray-600 mt-1">{history.medical_question_answer}</p>
-                          </div>
-                          {history.medical_question_answer.toLowerCase().includes('yes') &&
-                            history.question?.question.toLowerCase().includes('disease') && (
-                              <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
-                            )}
-                        </div>
-                      </div>
-                    ))}
-                    {selectedPatient && medicalHistory.length === 0 && (
-                      <div className="text-center py-8">
-                        <ClipboardCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500">No consent template available</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </div>
         </Tabs>
-      </div>
     </div>
   )
 
@@ -821,36 +711,71 @@ export default function DentistDashboard({ params }: DashboardProps) {
       </Card>
 
       {/* Medical History */}
-      <Card>
+      <Card className="flex-grow">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
             Medical History
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {selectedPatient && medicalHistory.map((history, index) => (
-              <div key={`${history.patient_id}-${history.medical_question_id}`} className="border-l-4 border-blue-500 pl-4 py-2">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-900">{history.question?.question}</p>
-                    <p className="text-gray-600 mt-1">{history.medical_question_answer}</p>
+        <CardContent className="h-full">
+          <Tabs defaultValue="view" className="h-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="view">View History</TabsTrigger>
+              <TabsTrigger value="edit">Edit History</TabsTrigger>
+            </TabsList>
+            <TabsContent value="view" className="h-[calc(100%-3rem)]">
+              <div className="space-y-4 h-full overflow-y-auto">
+                {selectedPatient && medicalHistory.map((history, index) => (
+                  <div key={`${history.patient_id}-${history.medical_question_id}`} 
+                    className={`border-l-4 pl-4 py-2 ${
+                      history.medical_question_answer?.toLowerCase() === 'yes' &&
+                      history.question?.question.toLowerCase().includes('disease')
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-blue-500'
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{history.question?.question}</p>
+                        <p className={`mt-1 ${
+                          history.medical_question_answer?.toLowerCase() === 'yes' &&
+                          history.question?.question.toLowerCase().includes('disease')
+                            ? 'text-orange-700 font-medium'
+                            : 'text-gray-600'
+                        }`}>
+                          {history.medical_question_answer}
+                        </p>
+                      </div>
+                      {history.medical_question_answer?.toLowerCase() === 'yes' &&
+                        history.question?.question.toLowerCase().includes('disease') && (
+                          <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                      )}
+                    </div>
                   </div>
-                  {history.medical_question_answer.toLowerCase().includes('yes') &&
-                    history.question?.question.toLowerCase().includes('disease') && (
-                      <AlertCircle className="h-5 w-5 text-orange-500 flex-shrink-0" />
-                    )}
+                ))}
+                {selectedPatient && medicalHistory.length === 0 && (
+                  <div className="text-center py-8">
+                    <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500">No medical history available</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            <TabsContent value="edit" className="h-[calc(100%-3rem)]">
+              {selectedPatient && (
+                <div className="h-full">
+                  <MedicalHistoryForm
+                    patientId={selectedPatient.patient_id}
+                    onSave={() => {
+                      fetchPatientMedicalHistory(selectedPatient.patient_id);
+                    }}
+                    fullHeight={true}
+                  />
                 </div>
-              </div>
-            ))}
-            {selectedPatient && medicalHistory.length === 0 && (
-              <div className="text-center py-8">
-                <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No medical history available</p>
-              </div>
-            )}
-          </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

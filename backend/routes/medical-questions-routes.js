@@ -5,6 +5,47 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const router = express.Router();
 
+// Initialize default medical questions if they don't exist
+const initializeMedicalQuestions = async () => {
+  const defaultQuestions = [
+    'Do you have any heart disease?',
+    'Do you have diabetes?',
+    'Do you have hypertension?',
+    'Do you have asthma?',
+    'Do you have any kidney disease?',
+    'Do you have any liver disease?',
+    'Do you have any blood disorders?',
+    'Are you pregnant?',
+    'What is your smoking status?',
+    'What is your alcohol consumption?',
+    'When was your last dental visit?',
+    'Do you have any dental concerns?',
+    'Do you have any medication allergies?',
+    'Family medical history',
+    'Additional notes'
+  ];
+
+  try {
+    const existingQuestions = await prisma.medical_questions.findMany();
+    
+    // Only add questions that don't exist
+    for (const question of defaultQuestions) {
+      const exists = existingQuestions.some(q => q.question === question);
+      if (!exists) {
+        await prisma.medical_questions.create({
+          data: { question }
+        });
+      }
+    }
+    console.log('Medical questions initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize medical questions:', error);
+  }
+};
+
+// Call initialization on server start
+initializeMedicalQuestions();
+
 router.get('/', /* authenticateToken, */ async (req, res) => {
   try {
     const questions = await prisma.medical_questions.findMany();
