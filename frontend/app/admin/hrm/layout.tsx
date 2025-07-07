@@ -21,21 +21,48 @@ export default function HrmLayout({
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Horizontal Navigation - Hidden on mobile, shown on md and up */}
-      <div className="hidden md:block bg-white shadow-sm">
+      <div className="bg-gray-50">
+        {/* Header Section */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-6 pb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">HR Management</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            Manage your human resources, employee information, and workforce operations.
+          </p>
+        </div>
+
+        {/* Navigation Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center h-16">
-            <div className="flex items-center">
-              <div className="flex space-x-8">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex space-x-8">
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  'py-4 px-1 border-b-2 text-sm font-medium transition-colors',
+                  pathname === item.href
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                )}
+              >
+                {item.name}
+              </Link>
+            ))}
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden -mx-4 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <div className="flex px-4 space-x-4 py-3">
                 {navigation.map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      'inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium',
+                      'whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium',
                       pathname === item.href
-                        ? 'border-indigo-500 text-gray-900'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-700 hover:bg-gray-100'
                     )}
                   >
                     {item.name}
@@ -46,31 +73,9 @@ export default function HrmLayout({
           </div>
         </div>
       </div>
-      
-      {/* Mobile Navigation - Shown on mobile, hidden on md and up */}
-      <div className="md:hidden bg-white shadow-sm sticky top-0 z-20">
-        <div className="overflow-x-auto pt-16">
-          <div className="flex px-4 space-x-4 pb-2">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  'whitespace-nowrap px-3 py-2 rounded-md text-sm font-medium',
-                  pathname === item.href
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'text-gray-700 hover:bg-gray-100'
-                )}
-              >
-                {item.name}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
 
       {/* Page Content */}
-      <div className="flex-1 py-4 md:py-6">
+      <div className="flex-1 py-4 md:py-6 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full">
           {children}
         </div>
