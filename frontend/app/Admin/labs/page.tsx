@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, AlertCircle, CheckCircle, Eye, Edit, Plus, Search, Filter, X, CircleCheckBig } from 'lucide-react';
-
+import { AuthContext } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import axios from 'axios';
 // ======================== TYPES ========================
 
 type Lab = {
@@ -43,7 +45,6 @@ type StageWithStatus = Stage & {
   completed: boolean;
   date: string | null;
 };
-
 
 type StageAssign = {
   stage_assign_id: number;
@@ -208,22 +209,36 @@ const mockStageAssigns: StageAssign[] = [
 ];
 
 // ======================== COMPONENT ========================
-
 const DentalLabModule = () => {
+
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  const {user, isLoggedIn, isLoadingAuth} = useContext(AuthContext);
+
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<'dashboard' | 'requests' | 'orders' | 'labs'>('dashboard');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(mockOrders[0]);
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [orders, setOrders] = useState<Order[]>(mockOrders);
   const [labs, setLabs] = useState<Lab[]>(mockLabs);
-  const [workTypes] = useState<WorkType[]>(mockWorkTypes);
-  const [shades] = useState<Shade[]>(mockShades);
-  const [materials] = useState<MaterialType[]>(mockMaterialTypes);
+  const [workTypes, setWorkTypes] = useState<WorkType[]>(mockWorkTypes);
+  const [shades, setShades] = useState<Shade[]>(mockShades);
+  const [materials, setMaterials] = useState<MaterialType[]>(mockMaterialTypes);
   const [stages, setStages] = useState<StageWithStatus[]>([]);
   const [stageAssigns, setStageAssigns] = useState<StageAssign[]>(mockStageAssigns);
 
+  const [showNewLab, setShowNewLab] = useState(false);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
+
+  const [loadingOrders, setLoadingOrders] = useState(false);
+
   function getStagesForOrder(orderId: number): StageWithStatus[] {
     return mockStages.map(stage => {
-      const assignment = mockStageAssigns.find(sa => sa.order_id === orderId && sa.stage_id === stage.stage_id);
+      const assignment = stageAssigns.find(sa => sa.order_id === orderId && sa.stage_id === stage.stage_id);
       return {
         ...stage,
         completed: assignment?.completed ?? false,
@@ -231,14 +246,53 @@ const DentalLabModule = () => {
       };
     });
   }
-  
 
+  const fetchOrders = async () => {
+    setLoadingOrders(true);
+    try{
+      const fetchedOrders = await axios.get(
+        `${backendURL}/orders`
+      );
+      if(fetchedOrders.status == 500){
+        throw new Error("Error fetching orders");
+      }
+      setOrders(fetchedOrders.data);
+    }
+    catch(err: any){
+      toast.message = err.message;
+      toast.type = 'error';
+      toast.show = true;
+    }
+    finally{
+      setLoadingOrders(false);
+    }
+  }
+  
   useEffect(() => {
     if (selectedOrder) {
       const updatedStages = getStagesForOrder(selectedOrder.order_id);
       setStages(updatedStages);
     }
   }, [selectedOrder]);
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.message = "Please Log in";
+      toast.type = "error";
+      toast.show = true;
+      router.push('/');
+      return;
+    }
+    if(user.role != "admin"){
+      toast.message = "Access Denied";
+      toast.type = "error";
+      toast.show = true;
+      router.push('/');
+      return;
+    }
+    fetchOrders();
+  },[isLoadingAuth])
 
   const [newOrder, setNewOrder] = useState({
     patient_id: '',
@@ -253,12 +307,6 @@ const DentalLabModule = () => {
     shade_type_id: 0,
     material_id: 0
   });
-
-  const [showNewLab, setShowNewLab] = useState(false);
-  const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
 
   const [submissionChecklist, setSubmissionChecklist] = useState({
     digitalFiles: {
@@ -390,28 +438,6 @@ const DentalLabModule = () => {
       type: 'success'
     });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
-  };
-
-  const calculateCost = (workTypeId: number, priority: string): number => {
-    const basePrices: Record<number, number> = {
-      1: 450, // Complete Denture
-      2: 350, // Partial Denture
-      3: 320, // Crown & Bridge
-      4: 500, // Implant Restoration
-      5: 150, // Reline
-      6: 200  // Repair
-    };
-
-    const priorityMultipliers: Record<string, number> = {
-      'Low': 0.9,
-      'Normal': 1,
-      'High': 1.2,
-      'Rush': 1.5
-    };
-
-    const basePrice = basePrices[workTypeId] || 0;
-    const multiplier = priorityMultipliers[priority] || 1;
-    return basePrice * multiplier;
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
