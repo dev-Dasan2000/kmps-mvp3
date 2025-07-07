@@ -144,7 +144,7 @@ const LabPartnerSidebar = () => {
             />*/}
           </div>
           <p className="text-sm text-gray-600 text-center mt-1">
-            Doctor Dashboard
+            Lab Partner Dashboard
           </p>
         </SidebarHeader>
 
@@ -213,7 +213,7 @@ const LabPartnerSidebar = () => {
             />*/}
           </div>
           <p className="text-xs text-gray-600 text-center mt-1">
-            Doctor Dashboard
+            Lab Partner Dashboard
           </p>
         </div>
 
