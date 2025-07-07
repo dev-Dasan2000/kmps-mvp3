@@ -1,8 +1,10 @@
+import DentistCalendarView from '@/components/DentistCalendarView';
+
 const AllAppointmentsPage = () => {
   return (
-    <div>
-      <h1>All Appointments</h1>
-      {/* Render the list of all appointments here */}
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Dentist Appointments</h1>
+      <DentistCalendarView />
     </div>
   );
 };
