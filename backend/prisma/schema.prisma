@@ -401,6 +401,7 @@ model employees {
   bank_info        bank_info[]
   emergency_contact emergency_contact[]
   attendance        employee_atd[]
+  leaves            leaves[]
 
   @@map("employees")
 }
@@ -441,4 +442,17 @@ model employee_atd {
 
   @@id([eid, clock_in])
   @@map("employee_atd")
+}
+
+model leaves {
+  eid              Int
+  from_date        DateTime
+  to_date          DateTime
+  type             String
+  status           String
+
+  employee         employees @relation(fields: [eid], references: [eid], onDelete: Cascade)
+
+  @@id([eid, from_date, to_date])
+  @@map("leaves")
 }
