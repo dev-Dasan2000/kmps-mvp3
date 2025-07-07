@@ -47,9 +47,8 @@ import stageAssignRouter from './routes/stage-assign-routes.js';
 import labRouter from './routes/lab-routes.js';
 
 //hr
-import './routes/hr/employee-routes.js';
-import './routes/hr/attendance-routes.js';
-
+import hrEmployeeRouter from './routes/hr/employee-routes.js';
+import hrAttendanceRouter from './routes/hr/attendance-routes.js';
 import './routes/automated-routes.js';
 
 dotenv.config();
@@ -109,7 +108,7 @@ app.use('/stage-assign', stageAssignRouter);
 app.use('/labs', labRouter);
 
 //hr
-app.use('/hr/employees', express.Router().use('/employees', import('./routes/hr/employee-routes.js')));
-app.use('/hr/attendance', express.Router().use('/attendance', import('./routes/hr/attendance-routes.js')));
+app.use('/hr/employees', hrEmployeeRouter);
+app.use('/hr/attendance', hrAttendanceRouter);
 
 app.listen(PORT, () => console.log(`Server listening on ${PORT}`));

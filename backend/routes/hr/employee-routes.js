@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { PrismaClient } from '@prisma/client';
+
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 router.get('/employees', async (req, res) => {
@@ -460,4 +461,4 @@ router.delete('/employees/:id/emergency-contacts/:phone', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

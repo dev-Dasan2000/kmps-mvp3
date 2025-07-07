@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { PrismaClient } from '@prisma/client';
+
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 // Helper function to format time (extract only time part from datetime)
@@ -303,4 +304,4 @@ router.post('/attendance/clock-out', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
