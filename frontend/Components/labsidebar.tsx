@@ -46,17 +46,17 @@ const LabPartnerSidebar = () => {
     return [
       {
         title: "Dashboard",
-        url: `/labpartner`,
+        url: `/lab`,
         icon: LayoutGrid,
       },
       {
         title: "Order",
-        url: `/labpartner/order`,
+        url: `/lab/order`,
         icon: ClipboardList,
       },
       {
         title: "Profile",
-        url: `/labpartner/profile`,
+        url: `/lab/profile`,
         icon: User2,
       },
       /*{

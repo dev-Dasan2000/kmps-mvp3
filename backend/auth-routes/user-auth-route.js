@@ -23,6 +23,9 @@ const findUserById = async (id) => {
   user = await prisma.admins.findUnique({ where: { admin_id: id } });
   if (user) return { user, role: 'admin' };
 
+  user = await prisma.lab.findUnique({ where: { lab_id: id } });
+  if(user) return {user, role: 'lab'};
+
   return { user: null, role: null };
 };
 
@@ -45,7 +48,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Check if email is verified
-    if(user.email){
+    if (user.email) {
       const verificationRecord = await prisma.email_verifications.findUnique({
         where: { email: user?.email }
       });
@@ -56,7 +59,7 @@ router.post('/login', async (req, res) => {
           needsVerification: true,
           email: user.email
         });
-    }
+      }
     }
 
     const tokens = jwTokens(user[`${role}_id`], user.name, role);
@@ -109,7 +112,7 @@ router.get('/refresh_token', (req, res) => {
         expiresIn: '15m',
       });
 
-      res.json({ accessToken, user: {id: id, name: name, role: role} });
+      res.json({ accessToken, user: { id: id, name: name, role: role } });
     });
   } catch (err) {
     console.error(err.message);

@@ -1,7 +1,7 @@
 "use client";
 import { Bell } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/Components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useContext } from "react";
 import { AuthContext } from "@/context/auth-context";
@@ -47,7 +47,7 @@ const  LabPartnerHeader = () => {
     setLoadingLab(true);
     try{
       const response = await axios.get(
-        `${backendURL}/lab/${user.id}`
+        `${backendURL}/labs/${user.id}`
       );
       if(response.status == 500){
         throw new Error("Error Fetching Doctor Info");
@@ -149,9 +149,6 @@ const  LabPartnerHeader = () => {
               <>
                 <p className="text-sm font-medium text-gray-900">
                   {labInfo?.name }
-                </p>
-                <p className="text-xs text-gray-500">
-                  {labInfo?.service_types}
                 </p>
               </>
             )}
