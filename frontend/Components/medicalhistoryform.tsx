@@ -374,8 +374,8 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
                 </div>
               </div>
             </div>
-          </div>
-
+                  </div>
+                  
           {/* Lifestyle Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-lg font-semibold mb-4">Lifestyle</h3>
@@ -388,7 +388,7 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
                   onChange={(e) => handleFormChange('smokingStatus', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
                 />
-              </div>
+                        </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Alcohol Consumption</label>
                 <input

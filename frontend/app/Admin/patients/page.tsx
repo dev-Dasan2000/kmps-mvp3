@@ -284,7 +284,7 @@ const PatientManagement = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 overflow-auto">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
@@ -337,7 +337,9 @@ const PatientManagement = () => {
                     {patient.profile_picture ? (
                       <>
                         <Image
-                          src={`${backendURL}${patient.profile_picture}`}
+                          src={patient.profile_picture.startsWith('http') 
+                            ? patient.profile_picture 
+                            : `${backendURL}/${patient.profile_picture.startsWith('/') ? patient.profile_picture.slice(1) : patient.profile_picture}`}
                           alt={patient.name}
                           width={40}
                           height={40}
@@ -403,7 +405,9 @@ const PatientManagement = () => {
                     {patient.profile_picture ? (
                       <>
                         <Image
-                          src={`${backendURL}${patient.profile_picture}`}
+                          src={patient.profile_picture.startsWith('http') 
+                            ? patient.profile_picture 
+                            : `${backendURL}/${patient.profile_picture.startsWith('/') ? patient.profile_picture.slice(1) : patient.profile_picture}`}
                           alt={patient.name}
                           width={48}
                           height={48}
