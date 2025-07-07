@@ -377,3 +377,52 @@ model stage_assign {
   stage     stages     @relation(fields: [stage_id], references: [stage_id])
   order     orders     @relation(fields: [order_id], references: [order_id])
 }
+
+model employees {
+  eid              Int      @id @default(autoincrement())
+  name             String
+  dob              String
+  gender           String
+  email            String   @unique
+  phone            String
+  address          String?
+  city             String?
+  state            String?
+  province         String?
+  zip_code         String?
+  job_title        String?
+  employment_status String
+  salary           Float?
+
+  bank_info        bank_info[]
+  emergency_contact emergency_contact[]
+
+  @@map("employees")
+}
+
+model bank_info {
+  eid              Int
+  account_holder   String
+  account_no       String   @unique
+  bank_name        String
+  branch           String?
+  account_type     String?
+
+  employee         employees @relation(fields: [eid], references: [eid], onDelete: Cascade)
+
+  @@id([eid, account_no])
+  @@map("bank_info")
+}
+
+model emergency_contact {
+  eid              Int
+  name             String
+  relationship     String
+  phone            String
+  email            String?
+
+  employee         employees @relation(fields: [eid], references: [eid], onDelete: Cascade)
+
+  @@id([eid, phone])
+  @@map("emergency_contact")
+}
