@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState, useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, LogOut, Settings, User2, Menu, X, Ticket } from "lucide-react";
+import { BarChart3, LogOut, Settings, User2, Menu, X, Ticket, Users } from "lucide-react";
 import { AuthContext } from "@/context/auth-context";
 import { toast } from "sonner";
 import Logo from "@/app/logo.png";
@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import axios from "axios";
+import { url } from "inspector";
 
 const items = [
   {
@@ -73,11 +74,13 @@ const items = [
   {
     title: "Lab Management",
     url: "/admin/labs",
-    icon: DoorOpen,
-    
-  }
- 
-  
+    icon: DoorOpen,  
+  },
+  {
+    title: "HR Management",
+    url: "/admin/hrm",
+    icon: Users
+  },
 ];
 
 const AdminSidebar = () => {
@@ -127,7 +130,7 @@ const AdminSidebar = () => {
       <Button
         variant="ghost"
         size="sm"
-        className="md:hidden fixed top-4 left-4 z-50 bg-white shadow-md border"
+        className="md:hidden fixed top-4 left-4 z-[100] bg-white shadow-md border"
         onClick={toggleMobileMenu}
       >
         {isMobileMenuOpen ? (
@@ -140,13 +143,13 @@ const AdminSidebar = () => {
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 backdrop-blur-sm  bg-opacity-80 z-30 md:hidden"
+          className="fixed inset-0 backdrop-blur-sm bg-black/30 z-[90] md:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
 
       {/* Desktop Sidebar - using shadcn Sidebar components */}
-      <Sidebar className="hidden md:flex w-56 lg:w-64 bg-white shadow-sm min-h-screen border-r border-gray-200">
+      <Sidebar className="hidden md:flex w-56 lg:w-64 bg-white shadow-sm h-screen flex-col border-r border-gray-200">
         <SidebarHeader className="p-4 md:p-6 border-b border-gray-100">
           <div className="flex items-center justify-center">
             <span className="h-15 w-15 mx-auto"><Image src={Logo} alt=""/></span>
@@ -163,10 +166,10 @@ const AdminSidebar = () => {
           </p>
         </SidebarHeader>
 
-        <SidebarContent className="p-4">
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu className="space-y-2">
+        <SidebarContent className="p-4 flex-1 overflow-y-auto [&>div]:h-full">
+          <SidebarGroup className="h-full">
+            <SidebarGroupContent className="h-full flex flex-col">
+              <SidebarMenu className="space-y-2 flex-1">
                 {items.map((item) => {
                   const isActive = pathname === item.url;
                   return (
@@ -211,7 +214,7 @@ const AdminSidebar = () => {
 
       {/* Mobile Sidebar - custom div structure */}
       <div
-        className={`md:hidden fixed left-0 top-0 z-40 w-72 bg-white shadow-lg min-h-screen border-r border-gray-200 flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`md:hidden fixed left-0 top-0 z-[95] w-72 bg-white shadow-lg min-h-screen border-r border-gray-200 flex flex-col transform transition-transform duration-300 ease-in-out ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -233,8 +236,8 @@ const AdminSidebar = () => {
         </div>
 
         {/* Mobile Content */}
-        <div className="flex-1 p-3 overflow-y-auto">
-          <div className="space-y-1">
+        <div className="flex-1 p-3 overflow-y-auto [&>div]:h-full">
+          <div className="space-y-2 h-full">
             {items.map((item) => {
               const isActive = pathname === item.url;
               return (

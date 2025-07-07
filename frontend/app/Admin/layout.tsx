@@ -23,9 +23,10 @@ export default function AdminLayout({
 
   return ( 
     <SidebarProvider>
-      <div className="flex h-screen w-full">
+      <div className="relative flex h-screen w-full">
         <AdminSidebar />
         <div className="flex-1 flex flex-col overflow-hidden bg-gray-100">
+          <div className="md:hidden h-16" /> {/* Spacer for mobile menu */}
           {children}
         </div>
       </div>
