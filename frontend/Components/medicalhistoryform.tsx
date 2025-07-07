@@ -265,35 +265,35 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
       {/* Form Content */}
       <div className={`flex-1 ${fullHeight ? 'overflow-y-visible' : 'overflow-y-auto pr-2'}`}>
         <div className="space-y-6">
-          {/* Critical Conditions Alert */}
-          {hasCriticalConditions() && (
+            {/* Critical Conditions Alert */}
+            {hasCriticalConditions() && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center">
+                <div className="flex items-center">
                 <AlertTriangle className="h-5 w-5 text-red-600 mr-2 flex-shrink-0" />
-                <p className="text-red-800 font-medium">
-                  This patient has critical medical conditions that require special attention during treatment.
-                </p>
+                  <p className="text-red-800 font-medium">
+                    This patient has critical medical conditions that require special attention during treatment.
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Medical Conditions Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-lg font-semibold mb-4">Medical Conditions</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-4">
+                <div className="space-y-4">
                 <div>
                   <label className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
+                        <input
+                          type="checkbox"
                       checked={formData.hasHeartDisease}
                       onChange={(e) => handleFormChange('hasHeartDisease', e.target.checked)}
                       className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    />
+                        />
                     <span>Heart Disease</span>
                   </label>
-                </div>
-                <div>
+                  </div>
+                  <div>
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -327,7 +327,7 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
                   </label>
                 </div>
               </div>
-              <div className="space-y-4">
+                <div className="space-y-4">
                 <div>
                   <label className="flex items-center space-x-2">
                     <input
@@ -338,7 +338,7 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
                     />
                     <span>Kidney Disease</span>
                   </label>
-                </div>
+                  </div>
                 <div>
                   <label className="flex items-center space-x-2">
                     <input
@@ -397,18 +397,18 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
                   onChange={(e) => handleFormChange('alcoholConsumption', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
                 />
+                </div>
               </div>
             </div>
-          </div>
 
           {/* Dental History Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-lg font-semibold mb-4">Dental History</h3>
-            <div className="space-y-4">
-              <div>
+              <div className="space-y-4">
+                <div>
                 <label className="block text-sm font-medium text-gray-700">Last Dental Visit</label>
-                <input
-                  type="text"
+                  <input
+                    type="text"
                   value={formData.lastDentalVisit}
                   onChange={(e) => handleFormChange('lastDentalVisit', e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
@@ -421,10 +421,10 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
                   onChange={(e) => handleFormChange('dentalConcerns', e.target.value)}
                   rows={3}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                />
+                  />
               </div>
             </div>
-          </div>
+                </div>
 
           {/* Additional Information Section */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -439,19 +439,19 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
                 />
               </div>
-              <div>
+                <div>
                 <label className="block text-sm font-medium text-gray-700">Family Medical History</label>
-                <textarea
-                  value={formData.familyHistory}
+                  <textarea
+                    value={formData.familyHistory}
                   onChange={(e) => handleFormChange('familyHistory', e.target.value)}
                   rows={2}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
-                />
-              </div>
-              <div>
+                  />
+                </div>
+                <div>
                 <label className="block text-sm font-medium text-gray-700">Additional Notes</label>
-                <textarea
-                  value={formData.additionalNotes}
+                  <textarea
+                    value={formData.additionalNotes}
                   onChange={(e) => handleFormChange('additionalNotes', e.target.value)}
                   rows={2}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500"
@@ -480,8 +480,8 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
             <>
               <Save className="w-4 h-4 mr-2" />
               Save Changes
-            </>
-          )}
+          </>
+        )}
         </button>
       </div>
     </div>

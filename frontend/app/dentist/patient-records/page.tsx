@@ -483,7 +483,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
                   Medical Reports
                 </h3>
                 <Button
-                  className='bg-emerald-500 hover:bg-emerald-600'
+                  className='bg-emerald-500 hover:bg-emerald-600 mb-2'
                   size="sm"
                   onClick={() => setIsUploadReportDialogOpen(true)}
                 >
@@ -565,7 +565,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-semibold">SOAP Notes</h3>
                 <Button
-                  className='bg-emerald-500 hover:bg-emerald-600'
+                  className='bg-emerald-500 hover:bg-emerald-600 mb-2'
                   size="sm"
                   onClick={() => setIsAddNoteDialogOpen(true)}
                 >
@@ -1012,7 +1012,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1">
             <div className="p-2">
               {filteredPatients.map((patient) => (
                 <Card
