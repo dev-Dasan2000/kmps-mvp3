@@ -1,11 +1,13 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import dotenv from 'dotenv';
 // import { authenticateToken } from '../middleware/authentication.js';
 import { sendAccountCreationInvite } from '../utils/mailer.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
+dotenv.config();
 
 const SALT_ROUNDS = 10;
 
@@ -83,8 +85,9 @@ router.delete('/:admin_id', /* authenticateToken, */ async (req, res) => {
 router.post('/invite', /* authenticateToken, */ async (req, res) => {
   try{
     const role = req.body.role.toLowerCase();
-    const URL = `${process.env.NEXT_PUBLIC_FRONTEND_URL}${role}Signup`
-    sendAccountCreationInvite(req.body.email, req.body.role, URL);
+    const URL = `${process.env.FRONTEND_URL}/${role}Signup`;
+    await sendAccountCreationInvite(req.body.email, req.body.role, URL);
+    res.status(202).json("sent successfully");
   }
   catch(err){
     console.log(err);

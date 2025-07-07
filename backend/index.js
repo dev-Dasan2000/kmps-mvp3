@@ -43,9 +43,12 @@ import materialTypesRouter from './routes/material-types-routes.js';
 import orderFilesRouter from './routes/order-files-routes.js';
 import orderRouter from './routes/order-routes.js';
 import stagesRouter from './routes/stages-routes.js';
-import stageAssignRouter from './routes/stage-assign-routes.js'
+import stageAssignRouter from './routes/stage-assign-routes.js';
+import labRouter from './routes/lab-routes.js';
 
-
+//hr
+import hrEmployeeRouter from './routes/hr/employee-routes.js';
+import hrAttendanceRouter from './routes/hr/attendance-routes.js';
 import './routes/automated-routes.js';
 
 dotenv.config();
@@ -97,10 +100,15 @@ app.use('/dentist-assign', dentistAssignRouter);
 
 app.use('/work-types', workTypesRouter);
 app.use('/shades', shadesRouter);
-app.use('/materia-types', materialTypesRouter);
+app.use('/material-types', materialTypesRouter);
 app.use('/order-files', orderFilesRouter);
 app.use('/orders', orderRouter);
 app.use('/stages', stagesRouter);
-app.use('stage-assign', stageAssignRouter);
+app.use('/stage-assign', stageAssignRouter);
+app.use('/labs', labRouter);
+
+//hr
+app.use('/hr/employees', hrEmployeeRouter);
+app.use('/hr/attendance', hrAttendanceRouter);
 
 app.listen(PORT, () => console.log(`Server listening on ${PORT}`));
