@@ -25,7 +25,7 @@ function formatDateOnly(dateTime) {
 }
 
 // Get employee attendance for current month
-router.get('/attendance/:eid', async (req, res) => {
+router.get('/:eid', async (req, res) => {
   try {
     const { eid } = req.params;
     const employeeId = parseInt(eid);
@@ -75,7 +75,7 @@ router.get('/attendance/:eid', async (req, res) => {
 });
 
 // Get total attendance days for an employee
-router.get('/attendance/total/:eid', async (req, res) => {
+router.get('/total/:eid', async (req, res) => {
   try {
     const { eid } = req.params;
     const employeeId = parseInt(eid);
@@ -95,11 +95,34 @@ router.get('/attendance/total/:eid', async (req, res) => {
       FROM employee_atd
       WHERE eid = ${employeeId}
     `;
+    
+    // Count approved leave days
+    const leaves = await prisma.leaves.findMany({
+      where: {
+        eid: employeeId,
+        status: 'Approved'
+      }
+    });
+    
+    // Calculate total leave days
+    let totalLeaveDays = 0;
+    leaves.forEach(leave => {
+      const fromDate = new Date(leave.from_date);
+      const toDate = new Date(leave.to_date);
+      const diffTime = Math.abs(toDate - fromDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
+      totalLeaveDays += diffDays;
+    });
 
+    // Convert BigInt to Number to avoid type mixing issues
+    const totalAttendanceDays = attendanceCount[0]?.total_days ? Number(attendanceCount[0].total_days) : 0;
+    
     res.json({
       eid: employeeId,
       name: employee.name,
-      total_attendance_days: attendanceCount[0]?.total_days || 0
+      total_attendance_days: totalAttendanceDays,
+      total_leave_days: totalLeaveDays,
+      effective_attendance: totalAttendanceDays + totalLeaveDays
     });
   } catch (error) {
     console.error('Error calculating total attendance:', error);
@@ -107,8 +130,65 @@ router.get('/attendance/total/:eid', async (req, res) => {
   }
 });
 
+// Get attendance with leave information for all employees
+router.get('/with-leaves/:eid', async (req, res) => {
+  try {
+    // Get all employees with their attendance
+    const employees = await prisma.employees.findMany({
+      include: {
+        attendance: true,
+        leaves: {
+          where: {
+            status: 'Approved'
+          }
+        }
+      }
+    });
+
+    // Format the attendance data with leave information
+    const attendanceWithLeaves = employees.map(employee => {
+      // Calculate total attendance days
+      const uniqueDates = new Set();
+      employee.attendance.forEach(record => {
+        uniqueDates.add(formatDateOnly(record.clock_in));
+      });
+      
+      // Calculate total leave days
+      let totalLeaveDays = 0;
+      const leaveDetails = employee.leaves.map(leave => {
+        const fromDate = new Date(leave.from_date);
+        const toDate = new Date(leave.to_date);
+        const diffTime = Math.abs(toDate - fromDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
+        totalLeaveDays += diffDays;
+        
+        return {
+          from_date: formatDateOnly(leave.from_date),
+          to_date: formatDateOnly(leave.to_date),
+          type: leave.type,
+          days: diffDays
+        };
+      });
+
+      return {
+        eid: employee.eid,
+        name: employee.name,
+        total_days_present: uniqueDates.size,
+        total_leave_days: totalLeaveDays,
+        effective_attendance: uniqueDates.size + totalLeaveDays,
+        leaves: leaveDetails
+      };
+    });
+
+    res.json(attendanceWithLeaves);
+  } catch (error) {
+    console.error('Error fetching attendance with leaves:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get weekly attendance for all employees
-router.get('/attendance/weekly/all', async (req, res) => {
+router.get('/weekly/all', async (req, res) => {
   try {
     // Calculate date range for the current week (Sunday to Saturday)
     const currentDate = new Date();
@@ -121,7 +201,7 @@ router.get('/attendance/weekly/all', async (req, res) => {
     lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
     lastDayOfWeek.setHours(23, 59, 59, 999);
 
-    // Get all employees with their attendance for the week
+    // Get all employees with their attendance and leaves for the week
     const employees = await prisma.employees.findMany({
       include: {
         attendance: {
@@ -130,6 +210,31 @@ router.get('/attendance/weekly/all', async (req, res) => {
               gte: firstDayOfWeek,
               lte: lastDayOfWeek
             }
+          }
+        },
+        leaves: {
+          where: {
+            status: 'Approved',
+            OR: [
+              { // Leave starts within the week
+                from_date: {
+                  gte: firstDayOfWeek,
+                  lte: lastDayOfWeek
+                }
+              },
+              { // Leave ends within the week
+                to_date: {
+                  gte: firstDayOfWeek,
+                  lte: lastDayOfWeek
+                }
+              },
+              { // Leave spans over the entire week
+                AND: [
+                  { from_date: { lte: firstDayOfWeek } },
+                  { to_date: { gte: lastDayOfWeek } }
+                ]
+              }
+            ]
           }
         }
       }
@@ -141,30 +246,59 @@ router.get('/attendance/weekly/all', async (req, res) => {
       const attendanceByDay = {};
       
       // Initialize days of week
-      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      daysOfWeek.forEach(day => {
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      days.forEach(day => {
         attendanceByDay[day] = {
-          present: false,
-          clock_in: null,
-          clock_out: null
+          attendance: [],
+          leave: false,
+          leave_type: null
         };
       });
-      
-      // Fill in attendance data
+
+      // Populate attendance for each day
       employee.attendance.forEach(record => {
-        const day = daysOfWeek[new Date(record.clock_in).getDay()];
-        attendanceByDay[day] = {
-          present: true,
+        const recordDate = new Date(record.clock_in);
+        const dayOfWeek = days[recordDate.getDay()];
+        
+        attendanceByDay[dayOfWeek].attendance.push({
           clock_in: formatTimeOnly(record.clock_in),
           clock_out: formatTimeOnly(record.clock_out)
-        };
+        });
       });
+      
+      // Process leave information for each day of the week
+      const weekDates = [];
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(firstDayOfWeek);
+        date.setDate(firstDayOfWeek.getDate() + i);
+        weekDates.push(date);
+      }
+      
+      // Mark days with approved leaves
+      employee.leaves.forEach(leave => {
+        const leaveStart = new Date(leave.from_date);
+        const leaveEnd = new Date(leave.to_date);
+        
+        weekDates.forEach((date, index) => {
+          if (date >= leaveStart && date <= leaveEnd) {
+            const dayOfWeek = days[index];
+            attendanceByDay[dayOfWeek].leave = true;
+            attendanceByDay[dayOfWeek].leave_type = leave.type;
+          }
+        });
+      });
+      
+      // Count effective days present (including leave days)
+      const daysPresent = days.filter(day => attendanceByDay[day].attendance.length > 0).length;
+      const daysOnLeave = days.filter(day => attendanceByDay[day].leave && attendanceByDay[day].attendance.length === 0).length;
       
       return {
         eid: employee.eid,
         name: employee.name,
         weekly_attendance: attendanceByDay,
-        total_days_present: employee.attendance.length,
+        total_days_present: daysPresent,
+        total_days_on_leave: daysOnLeave,
+        effective_attendance: daysPresent + daysOnLeave,
         week_range: {
           start: formatDateOnly(firstDayOfWeek),
           end: formatDateOnly(lastDayOfWeek)
@@ -180,7 +314,7 @@ router.get('/attendance/weekly/all', async (req, res) => {
 });
 
 // Record clock in
-router.post('/attendance/clock-in', async (req, res) => {
+router.post('/clock-in', async (req, res) => {
   try {
     const { eid } = req.body;
     const employeeId = parseInt(eid);
@@ -238,7 +372,7 @@ router.post('/attendance/clock-in', async (req, res) => {
 });
 
 // Record clock out
-router.post('/attendance/clock-out', async (req, res) => {
+router.post('/clock-out', async (req, res) => {
   try {
     const { eid } = req.body;
     const employeeId = parseInt(eid);
