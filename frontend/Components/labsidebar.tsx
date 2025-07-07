@@ -51,7 +51,7 @@ const LabPartnerSidebar = () => {
       },
       {
         title: "Order",
-        url: `/labpartner/orders`,
+        url: `/labpartner/order`,
         icon: ClipboardList,
       },
       {
