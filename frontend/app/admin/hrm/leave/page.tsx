@@ -92,23 +92,24 @@ export default function LeavesManagementPage() {
       };
       
       leaveResponse.data.forEach((leave: LeaveRequest) => {
-        if (leave.status === 'Approved') {
+        console.log(leave.type);
+        if (leave.status == 'Approved') {
           switch (leave.type) {
             case 'Annual':
-              summary.annual += leave.duration || 0;
+              summary.annual += 1 || 0;
               break;
             case 'Sick':
-              summary.sick += leave.duration || 0;
+              summary.sick += 1 || 0;
               break;
             case 'Casual':
-              summary.casual += leave.duration || 0;
+              summary.casual += 1 || 0;
               break;
           }
-        } else if (leave.status === 'Pending') {
+        } else if (leave.status == 'Pending') {
           summary.pending += 1;
         }
       });
-      
+      console.log(summary);
       setLeaveSummary(summary);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -150,14 +151,26 @@ export default function LeavesManagementPage() {
     }
     
     try {
-      // For admin, we'll directly set the status to Approved
+      // For admins directly adding leaves, we'll bypass the backend's default status
+      // by making a PUT request to update the status right after creating the leave
       const leaveData = {
-        ...newLeaveRequest,
-        status: 'Approved' // Admin is directly adding approved leaves
+        eid: newLeaveRequest.eid,
+        from_date: newLeaveRequest.from_date,
+        to_date: newLeaveRequest.to_date,
+        type: newLeaveRequest.type
       };
       
-      await axios.post(`${backendURL}/hr/leaves`, leaveData);
-      toast.success('Leave added successfully');
+      // First create the leave request
+      const createResponse = await axios.post(`${backendURL}/hr/leaves`, leaveData);
+      const createdLeave = createResponse.data.leave;
+      
+      // Then immediately approve it using the update status endpoint
+      await axios.put(
+        `${backendURL}/hr/leaves/${createdLeave.eid}/${createdLeave.from_date}/${createdLeave.to_date}/status`,
+        { status: 'Approved' }
+      );
+      
+      toast.success('Leave added and approved successfully');
       setIsDialogOpen(false);
       
       // Reset the form
