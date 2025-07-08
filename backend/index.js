@@ -49,15 +49,16 @@ import expenseRouter from './routes/expense-routes.js';
 import invoiceServiceRouter from './routes/invoice-service-routes.js';
 import invoiceRouter from './routes/invoice-routes.js';
 import invoiceServiceAssignRouter from './routes/invoice-service-assign-routes.js';
+import consentFormRouter from './routes/consent-routes.js';
 
-//hr
 import hrEmployeeRouter from './routes/hr/employee-routes.js';
 import hrAttendanceRouter from './routes/hr/attendance-routes.js';
 import hrLeaveRouter from './routes/hr/leave-routes.js';
 import hrPayrollRouter from './routes/hr/payroll-routes.js';
 import hrShiftsRouter from './routes/hr/shifts-routes.js';
+
+
 import './routes/automated-routes.js';
-import consentFormRouter from './routes/consent-routes.js';
 
 dotenv.config();
 
@@ -83,7 +84,7 @@ app.use('/dentist-security-questions-answers', dentistSecurityQuestionsRouter);
 app.use('/dentists', dentistsRouter);
 app.use('/email-verification', emailVerificationRouter);
 app.use('/emergency-contacts', emergencyContactsRouter);
-app.use('/files',filesRouter);
+app.use('/files', filesRouter);
 app.use('/insurance-details', insuranceDetailsRouter);
 app.use('/medical-history', medicalHistoryRouter);
 app.use('/medical-questions', medicalQuestionsRouter);
@@ -118,13 +119,12 @@ app.use('/expense', expenseRouter);
 app.use('/invoice-services', invoiceServiceRouter);
 app.use('/invoices', invoiceRouter);
 app.use('/invoice-service-assign', invoiceServiceAssignRouter);
+app.use('/consent-forms', consentFormRouter);
 
-//hr
 app.use('/hr/employees', hrEmployeeRouter);
 app.use('/hr/attendance', hrAttendanceRouter);
 app.use('/hr/leaves', hrLeaveRouter);
 app.use('/hr/payroll', hrPayrollRouter);
 app.use('/hr/shifts', hrShiftsRouter);
-app.use('/consent-forms', consentFormRouter);
 
 app.listen(PORT, () => console.log(`Server listening on ${PORT}`));

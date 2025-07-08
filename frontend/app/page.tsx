@@ -191,19 +191,6 @@ export default function LoginPage() {
           >
             Login
           </LoadingButton>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-300" />
-            </div>
-          </div>
-
-          <p className="text-center text-sm text-gray-600">
-            {"Don't have an account? "}
-            <Link href="/patientSignup" className="text-[#12D598] hover:text-green-700">
-              Sign up
-            </Link>
-          </p>
         </CardContent>
       </Card>
       </form>
