@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -94,100 +94,102 @@ export default function TimeManagementPage() {
     on_leave: 0
   });
   
-  // Load data on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!isLoggedIn || !backendURL) {
-        return;
-      }
+  // Fetch data helper wrapped in useCallback so it can be reused (e.g. after adding a shift)
+  const fetchData = useCallback(async () => {
+    if (!isLoggedIn || !backendURL) {
+      return;
+    }
 
-      setLoading(true);
-      try {
-        // Fetch employees (used for employment status & part-time list)
-        const employeesRes = await axios.get<Employee[]>(`${backendURL}/hr/employees`);
-        setEmployees(employeesRes.data);
+    setLoading(true);
+    try {
+      // Fetch employees (used for employment status & part-time list)
+      const employeesRes = await axios.get<Employee[]>(`${backendURL}/hr/employees`);
+      setEmployees(employeesRes.data);
 
-        // Fetch all shifts and keep today's only
-        const shiftsRes = await axios.get<Shift[]>(`${backendURL}/hr/shifts`);
-        const todayISO = new Date().toISOString().split("T")[0];
-        const todaysShifts = shiftsRes.data.filter(sh => new Date(sh.from_time).toISOString().split("T")[0] === todayISO);
-        setShiftsToday(todaysShifts);
+      // Fetch all shifts and keep today's only
+      const shiftsRes = await axios.get<Shift[]>(`${backendURL}/hr/shifts`);
+      const todayISO = new Date().toISOString().split("T")[0];
+      const todaysShifts = shiftsRes.data.filter(sh => new Date(sh.from_time).toISOString().split("T")[0] === todayISO);
+      setShiftsToday(todaysShifts);
 
-        // Fetch today's attendance and leaves
-        const [attendanceResponse, leavesResponse] = await Promise.all([
-          axios.get<TodayAttendanceResponse>(`${backendURL}/hr/attendance/today`),
-          axios.get<TodayLeavesResponse>(`${backendURL}/hr/leaves/today/all`)
-        ]);
+      // Fetch today's attendance and leaves
+      const [attendanceResponse, leavesResponse] = await Promise.all([
+        axios.get<TodayAttendanceResponse>(`${backendURL}/hr/attendance/today`),
+        axios.get<TodayLeavesResponse>(`${backendURL}/hr/leaves/today/all`)
+      ]);
 
-        if (attendanceResponse.data && leavesResponse.data) {
-          const attendanceData = attendanceResponse.data;
-          const leavesData = leavesResponse.data;
+      if (attendanceResponse.data && leavesResponse.data) {
+        const attendanceData = attendanceResponse.data;
+        const leavesData = leavesResponse.data;
 
-          // Build maps for faster lookups
-          const leaveSet = new Set<number>(leavesData.records.map(l => l.eid));
-          const empStatusMap: Record<number, Employee["employment_status"]> = {};
-          employeesRes.data.forEach(emp => {
-            empStatusMap[emp.eid] = emp.employment_status;
-          });
+        // Build maps for faster lookups
+        const leaveSet = new Set<number>(leavesData.records.map(l => l.eid));
+        const empStatusMap: Record<number, Employee["employment_status"]> = {};
+        employeesRes.data.forEach(emp => {
+          empStatusMap[emp.eid] = emp.employment_status;
+        });
 
-          // Helper to know if part-timer has shift today
-          const partTimerHasShift = (eid: number) => todaysShifts.some(sh => sh.eid === eid);
+        // Helper to know if part-timer has shift today
+        const partTimerHasShift = (eid: number) => todaysShifts.some(sh => sh.eid === eid);
 
-          const today = new Date();
-          const isWeekend = today.getDay() === 0 || today.getDay() === 6; // Sunday =0, Saturday =6
+        const today = new Date();
+        const isWeekend = today.getDay() === 0 || today.getDay() === 6; // Sunday =0, Saturday =6
 
-          const processedRecords: AttendanceRecord[] = attendanceData.records.reduce((acc: AttendanceRecord[], record) => {
-            const employment = empStatusMap[record.eid] || "full time";
+        const processedRecords: AttendanceRecord[] = attendanceData.records.reduce((acc: AttendanceRecord[], record) => {
+          const employment = empStatusMap[record.eid] || "full time";
 
-            // Skip part-timers without shift today
-            if (employment === "part time" && !partTimerHasShift(record.eid)) {
-              return acc;
-            }
-
-            let status = record.present ? "Present" : "Absent";
-            let hours = 0;
-
-            // Calculate hours if both clock in and out are present
-            if (record.clock_in && record.clock_out) {
-              hours = calculateHoursFromTimeStrings(record.clock_in, record.clock_out);
-            }
-
-            // Override status if on leave
-            if (leaveSet.has(record.eid)) {
-              status = "On Leave";
-            }
-
-            // Weekend rule for full-timers
-            if (employment === "full time" && !record.present && isWeekend) {
-              status = "Weekend";
-            }
-
-            acc.push({
-              eid: record.eid,
-              name: record.name,
-              clock_in: record.clock_in,
-              clock_out: record.clock_out,
-              hours,
-              status
-            });
+          // Skip part-timers without shift today
+          if (employment === "part time" && !partTimerHasShift(record.eid)) {
             return acc;
-          }, []);
+          }
 
-          setAttendanceRecords(processedRecords);
-          const present = processedRecords.filter(r => r.status === "Present").length;
-          const absent = processedRecords.filter(r => r.status === "Absent").length;
-          const on_leave = processedRecords.filter(r => r.status === "On Leave").length;
-          setAttendanceStats({ present, absent, on_leave });
-        }
-      } catch (error) {
-        console.error('Error fetching attendance data:', error);
-        toast.error('Failed to load attendance data');
-      } finally {
-        setLoading(false);
+          let status = record.present ? "Present" : "Absent";
+          let hours = 0;
+
+          // Calculate hours if both clock in and out are present
+          if (record.clock_in && record.clock_out) {
+            hours = calculateHoursFromTimeStrings(record.clock_in, record.clock_out);
+          }
+
+          // Override status if on leave
+          if (leaveSet.has(record.eid)) {
+            status = "On Leave";
+          }
+
+          // Weekend rule for full-timers
+          if (employment === "full time" && !record.present && isWeekend) {
+            status = "Weekend";
+          }
+
+          acc.push({
+            eid: record.eid,
+            name: record.name,
+            clock_in: record.clock_in,
+            clock_out: record.clock_out,
+            hours,
+            status
+          });
+          return acc;
+        }, []);
+
+        setAttendanceRecords(processedRecords);
+        const present = processedRecords.filter(r => r.status === "Present").length;
+        const absent = processedRecords.filter(r => r.status === "Absent").length;
+        const on_leave = processedRecords.filter(r => r.status === "On Leave").length;
+        setAttendanceStats({ present, absent, on_leave });
       }
-    };
-    fetchData();
+    } catch (error) {
+      console.error('Error fetching attendance data:', error);
+      toast.error('Failed to load attendance data');
+    } finally {
+      setLoading(false);
+    }
   }, [backendURL, isLoggedIn]);
+
+  // Load data on component mount and whenever dependencies change
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // Helper function to determine status badge color
   const getStatusBadgeColor = (status: string) => {
