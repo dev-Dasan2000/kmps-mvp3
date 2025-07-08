@@ -213,7 +213,7 @@ router.delete('/:id', async (req, res) => {
 
 // ===================== BANK INFO ROUTES =====================
 
-router.get('/employees/:id/bank-info', async (req, res) => {
+router.get('/:id/bank-info', async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -228,7 +228,7 @@ router.get('/employees/:id/bank-info', async (req, res) => {
   }
 });
 
-router.post('/employees/:id/bank-info', async (req, res) => {
+router.post('/:id/bank-info', async (req, res) => {
   try {
     const { id } = req.params;
     const { account_holder, account_no, bank_name, branch, account_type } = req.body;
@@ -266,7 +266,7 @@ router.post('/employees/:id/bank-info', async (req, res) => {
   }
 });
 
-router.put('/employees/:id/bank-info/:account_no', async (req, res) => {
+router.put('/:id/bank-info/:account_no', async (req, res) => {
   try {
     const { id, account_no } = req.params;
     const { account_holder, bank_name, branch, account_type } = req.body;
@@ -306,7 +306,7 @@ router.put('/employees/:id/bank-info/:account_no', async (req, res) => {
   }
 });
 
-router.delete('/employees/:id/bank-info/:account_no', async (req, res) => {
+router.delete('/:id/bank-info/:account_no', async (req, res) => {
   try {
     const { id, account_no } = req.params;
     
@@ -339,7 +339,7 @@ router.delete('/employees/:id/bank-info/:account_no', async (req, res) => {
   }
 });
 
-router.get('/employees/:id/emergency-contacts', async (req, res) => {
+router.get('/:id/emergency-contacts', async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -354,7 +354,7 @@ router.get('/employees/:id/emergency-contacts', async (req, res) => {
   }
 });
 
-router.post('/employees/:id/emergency-contacts', async (req, res) => {
+router.post('/:id/emergency-contacts', async (req, res) => {
   try {
     const { id } = req.params;
     const { name, relationship, phone, email } = req.body;
@@ -391,7 +391,7 @@ router.post('/employees/:id/emergency-contacts', async (req, res) => {
   }
 });
 
-router.put('/employees/:id/emergency-contacts/:phone', async (req, res) => {
+router.put('/:id/emergency-contacts/:phone', async (req, res) => {
   try {
     const { id, phone } = req.params;
     const { name, relationship, email } = req.body;
@@ -430,7 +430,7 @@ router.put('/employees/:id/emergency-contacts/:phone', async (req, res) => {
   }
 });
 
-router.delete('/employees/:id/emergency-contacts/:phone', async (req, res) => {
+router.delete('/:id/emergency-contacts/:phone', async (req, res) => {
   try {
     const { id, phone } = req.params;
     
