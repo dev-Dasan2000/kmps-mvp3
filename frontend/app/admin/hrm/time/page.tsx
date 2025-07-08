@@ -106,22 +106,13 @@ export default function TimeManagementPage() {
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
       
       // Fetch today's attendance data
-      const attendanceResponse = await axios.get<TodayAttendanceResponse>(
-        `${backendURL}/hr/attendance/today`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
+      const attendanceResponse = await axios.get<TodayAttendanceResponse>(`${backendURL}/hr/attendance/today`);
       
       // Fetch today's leave data
-      const leavesResponse = await axios.get<TodayLeavesResponse>(
-        `${backendURL}/hr/leaves/today/all`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
+      const leavesResponse = await axios.get<TodayLeavesResponse>(`${backendURL}/hr/leaves/today/all`);
       
       // Fetch today's shifts
-      const shiftsResponse = await axios.get<ShiftResponse[]>(
-        `${backendURL}/hr/shifts`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
+      const shiftsResponse = await axios.get<ShiftResponse[]>(`${backendURL}/hr/shifts`);
       
       // Filter shifts for today
       const todayDateStr = today.toISOString().split('T')[0];
