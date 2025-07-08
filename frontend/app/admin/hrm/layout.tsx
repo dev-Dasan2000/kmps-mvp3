@@ -20,8 +20,8 @@ export default function HrmLayout({
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-gray-50">
+    <div className="flex flex-col min-h-screen">
+      <div className="flex-none bg-gray-50">
         {/* Header Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-6 pb-6">
           <h1 className="text-2xl font-semibold text-gray-900">HR Management</h1>
@@ -39,7 +39,7 @@ export default function HrmLayout({
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  'py-4 px-1 border-b-2 text-sm font-medium transition-colors',
+                  'pb-2 px-1 border-b-2 text-sm font-medium transition-colors',
                   pathname === item.href
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -75,11 +75,11 @@ export default function HrmLayout({
       </div>
 
       {/* Page Content */}
-      <div className="flex-1 py-4 md:py-6 bg-gray-50 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full">
+      <main className="flex-1 bg-gray-50 overflow-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full py-4 md:py-6">
           {children}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
