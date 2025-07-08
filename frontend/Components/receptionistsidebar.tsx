@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState, useContext, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, LogOut, Settings, User2, Menu, X } from "lucide-react";
+import { BarChart3, LogOut, Settings, User2, Menu, X, DollarSign } from "lucide-react";
 import { AuthContext } from "@/context/auth-context";
 import { toast } from "sonner";
 import Logo from "@/app/logo.png";
@@ -91,6 +91,11 @@ const ReceptionistSidebar = () => {
     url: `/receptionist/rooms`,
     icon: Ticket,
   },
+  {
+    title: "Expenses",
+    url: `/receptionist/expenses`,
+    icon: DollarSign
+  }
     ];
   }, [user]);
 

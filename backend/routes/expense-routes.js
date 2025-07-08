@@ -7,7 +7,25 @@ const router = express.Router();
 // Get all expenses
 router.get('/', async (req, res) => {
   try {
-    const expenses = await prisma.expense.findMany();
+    const expenses = await prisma.expense.findMany({
+      include: {
+        dentists: {
+          select: {
+            dentist_id: true,
+            name: true,
+          },
+        },
+      },
+    });
+    res.json(expenses);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch expenses' });
+  }
+});
+
+router.get('/fordentist/:dentist_id', async (req, res) => {
+  try {
+    const expenses = await prisma.expense.findMany({where:{dentist_id:req.params.dentist_id}});
     res.json(expenses);
   } catch {
     res.status(500).json({ error: 'Failed to fetch expenses' });
@@ -30,7 +48,7 @@ router.get('/:expence_id', async (req, res) => {
 // Create new expense
 router.post('/', async (req, res) => {
   try {
-    const { date, title, description, amount, receipt_url, dentist_id } = req.body;
+    const { date, title, description, amount, receipt_url, dentist_id, status } = req.body;
     const newExpense = await prisma.expense.create({
       data: {
         date: new Date(date),
@@ -38,7 +56,8 @@ router.post('/', async (req, res) => {
         description,
         amount,
         receipt_url,
-        dentist_id
+        dentist_id,
+        status
       },
     });
     res.status(201).json(newExpense);
@@ -57,8 +76,9 @@ router.put('/:expence_id', async (req, res) => {
       where: { expence_id: Number(req.params.expence_id) },
       data,
     });
-    res.json(updatedExpense);
-  } catch {
+    res.status(202).json(updatedExpense);
+  } catch(err) {
+    console.log(err);
     res.status(500).json({ error: 'Failed to update expense' });
   }
 });

@@ -116,7 +116,7 @@ export default function ExpenseManagement() {
           description: "Your session is expired, please login again"
         });
         router.push("/");
-      } else if (user?.role !== "admin") {
+      } else if (user?.role !== "receptionist") {
         toast.error("Access Error", {
           description: "You do not have access, redirecting..."
         });
@@ -250,7 +250,7 @@ export default function ExpenseManagement() {
             amount: expenseData.amount,
             receipt_url: expenseData.receipt_url,
             dentist_id: expenseData.dentist_id,
-            status: "approved",
+            status: "pending",
             reciept_url:expenseData.receipt_url
           },
           {
@@ -274,7 +274,7 @@ export default function ExpenseManagement() {
             dentist_id: expenseData.dentist_id,
             name: dentists.find((dent) => dent.dentist_id == expenseData.dentist_id)?.name || "N/A"
           },
-          status: "approved"
+          status: "pending"
         };
 
         setExpenses([...expenses, newExpense]);
@@ -308,45 +308,6 @@ export default function ExpenseManagement() {
       month: 'short',
       day: 'numeric'
     });
-  };
-
-  const acceptExpense = async (expence_id: number) => {
-    setIsAccepting(true);
-    try {
-      const res = await axios.put(
-        `${backendURL}/expense/${expence_id}`,
-        {
-          status: "approved"
-        },
-        {
-          withCredentials: true,
-          headers: {
-            "content-type": "application/json"
-          }
-        }
-      )
-      // Replace with actual API call
-      // await fetch(`/api/expenses/${expence_id}/accept`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ status: 'approved' }),
-      // });
-
-      setExpenses(expenses.map(expense =>
-        expense.expence_id === expence_id
-          ? { ...expense, status: 'approved' }
-          : expense
-      ));
-      toast.success("Expense approved successfully");
-    } catch (error) {
-      console.error('Error accepting expense:', error);
-      toast.error("Failed to approve expense");
-    }
-    finally {
-      setIsAccepting(false);
-    }
   };
 
   // Filter expenses based on search term
@@ -462,22 +423,6 @@ export default function ExpenseManagement() {
                       <Edit size={16} />
                     </Button>
 
-                    {/* Accept Button - Shows for pending, invisible placeholder for others */}
-                    {expense.status === 'pending' ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => acceptExpense(expense.expence_id)}
-                        className="p-1 h-8 w-8 hover:text-green-600"
-                        title="Accept Expense"
-                      >
-                        <Check size={16} />
-                      </Button>
-                    ) : (
-                      <div className="p-1 h-8 w-8"></div>
-                    )}
-
-
                   </div>
                 </div>
               </div>
@@ -505,17 +450,6 @@ export default function ExpenseManagement() {
                     {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
                   </Badge>
                   <div className="flex items-center gap-1">
-                    {expense.status === 'pending' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => acceptExpense(expense.expence_id)}
-                        className="p-2 h-8 w-8 hover:text-green-600"
-                        title="Accept Expense"
-                      >
-                        <Check size={16} />
-                      </Button>
-                    )}
                     <Button
                       variant="ghost"
                       size="sm"
