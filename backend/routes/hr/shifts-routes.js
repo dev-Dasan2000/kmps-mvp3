@@ -5,7 +5,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all shifts
-router.get('/shifts', async (req, res) => {
+router.get('', async (req, res) => {
   try {
     const shifts = await prisma.shifts.findMany({
       include: {
@@ -26,7 +26,7 @@ router.get('/shifts', async (req, res) => {
 });
 
 // Get a single shift
-router.get('/shifts/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const shift = await prisma.shifts.findUnique({
@@ -54,7 +54,7 @@ router.get('/shifts/:id', async (req, res) => {
 });
 
 // Get all shifts for a specific employee
-router.get('/employees/:eid/shifts', async (req, res) => {
+router.get('/employees/shifts/:eid', async (req, res) => {
   try {
     const { eid } = req.params;
     
@@ -130,7 +130,7 @@ router.get('/employees/:eid/shifts/range', async (req, res) => {
 });
 
 // Create a new shift
-router.post('/shifts', async (req, res) => {
+router.post('', async (req, res) => {
   try {
     const { eid, from_time, to_time } = req.body;
     
@@ -179,7 +179,7 @@ router.post('/shifts', async (req, res) => {
 });
 
 // Update a shift
-router.put('/shifts/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { from_time, to_time } = req.body;
@@ -233,7 +233,7 @@ router.put('/shifts/:id', async (req, res) => {
 });
 
 // Delete a shift
-router.delete('/shifts/:id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
