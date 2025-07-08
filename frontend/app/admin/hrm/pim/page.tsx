@@ -1,9 +1,8 @@
 'use client';
 
-import { Metadata } from 'next';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { QuickActions } from '../components/QuickActions';
-import { StaffDirectory } from '../components/StaffDirectort';
+import { QuickActions } from '../../../../components/QuickActions';
+import { StaffDirectory } from '../../../../components/StaffDirectort';
 import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 

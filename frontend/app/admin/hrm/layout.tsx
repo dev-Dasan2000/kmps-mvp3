@@ -10,6 +10,7 @@ const navigation = [
   { name: 'Leave', href: '/admin/hrm/leave' },
   { name: 'Time', href: '/admin/hrm/time' },
   { name: 'Directory', href: '/admin/hrm/directory' },
+  { name: 'Payroll', href: '/admin/hrm/payroll' },
 ];
 
 export default function HrmLayout({
