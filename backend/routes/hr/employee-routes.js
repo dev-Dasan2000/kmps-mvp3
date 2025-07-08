@@ -42,7 +42,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/employees', async (req, res) => {
+router.post('/', async (req, res) => {
   console.debug("employe post route called");
   try {
     const {
