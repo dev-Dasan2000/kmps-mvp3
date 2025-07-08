@@ -1076,11 +1076,11 @@ const DentalLabModule = () => {
 
   const Dashboard = () => {
     const stats = [
-      { title: 'Active Orders', value: orders.filter(o => o.status === 'In Progress').length.toString(), color: 'bg-blue-500' },
-      { title: 'Pending Pickup', value: orders.filter(o => o.status === 'Ready for Pickup').length.toString(), color: 'bg-green-500' },
+      { title: 'Active Orders', value: orders.filter(o => o.status === 'in-progress').length.toString(), color: 'bg-blue-500' },
+      { title: 'Pending Pickup', value: orders.filter(o => o.status === 'completed').length.toString(), color: 'bg-green-500' },
       {
         title: 'Overdue', value: orders.filter(o =>
-          o.due_date && new Date(o.due_date) < new Date() && o.status !== 'Completed').length.toString(),
+          o.due_date && new Date(o.due_date) < new Date() && o.status !== 'completed').length.toString(),
         color: 'bg-red-500'
       },
       {
