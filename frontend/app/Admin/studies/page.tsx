@@ -184,6 +184,7 @@ const MedicalStudyInterface: React.FC = () => {
   const [todayCount, setTodayCount] = useState<number>(0);
   const [radiologists, setRadiologists] = useState<Radiologist[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [isuploading, setisuploading] = useState(false);
 
   // Helper to convert API study payload into UI-friendly shape
   const normalizeStudy = (raw: any): Study => {
@@ -351,7 +352,7 @@ const MedicalStudyInterface: React.FC = () => {
 
   const handleSubmitStudy = async () => {
     try {
-      setLoading(true);
+      setisuploading(true);
       setError(null);
       console.log('Submitting study:', newStudy);
 
@@ -384,7 +385,7 @@ const MedicalStudyInterface: React.FC = () => {
       } catch (error) {
         console.error('Error uploading DICOM file:', error);
         setError('Failed to upload DICOM file. Please try again.');
-        setLoading(false);
+        setisuploading(false);
         return;
       }
 
@@ -510,6 +511,7 @@ const MedicalStudyInterface: React.FC = () => {
 
   const handleAssignStaff = async () => {
     if (!selectedStudyId) return;
+    setLoading(true);
     try {
       const payload: any = {
         radiologist_id: assignmentForm.radiologist_id,
@@ -545,6 +547,8 @@ const MedicalStudyInterface: React.FC = () => {
     } catch (error) {
       console.error('Error assigning staff:', error);
       toast.error('Failed to assign staff. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -596,7 +600,7 @@ const MedicalStudyInterface: React.FC = () => {
   // Handle the actual update of a study
   const handleUpdateStudy = async () => {
     try {
-      setLoading(true);
+      setisuploading(true);
       setError(null);
       console.log('Updating study:', newStudy, studyToEdit);
 
@@ -648,7 +652,7 @@ const MedicalStudyInterface: React.FC = () => {
         } catch (error) {
           console.error('Error uploading DICOM file:', error);
           setError('Failed to upload DICOM file. Please try again.');
-          setLoading(false);
+          setisuploading(false);
           return;
         }
       }
@@ -1427,16 +1431,16 @@ const MedicalStudyInterface: React.FC = () => {
                   <button
                     onClick={() => setIsAddStudyOpen(false)}
                     className="px-6 py-2 border border-emerald-300 text-gray-700 rounded-lg hover:bg-emerald-50"
-                    disabled={loading}
+                    disabled={isuploading}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={isEditMode ? handleUpdateStudy : handleSubmitStudy}
-                    disabled={loading}
+                    disabled={isuploading}
                     className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:bg-emerald-400 disabled:cursor-not-allowed flex items-center justify-center"
                   >
-                    {loading ? (
+                    {isuploading ? (
                       <>
                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
