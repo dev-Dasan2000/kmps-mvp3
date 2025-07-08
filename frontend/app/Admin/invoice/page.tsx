@@ -39,6 +39,11 @@ interface Dentist {
   specialization: string;
 }
 
+interface InvoiceServiceAssign {
+  invoice_id: number;
+  service_id: number;
+}
+
 interface InvoiceService {
   service_id: number;
   service_name: string;
@@ -58,7 +63,7 @@ interface Invoice {
   note: string;
   patients: Patient;
   dentists: Dentist | null;
-  services: InvoiceService[];
+  
 }
 
 interface InvoiceFormData {
@@ -476,7 +481,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Calendar size={16} />
+                  <CalendarIcon size={16} />
                   <span>{formatDate(invoice.date)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
