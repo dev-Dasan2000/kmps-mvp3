@@ -31,6 +31,7 @@ model patients {
   studies              study[]
   orders               orders[]
   consent_forms        consent_form[]
+  invoices   invoice[]
 }
 
 model emergency_contacts {
@@ -66,6 +67,8 @@ model dentists {
   room_assigns         room_assign[]
   orders                orders[]
   consent_forms        consent_form[]
+  invoices   invoice[]
+  expenses   expense[]
 }
 
 model appointments {
@@ -498,4 +501,49 @@ model shifts {
   employee  employees @relation(fields: [eid], references: [eid], onDelete: Cascade)
 
   @@map("shifts")
+}
+
+model expense {
+  expence_id   Int     @id @default(autoincrement())
+  date         DateTime
+  title        String
+  description  String?
+  amount       Float
+  receipt_url  String?
+  dentist_id   String?
+  dentists      dentists? @relation(fields: [dentist_id], references: [dentist_id])
+}
+
+model invoice_service {
+  service_id   Int     @id @default(autoincrement())
+  service_name String
+  amount       Float
+  assigned     invoice_service_assign[]
+}
+
+model invoice {
+  invoice_id    Int     @id @default(autoincrement())
+  patient_id    String?
+  dentist_id    String?
+  payment_type  String?
+  tax_rate      Float   @default(0)
+  lab_cost      Float   @default(0)
+  discount      Float   @default(0)
+  date          DateTime?
+  total_amount  Float
+  note          String?
+
+  patients       patients? @relation(fields: [patient_id], references: [patient_id])
+  dentists       dentists? @relation(fields: [dentist_id], references: [dentist_id])
+  services      invoice_service_assign[]
+}
+
+model invoice_service_assign {
+  invoice_id Int
+  service_id Int
+
+  invoice    invoice       @relation(fields: [invoice_id], references: [invoice_id], onDelete: Cascade)
+  service    invoice_service @relation(fields: [service_id], references: [service_id], onDelete: Cascade)
+
+  @@id([invoice_id, service_id])
 }
