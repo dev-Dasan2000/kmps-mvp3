@@ -157,7 +157,7 @@ export function AddStaffDialog({
     try {
       if (isEditing && employeeData) {
         // Update existing employee
-        const employeeResponse = await axios.put(`${backendUrl}/employees/${employeeData.eid}`, {
+        const employeeResponse = await axios.put(`${backendUrl}/hr/employees/${employeeData.eid}`, {
           ...formData,
           salary: Number(formData.salary),
           bank_info: formData.bank_info,
@@ -178,7 +178,7 @@ export function AddStaffDialog({
         }
       } else {
         // Create new employee
-        await axios.post(`${backendUrl}/hr/employees`, {
+        await axios.post(`${backendUrl}/hr/employees/`, {
           ...formData,
           salary: Number(formData.salary)
         }, {
