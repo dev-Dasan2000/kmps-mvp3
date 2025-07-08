@@ -23,6 +23,15 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/fordentist/:dentist_id', async (req, res) => {
+  try {
+    const expenses = await prisma.expense.findMany({where:{dentist_id:req.params.dentist_id}});
+    res.json(expenses);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch expenses' });
+  }
+});
+
 // Get expense by ID
 router.get('/:expence_id', async (req, res) => {
   try {
