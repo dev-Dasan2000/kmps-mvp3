@@ -1,27 +1,30 @@
 "use client";
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription } from '@/Components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Building2, 
-  User, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Lock, 
-  Stethoscope, 
-  Plus, 
+import {
+  Building2,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Lock,
+  Stethoscope,
+  Plus,
   X,
   AlertCircle,
   CheckCircle2
 } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'sonner';
 
 interface LabSignupData {
   name: string;
@@ -53,11 +56,14 @@ const LabSignupForm: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [newSpecialty, setNewSpecialty] = useState('');
 
+  const router = useRouter();
+
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
   const commonSpecialties = [
-    'Pathology', 'Hematology', 'Microbiology', 'Biochemistry', 
+    'Pathology', 'Hematology', 'Microbiology', 'Biochemistry',
     'Immunology', 'Molecular Biology', 'Cytology', 'Histopathology',
     'Clinical Chemistry', 'Serology', 'Parasitology', 'Virology'
   ];
@@ -67,77 +73,94 @@ const LabSignupForm: React.FC = () => {
 
     // Lab name validation
     if (!formData.name.trim()) {
+      console.log("Validation failed: Laboratory name is empty");
       newErrors.name = 'Laboratory name is required';
     } else if (formData.name.trim().length < 2) {
+      console.log("Validation failed: Laboratory name too short");
       newErrors.name = 'Laboratory name must be at least 2 characters';
     }
 
     // Contact person validation
     if (!formData.contact_person.trim()) {
+      console.log("Validation failed: Contact person is empty");
       newErrors.contact_person = 'Contact person is required';
     } else if (formData.contact_person.trim().length < 2) {
+      console.log("Validation failed: Contact person name too short");
       newErrors.contact_person = 'Contact person name must be at least 2 characters';
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email.trim()) {
+      console.log("Validation failed: Email is empty");
       newErrors.email = 'Email address is required';
     } else if (!emailRegex.test(formData.email)) {
+      console.log("Validation failed: Invalid email format");
       newErrors.email = 'Please enter a valid email address';
     }
 
     // Phone number validation
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
+    const phoneRegex = /^(?:\+94|0)?7\d{8}$/;
     if (!formData.contact_number.trim()) {
+      console.log("Validation failed: Contact number is empty");
       newErrors.contact_number = 'Contact number is required';
     } else if (!phoneRegex.test(formData.contact_number.replace(/[\s\-\(\)]/g, ''))) {
+      console.log("Validation failed: Invalid phone number format");
       newErrors.contact_number = 'Please enter a valid phone number';
     }
 
     // Password validation
     if (!formData.password) {
+      console.log("Validation failed: Password is empty");
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
+      console.log("Validation failed: Password too short");
       newErrors.password = 'Password must be at least 8 characters';
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      console.log("Validation failed: Password missing required character types");
       newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
     }
 
     // Confirm password validation
     if (!formData.confirmPassword) {
+      console.log("Validation failed: Confirm password is empty");
       newErrors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
+      console.log("Validation failed: Passwords do not match");
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
     // Address validation
     if (!formData.address.trim()) {
+      console.log("Validation failed: Address is empty");
       newErrors.address = 'Address is required';
     } else if (formData.address.trim().length < 10) {
+      console.log("Validation failed: Address too short");
       newErrors.address = 'Please provide a complete address';
     }
 
     // Specialties validation
     if (formData.specialties.length === 0) {
+      console.log("Validation failed: No specialties selected");
       newErrors.specialties = 'Please select at least one specialty';
     }
 
-    // Terms agreement validation
-    if (!agreeToTerms) {
-      newErrors.terms = 'You must agree to the terms and conditions';
-    }
-
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+
+    const isValid = Object.keys(newErrors).length === 0;
+    if (!isValid) {
+      console.log("Form is invalid. Errors:", newErrors);
+    }
+    return isValid;
   };
+
 
   const handleInputChange = (field: keyof LabSignupData, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({
@@ -154,7 +177,7 @@ const LabSignupForm: React.FC = () => {
         ? prev.specialties.filter(s => s !== specialty)
         : [...prev.specialties, specialty]
     }));
-    
+
     if (errors.specialties) {
       setErrors(prev => ({ ...prev, specialties: '' }));
     }
@@ -167,7 +190,7 @@ const LabSignupForm: React.FC = () => {
         specialties: [...prev.specialties, newSpecialty.trim()]
       }));
       setNewSpecialty('');
-      
+
       if (errors.specialties) {
         setErrors(prev => ({ ...prev, specialties: '' }));
       }
@@ -182,22 +205,15 @@ const LabSignupForm: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Generate lab ID
-      const labId = `LAB${Date.now().toString().slice(-6)}`;
-      
       const submissionData = {
-        lab_id: labId,
         name: formData.name.trim(),
         password: formData.password,
         contact_person: formData.contact_person.trim(),
@@ -206,40 +222,43 @@ const LabSignupForm: React.FC = () => {
         address: formData.address.trim(),
         specialties: formData.specialties.join(', ')
       };
-      
-      console.log('Submitting lab signup:', submissionData);
-      
-      setSubmitSuccess(true);
-    } catch (error) {
-      setErrors({ submit: 'Failed to create account. Please try again.' });
+
+      const res = await axios.post(
+        `${backendURL}/labs`,
+        {
+          name: submissionData.name,
+          password: submissionData.password,
+          contact_person: submissionData.contact_person,
+          contact_number: submissionData.contact_number,
+          email: submissionData.email,
+          address: submissionData.address,
+          specialties: submissionData.specialties
+        }
+      );
+      if (res.status == 409) {
+        throw new Error("Email Already Exists");
+      }
+      if (res.status != 201) {
+        throw new Error("Error Creating an Account");
+      }
+
+      toast.success("Account Creation Succesfull");
+      router.push("/")
+
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 409) {
+          toast.error("Email already exists");
+        } else {
+          toast.error(error.response?.data?.error || "Error creating account");
+        }
+      } else {
+        toast.error(error.message);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  if (submitSuccess) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8 flex items-center justify-center">
-        <Card className="w-full max-w-lg">
-          <CardContent className="p-6 text-center">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Account Created Successfully!</h2>
-            <p className="text-gray-600 mb-6">
-              Your laboratory account has been created. You can now log in and start managing your lab operations.
-            </p>
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="w-full"
-            >
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
@@ -265,7 +284,7 @@ const LabSignupForm: React.FC = () => {
                   <Building2 className="w-5 h-5" />
                   Basic Information
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name" className="text-sm font-medium text-gray-700">
@@ -306,7 +325,7 @@ const LabSignupForm: React.FC = () => {
               {/* Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="email" className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -371,7 +390,7 @@ const LabSignupForm: React.FC = () => {
                   <Lock className="w-5 h-5" />
                   Security
                 </h3>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="password" className="text-sm font-medium text-gray-700">
@@ -417,7 +436,7 @@ const LabSignupForm: React.FC = () => {
                   <Stethoscope className="w-5 h-5" />
                   Specialties *
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {commonSpecialties.map((specialty) => (
@@ -475,7 +494,7 @@ const LabSignupForm: React.FC = () => {
 
               <Separator />
 
-              
+
 
               {/* Submit Button */}
               <div className="pt-4">
@@ -485,7 +504,7 @@ const LabSignupForm: React.FC = () => {
                     <AlertDescription>{errors.submit}</AlertDescription>
                   </Alert>
                 )}
-                
+
                 <Button
                   onClick={handleSubmit}
                   className="w-full bg-emerald-500 hover:bg-emerald-600"

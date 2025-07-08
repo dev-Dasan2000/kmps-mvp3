@@ -51,6 +51,12 @@ router.post('/', async (req, res) => {
   try {
     const { password, ...rest } = req.body;
 
+    const existingLab = await prisma.lab.findMany({where: {email: req.body.email}});
+
+    if (existingLab.length > 0) {
+      return res.status(409).json({ message: "Email Already Exists" });
+    }
+
     const count = await prisma.lab.count();
     const lab_id = generateLabId(count);
 
