@@ -30,7 +30,7 @@ router.get('/payroll-details', async (req, res) => {
 });
 
 // Get all payroll records
-router.get('/payroll', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const payrolls = await prisma.payroll.findMany({
       include: {
@@ -52,7 +52,7 @@ router.get('/payroll', async (req, res) => {
 });
 
 // Get a single payroll record
-router.get('/payroll/:id', async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const payroll = await prisma.payroll.findUnique({
@@ -81,7 +81,7 @@ router.get('/payroll/:id', async (req, res) => {
 });
 
 // Get all payroll records for a specific employee
-router.get('/employees/:eid/payroll', async (req, res) => {
+router.get('/employees/:eid', async (req, res) => {
   try {
     const { eid } = req.params;
     

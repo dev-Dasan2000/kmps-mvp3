@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertCircle, DollarSign, User, CreditCard } from 'lucide-react';
+import { AlertCircle, DollarSign, User, CreditCard, CheckCircle, BarChart, TrendingUp } from 'lucide-react';
 import axios from 'axios';
 
 // Interface for bank info
@@ -210,6 +210,14 @@ export default function PayrollPage() {
     return '-';
   };
 
+  // Calculate statistics for cards
+  const totalEmployees = payrolls.length > 0 ? new Set(payrolls.map(p => p.eid)).size : 0;
+  const totalMonthlySalary = payrolls.reduce((sum, payroll) => sum + payroll.net_salary, 0);
+  const pendingPayrolls = payrolls.filter(p => p.status !== 'Processed').length;
+  const processedPayrolls = payrolls.filter(p => p.status === 'Processed').length;
+  const averageSalary = totalEmployees > 0 ? totalMonthlySalary / totalEmployees : 0;
+  const highestSalary = payrolls.length > 0 ? Math.max(...payrolls.map(p => p.net_salary)) : 0;
+  
   return (
     <div className="w-full">
       <div className="space-y-6 pb-6">
@@ -234,6 +242,70 @@ export default function PayrollPage() {
           </div>
         </div>
         
+        {/* Statistics Cards */}
+        <Card className="hover:shadow-md transition-shadow p-6">
+          <CardHeader className="px-0 pt-0">
+            <CardTitle className="text-xl font-bold">Payroll Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Total Employees Card */}
+              <div className="flex justify-between items-center p-4 border rounded-md">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Total Employees:</h3>
+                  <p className="text-2xl font-bold">{totalEmployees}</p>
+                </div>
+                <User className="h-8 w-8 text-blue-500" />
+              </div>
+              
+              {/* Total Monthly Salary Card */}
+              <div className="flex justify-between items-center p-4 border rounded-md">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Total Monthly Salary:</h3>
+                  <p className="text-2xl font-bold">LKR {totalMonthlySalary.toLocaleString()}</p>
+                </div>
+                <DollarSign className="h-8 w-8 text-green-500" />
+              </div>
+              
+              {/* Pending Payrolls Card */}
+              <div className="flex justify-between items-center p-4 border rounded-md">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Pending Payrolls:</h3>
+                  <p className="text-2xl font-bold">{pendingPayrolls}</p>
+                </div>
+                <AlertCircle className="h-8 w-8 text-yellow-500" />
+              </div>
+              
+              {/* Processed Payrolls Card */}
+              <div className="flex justify-between items-center p-4 border rounded-md">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Processed Payrolls:</h3>
+                  <p className="text-2xl font-bold">{processedPayrolls}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-500" />
+              </div>
+              
+              {/* Average Salary Card */}
+              <div className="flex justify-between items-center p-4 border rounded-md">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Average Salary:</h3>
+                  <p className="text-2xl font-bold">LKR {averageSalary.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+                </div>
+                <BarChart className="h-8 w-8 text-blue-500" />
+              </div>
+              
+              {/* Highest Salary Card */}
+              <div className="flex justify-between items-center p-4 border rounded-md">
+                <div>
+                  <h3 className="text-sm font-medium text-muted-foreground">Highest Salary:</h3>
+                  <p className="text-2xl font-bold">LKR {highestSalary.toLocaleString()}</p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-purple-500" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
         {/* Payroll Table */}
         <Card className="hover:shadow-md transition-shadow">
           <CardContent className="p-0">
@@ -246,21 +318,21 @@ export default function PayrollPage() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[150px]">Name</TableHead>
+                      <TableHead className="pl-8 w-[150px]">Name</TableHead>
                       <TableHead>ID</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Salary</TableHead>
                       <TableHead>Bank</TableHead>
                       <TableHead className="text-center">EPF</TableHead>
                       <TableHead className="text-center">ETF</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredPayrolls.map((payroll) => (
                       <TableRow key={payroll.payroll_id}>
-                        <TableCell className="font-medium">{payroll.employee.name}</TableCell>
+                        <TableCell className="font-medium pl-6">{payroll.employee.name}</TableCell>
                         <TableCell>{payroll.eid}</TableCell>
                         <TableCell>{payroll.employee.email}</TableCell>
                         <TableCell>LKR {payroll.net_salary.toFixed(2)}</TableCell>
@@ -271,7 +343,7 @@ export default function PayrollPage() {
                         <TableCell className="text-center">
                           {payroll.etf ? 'Yes' : 'No'}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           {payroll.status === 'Processed' ? (
                             <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
                               Processed
@@ -282,7 +354,7 @@ export default function PayrollPage() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           {payroll.status !== 'Processed' ? (
                             <Button
                               onClick={() => processSalary(payroll)}
@@ -356,7 +428,7 @@ export default function PayrollPage() {
                   }
                 />
                 <label htmlFor="epf" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Employee Provident Fund
+                  Availability
                 </label>
               </div>
             </div>
@@ -371,7 +443,7 @@ export default function PayrollPage() {
                   }
                 />
                 <label htmlFor="etf" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Employee Trust Fund
+                  Availability
                 </label>
               </div>
             </div>
