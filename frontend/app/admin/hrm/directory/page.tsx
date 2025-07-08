@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
-import { Mail, Eye, MessageCircle, Search, Phone } from "lucide-react"
+import { Mail, Eye, MessageCircle, Search, Phone, Calendar, Clock, CalendarDays } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useMediaQuery } from "@/hooks/use-mobile"
 
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -17,6 +18,12 @@ interface Employee {
     job_title: string
     phone: string
     email: string
+}
+
+interface EmployeeStats {
+    worked_days: number
+    total_hours: number
+    leaves_per_month: number
 }
 
 interface EmployeeAttendance {
@@ -40,6 +47,9 @@ export default function DirectoryPage() {
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedDepartment, setSelectedDepartment] = useState("all")
+    const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
+    const [employeeStats, setEmployeeStats] = useState<EmployeeStats | null>(null)
+    const [showStatsDialog, setShowStatsDialog] = useState(false)
     const isMobile = useMediaQuery("(max-width: 768px)")
 
     useEffect(() => {
@@ -89,6 +99,68 @@ export default function DirectoryPage() {
         { title: "Available Now", value: availableCount.toString(), description: "Ready for patients" },
     ]
 
+    const handleViewStats = async (employee: Employee) => {
+        try {
+            // In a real application, you would fetch this data from your backend
+            // For now, I'll simulate it with mock data
+            const stats: EmployeeStats = {
+                worked_days: 22, // This would come from your API
+                total_hours: 176, // This would come from your API
+                leaves_per_month: 2 // This would come from your API
+            }
+            setEmployeeStats(stats)
+            setSelectedEmployee(employee)
+            setShowStatsDialog(true)
+        } catch (error) {
+            console.error('Error fetching employee stats:', error)
+        }
+    }
+
+    const StatsDialog = () => {
+        if (!selectedEmployee || !employeeStats) return null
+
+        return (
+            <Dialog open={showStatsDialog} onOpenChange={setShowStatsDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-xl font-semibold mb-4">
+                            {selectedEmployee.name}'s Overview
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4">
+                        <div className="flex items-center gap-4 p-4 bg-white rounded-lg border">
+                            <div className="p-2 bg-blue-50 rounded-full">
+                                <Calendar className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Worked Days</p>
+                                <p className="text-lg font-semibold text-gray-900">{employeeStats.worked_days} days</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 p-4 bg-white rounded-lg border">
+                            <div className="p-2 bg-green-50 rounded-full">
+                                <Clock className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Total Hours</p>
+                                <p className="text-lg font-semibold text-gray-900">{employeeStats.total_hours} hours</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-4 p-4 bg-white rounded-lg border">
+                            <div className="p-2 bg-purple-50 rounded-full">
+                                <CalendarDays className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-gray-500">Leaves This Month</p>
+                                <p className="text-lg font-semibold text-gray-900">{employeeStats.leaves_per_month} days</p>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        )
+    }
+
     const MobileCard = ({ employee }: { employee: Employee }) => (
         <Card className="mb-4">
             <CardContent className="p-4">
@@ -129,6 +201,7 @@ export default function DirectoryPage() {
                             variant="ghost" 
                             size="icon"
                             className="bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 shadow-sm rounded-full transition"
+                            onClick={() => handleViewStats(employee)}
                         >
                             <Eye className="h-5 w-5" />
                         </Button>
@@ -261,6 +334,7 @@ export default function DirectoryPage() {
                                                         variant="ghost" 
                                                         size="icon"
                                                         className="bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 shadow-sm rounded-full transition"
+                                                        onClick={() => handleViewStats(employee)}
                                                     >
                                                         <Eye className="h-5 w-5" />
                                                     </Button>
@@ -274,6 +348,7 @@ export default function DirectoryPage() {
                     </CardContent>
                 </Card>
             </div>
+            <StatsDialog />
         </div>
     )
 }
