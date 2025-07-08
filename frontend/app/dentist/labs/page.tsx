@@ -157,7 +157,7 @@ const DentalLabModule = () => {
     setLoadingOrders(true);
     try {
       const fetchedOrders = await axios.get(
-        `${backendURL}/orders`
+        `${backendURL}/orders/fordentist/${user.id}`
       );
       if (fetchedOrders.status == 500) {
         throw new Error("Error fetching orders");
@@ -489,7 +489,7 @@ const DentalLabModule = () => {
           material_id: newOrder.material_id,
           priority: newOrder.priority,
           special_instructions: newOrder.special_instructions,
-          status: "accepted"
+          status: "request"
         },
         {
           withCredentials: true,
@@ -525,7 +525,7 @@ const DentalLabModule = () => {
           `${backendURL}/order-files`,
           {
             url: response.data.url,
-            order_id: res.data // or `newOrderID` if set
+            order_id: res.data
           },
           {
             withCredentials: true,
@@ -546,6 +546,8 @@ const DentalLabModule = () => {
         type: "success",
         show: true
       });
+      setShowNewOrder(false);
+      fetchOrders();
     }
     catch (err: any) {
       setToast({
@@ -569,78 +571,8 @@ const DentalLabModule = () => {
     event.target.value = ''; // allow re-selecting same file
   };
 
-
-  const handleRequestAcceptance = async (order_id: number) => {
-    setAcceptingOrder(true);
-    try {
-      const res = await axios.put(
-        `${backendURL}/orders/${order_id}`,
-        {
-          status: "accepted"
-        },
-        {
-          withCredentials: true,
-          headers: {
-            "content-type": "application/json"
-          }
-        }
-      );
-      if (res.status != 202) {
-        throw new Error("Error Accepting Request");
-      }
-      fetchOrders();
-    }
-    catch (err: any) {
-      setToast({
-        show: true,
-        message: err.message,
-        type: 'error'
-      });
-    }
-    finally {
-      setAcceptingOrder(false);
-    }
-  };
-
   const removeFile = (fileName: string) => {
     setSelectedFiles(selectedFiles.filter(file => file.name !== fileName));
-  };
-
-  const handleSendInvite = async () => {
-    if (!inviteEmail.trim()) return;
-
-    setIsSending(true);
-    try {
-      const res = await axios.post(
-        `${backendURL}/admins/invite`,
-        {
-          role: "lab",
-          email: inviteEmail
-        },
-        {
-          withCredentials: true,
-          headers: {
-            "content-type": "application/json"
-          }
-        }
-      );
-      if (res.status == 500) {
-        throw new Error("Error Sending Invite");
-      }
-      setToast({
-        message: "Invite Sent Successfully.",
-        type: "success",
-        show: true
-      });
-    } catch (error: any) {
-      setToast({
-        message: error.message,
-        type: "error",
-        show: true
-      });
-    } finally {
-      setIsSending(false);
-    }
   };
 
   // ======================== SUBCOMPONENTS ========================
@@ -650,13 +582,6 @@ const DentalLabModule = () => {
       <div className="p-6 border-b border-gray-200">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Lab Orders</h2>
-          <button
-            onClick={() => setShowNewOrder(true)}
-            className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New Order
-          </button>
         </div>
 
         <div className="flex gap-4 mb-4">
@@ -1149,110 +1074,6 @@ const DentalLabModule = () => {
     </div>
   );
 
-  const LabsList = () => (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Partner Laboratories</h2>
-          <p className="text-sm text-gray-500 mt-1">Manage your partner dental laboratories</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <button
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors w-full sm:w-auto justify-center"
-            onClick={() => setShowInviteDialog(true)}
-          >
-            <Mail className="h-4 w-4" />
-            Invite Lab
-          </button>
-        </div>
-      </div>
-
-      <div className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {labs.map((lab) => (
-            <div key={lab.lab_id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 border-b border-gray-200">
-                <div className="flex justify-between items-start">
-                  <h3 className="text-lg font-bold text-gray-900 truncate">{lab.name}</h3>
-                  <span className={`px-3 py-1 text-xs font-semibold rounded-full ${lab.status === 'Active' ? 'bg-green-100 text-green-800' :
-                    lab.status === 'Inactive' ? 'bg-gray-100 text-gray-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                    {lab.status}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-600 mt-1">{lab.contact_person}</p>
-              </div>
-
-              <div className="p-4">
-                <div className="space-y-3">
-                  <div className="flex items-start">
-                    <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3">
-                      <Phone className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Phone</p>
-                      <p className="text-sm font-medium text-gray-900">{lab.contact_number}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3">
-                      <Mail className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm text-gray-500">Email</p>
-                      <p className="text-sm font-medium text-gray-900 truncate">{lab.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start">
-                    <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3">
-                      <MapPin className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Address</p>
-                      <p className="text-sm text-gray-900">{lab.address}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Specialties</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {lab.specialties.split(',').map((specialty, index) => (
-                      <span
-                        key={index}
-                        className="bg-blue-50 text-blue-700 px-2.5 py-1 text-xs font-medium rounded-full flex items-center"
-                      >
-                        {specialty.trim()}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-gray-100 flex justify-end space-x-2">
-                  <button
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                    title="View Details"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                  <button
-                    className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
-                    title="Edit Lab"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
   const Dashboard = () => {
     const stats = [
       { title: 'Active Orders', value: orders.filter(o => o.status === 'In Progress').length.toString(), color: 'bg-blue-500' },
@@ -1347,6 +1168,13 @@ const DentalLabModule = () => {
       <div className="p-6 border-b border-gray-200">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold text-gray-900">Lab Requests</h2>
+          <button
+            onClick={() => setShowNewOrder(true)}
+            className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            New Request
+          </button>
         </div>
         <div className="flex gap-4 mb-4">
           <div className="flex-1 relative">
@@ -1412,18 +1240,6 @@ const DentalLabModule = () => {
                     <button className="text-gray-600 hover:text-gray-900">
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button
-                      className="text-green-500 hover:text-green-600"
-                      onClick={() => handleRequestAcceptance(order.order_id)}
-                      disabled={acceptingOrder}
-                    >
-                      {acceptingOrder ? (
-                        <Loader className='h-4 w-4' />
-                      )
-                        :
-                        (<CircleCheckBig className="h-4 w-4" />)}
-
-                    </button>
                   </div>
                 </td>
               </tr>
@@ -1452,7 +1268,6 @@ const DentalLabModule = () => {
               { key: 'dashboard', label: 'Dashboard' },
               { key: 'requests', label: 'Requests' },
               { key: 'orders', label: 'Orders' },
-              { key: 'labs', label: 'Partner Labs' }
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -1471,86 +1286,12 @@ const DentalLabModule = () => {
         {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'requests' && <RequestsList />}
         {activeTab === 'orders' && <OrdersList />}
-        {activeTab === 'labs' && <LabsList />}
 
         {selectedOrder && (
           <OrderDetails order={selectedOrder} onClose={() => setSelectedOrder(null)} />
         )}
 
         {showNewOrder && <NewOrderForm />}
-
-        {/* Invite Lab Dialog */}
-        {showInviteDialog && (
-          <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg w-full max-w-md shadow-xl border border-gray-200">
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Invite Lab</h3>
-                <button
-                  onClick={() => {
-                    setShowInviteDialog(false);
-                    setInviteEmail('');
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter lab's email address"
-                    autoComplete="off"
-                  />
-                </div>
-                <div className="flex justify-end space-x-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowInviteDialog(false);
-                      setInviteEmail('');
-                    }}
-                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    disabled={isSending}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSendInvite}
-                    disabled={!inviteEmail.trim() || isSending}
-                    className={`px-4 py-2 text-white rounded-lg ${!inviteEmail.trim() || isSending
-                      ? 'bg-emerald-400 cursor-not-allowed'
-                      : 'bg-emerald-600 hover:bg-emerald-700'
-                      } flex items-center gap-2`}
-                  >
-                    {isSending ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="h-4 w-4" />
-                        Send Invite
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Toast Notification */}
         {toast.show && (
