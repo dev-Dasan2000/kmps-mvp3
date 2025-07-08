@@ -100,7 +100,7 @@ export default function PIMPage() {
       </div>
 
       {/* Quick Actions Section */}
-      <QuickActions />
+      {/*<QuickActions />*/}
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

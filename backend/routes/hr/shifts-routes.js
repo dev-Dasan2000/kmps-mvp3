@@ -93,6 +93,8 @@ router.get('/employees/:eid/shifts/range', async (req, res) => {
     
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const startIso = start.toISOString();
+    const endIso = end.toISOString();
     
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return res.status(400).json({ message: 'Invalid date format. Please use YYYY-MM-DD format' });
@@ -111,10 +113,10 @@ router.get('/employees/:eid/shifts/range', async (req, res) => {
       where: {
         eid: parseInt(eid),
         from_time: {
-          gte: start,
+          gte: startIso,
         },
         to_time: {
-          lte: end,
+          lte: endIso,
         }
       },
       orderBy: {
@@ -148,9 +150,13 @@ router.post('', async (req, res) => {
       return res.status(400).json({ message: 'Please provide from_time and to_time' });
     }
     
-    // Convert strings to Date objects
+    // Convert strings to Date objects for validation
     const fromTimeDate = new Date(from_time);
     const toTimeDate = new Date(to_time);
+
+    // Store standardized ISO strings
+    const fromIso = fromTimeDate.toISOString();
+    const toIso = toTimeDate.toISOString();
     
     // Validate date formats
     if (isNaN(fromTimeDate.getTime()) || isNaN(toTimeDate.getTime())) {
@@ -166,8 +172,8 @@ router.post('', async (req, res) => {
     const shift = await prisma.shifts.create({
       data: {
         eid: parseInt(eid),
-        from_time: fromTimeDate,
-        to_time: toTimeDate
+        from_time: fromIso,
+        to_time: toIso
       }
     });
     
@@ -193,22 +199,24 @@ router.put('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Shift not found' });
     }
     
-    let fromTimeDate = existingShift.from_time;
-    let toTimeDate = existingShift.to_time;
+    let fromTimeDate = new Date(existingShift.from_time);
+    let toTimeDate = new Date(existingShift.to_time);
     
     // Update time values if provided
     if (from_time) {
-      fromTimeDate = new Date(from_time);
-      if (isNaN(fromTimeDate.getTime())) {
+      const parsed = new Date(from_time);
+      if (isNaN(parsed.getTime())) {
         return res.status(400).json({ message: 'Invalid from_time format' });
       }
+      fromTimeDate = parsed;
     }
     
     if (to_time) {
-      toTimeDate = new Date(to_time);
-      if (isNaN(toTimeDate.getTime())) {
+      const parsed = new Date(to_time);
+      if (isNaN(parsed.getTime())) {
         return res.status(400).json({ message: 'Invalid to_time format' });
       }
+      toTimeDate = parsed;
     }
     
     // Validate that to_time is after from_time
@@ -220,8 +228,8 @@ router.put('/:id', async (req, res) => {
     const updatedShift = await prisma.shifts.update({
       where: { shift_id: parseInt(id) },
       data: {
-        from_time: fromTimeDate,
-        to_time: toTimeDate
+        from_time: fromTimeDate.toISOString(),
+        to_time: toTimeDate.toISOString()
       }
     });
     

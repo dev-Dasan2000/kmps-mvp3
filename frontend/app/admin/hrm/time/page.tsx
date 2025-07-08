@@ -1,14 +1,30 @@
 "use client";
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { User, Calendar, Clock, CheckCircle, UserCog, RefreshCcw } from 'lucide-react';
+import { User, Calendar, Clock, CheckCircle, UserCog } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import ShiftSchedule from '@/components/ShiftSchedule';
 import axios from 'axios';
 import { toast } from 'sonner';
+
+// Interface for today's attendance data
+// Added Employee and Shift interfaces for extra data fetching
+interface Employee {
+  eid: number;
+  name: string;
+  employment_status: "part time" | "full time";
+}
+
+interface Shift {
+  shift_id: number;
+  eid: number;
+  from_time: string; // ISO string
+  to_time: string;   // ISO string
+  employee?: { name: string };
+}
 
 // Interface for today's attendance data
 interface TodayAttendanceResponse {
@@ -20,7 +36,6 @@ interface TodayAttendanceResponse {
     clock_out: string | null;
     date: string;
     present: boolean;
-    employment_type?: string;
   }[];
   stats: {
     present: number;
@@ -47,18 +62,6 @@ interface TodayLeavesResponse {
   };
 }
 
-// Interface for shift data
-interface ShiftResponse {
-  shift_id: number;
-  eid: number;
-  from_time: string;
-  to_time: string;
-  employee?: {
-    name: string;
-    employment_type: string;
-  };
-}
-
 // Interface for today's attendance records
 interface AttendanceRecord {
   eid: number;
@@ -67,8 +70,6 @@ interface AttendanceRecord {
   clock_out: string | null;
   hours?: number;
   status: string;
-  employment_type?: string;
-  has_shift_today?: boolean;
 }
 
 // Interface for daily attendance stats
@@ -83,120 +84,112 @@ export default function TimeManagementPage() {
   const { accessToken, isLoggedIn } = useContext(AuthContext);
   
   // State variables
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [shiftsToday, setShiftsToday] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(true);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [todayShifts, setTodayShifts] = useState<ShiftResponse[]>([]);
   const [attendanceStats, setAttendanceStats] = useState<AttendanceStats>({
     present: 0,
     absent: 0,
     on_leave: 0
   });
   
-  // Function to reload data
-  const fetchData = async () => {
+  // Fetch data helper wrapped in useCallback so it can be reused (e.g. after adding a shift)
+  const fetchData = useCallback(async () => {
     if (!isLoggedIn || !backendURL) {
       return;
     }
-    
+
     setLoading(true);
     try {
-      // Get today's date and day of week (0 = Sunday, 6 = Saturday)
-      const today = new Date();
-      const dayOfWeek = today.getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
-      
-      // Fetch today's attendance data
-      const attendanceResponse = await axios.get<TodayAttendanceResponse>(`${backendURL}/hr/attendance/today`);
-      
-      // Fetch today's leave data
-      const leavesResponse = await axios.get<TodayLeavesResponse>(`${backendURL}/hr/leaves/today/all`);
-      
-      // Fetch today's shifts
-      const shiftsResponse = await axios.get<ShiftResponse[]>(`${backendURL}/hr/shifts`);
-      
-      // Filter shifts for today
-      const todayDateStr = today.toISOString().split('T')[0];
-      const shiftsForToday = shiftsResponse.data.filter(shift => {
-        const shiftDate = new Date(shift.from_time).toISOString().split('T')[0];
-        return shiftDate === todayDateStr;
-      });
-      
-      setTodayShifts(shiftsForToday);
-      
-      // Get employee IDs with shifts today
-      const employeesWithShifts = new Set(shiftsForToday.map(shift => shift.eid));
-      
+      // Fetch employees (used for employment status & part-time list)
+      const employeesRes = await axios.get<Employee[]>(`${backendURL}/hr/employees`);
+      setEmployees(employeesRes.data);
+
+      // Fetch all shifts and keep today's only
+      const shiftsRes = await axios.get<Shift[]>(`${backendURL}/hr/shifts`);
+      const todayISO = new Date().toISOString().split("T")[0];
+      const todaysShifts = shiftsRes.data.filter(sh => new Date(sh.from_time).toISOString().split("T")[0] === todayISO);
+      setShiftsToday(todaysShifts);
+
+      // Fetch today's attendance and leaves
+      const [attendanceResponse, leavesResponse] = await Promise.all([
+        axios.get<TodayAttendanceResponse>(`${backendURL}/hr/attendance/today`),
+        axios.get<TodayLeavesResponse>(`${backendURL}/hr/leaves/today/all`)
+      ]);
+
       if (attendanceResponse.data && leavesResponse.data) {
         const attendanceData = attendanceResponse.data;
         const leavesData = leavesResponse.data;
-        
-        // Get employees on leave
-        const employeesOnLeave = new Set(leavesData.records.map(leave => leave.eid));
-        
-        // Process records to add hours and status
-        const processedRecords: AttendanceRecord[] = attendanceData.records
-          .map(record => {
-            // Check if this employee has a shift today
-            const hasShiftToday = employeesWithShifts.has(record.eid);
-            
-            // Determine status
-            let status = record.present ? 'Present' : 'Absent';
-            let hours = 0;
-            
-            // Calculate hours if both clock in and out are present
-            if (record.clock_in && record.clock_out) {
-              hours = calculateHoursFromTimeStrings(record.clock_in, record.clock_out);
-            }
-            
-            // Check if employee is on leave
-            const isOnLeave = employeesOnLeave.has(record.eid);
-            if (isOnLeave) {
-              status = 'On Leave';
-            }
-            
-            // For full-time employees on weekends, show 'Weekend' instead of 'Absent'
-            if (isWeekend && status === 'Absent' && record.employment_type === 'full-time') {
-              status = 'Weekend';
-            }
-            
-            return {
-              eid: record.eid,
-              name: record.name,
-              clock_in: record.clock_in,
-              clock_out: record.clock_out,
-              hours,
-              status,
-              employment_type: record.employment_type,
-              has_shift_today: hasShiftToday
-            };
-          })
-          // Only show employees with shifts today in the attendance list
-          .filter(record => record.has_shift_today);
-        
-        // Calculate updated stats based on filtered records
-        const presentCount = processedRecords.filter(r => r.status === 'Present').length;
-        const absentCount = processedRecords.filter(r => r.status === 'Absent').length;
-        const onLeaveCount = processedRecords.filter(r => r.status === 'On Leave').length;
-        
-        setAttendanceRecords(processedRecords);
-        setAttendanceStats({
-          present: presentCount,
-          absent: absentCount,
-          on_leave: onLeaveCount
+
+        // Build maps for faster lookups
+        const leaveSet = new Set<number>(leavesData.records.map(l => l.eid));
+        const empStatusMap: Record<number, Employee["employment_status"]> = {};
+        employeesRes.data.forEach(emp => {
+          empStatusMap[emp.eid] = emp.employment_status;
         });
+
+        // Helper to know if part-timer has shift today
+        const partTimerHasShift = (eid: number) => todaysShifts.some(sh => sh.eid === eid);
+
+        const today = new Date();
+        const isWeekend = today.getDay() === 0 || today.getDay() === 6; // Sunday =0, Saturday =6
+
+        const processedRecords: AttendanceRecord[] = attendanceData.records.reduce((acc: AttendanceRecord[], record) => {
+          const employment = empStatusMap[record.eid] || "full time";
+
+          // Skip part-timers without shift today
+          if (employment === "part time" && !partTimerHasShift(record.eid)) {
+            return acc;
+          }
+
+          let status = record.present ? "Present" : "Absent";
+          let hours = 0;
+
+          // Calculate hours if both clock in and out are present
+          if (record.clock_in && record.clock_out) {
+            hours = calculateHoursFromTimeStrings(record.clock_in, record.clock_out);
+          }
+
+          // Override status if on leave
+          if (leaveSet.has(record.eid)) {
+            status = "On Leave";
+          }
+
+          // Weekend rule for full-timers
+          if (employment === "full time" && !record.present && isWeekend) {
+            status = "Weekend";
+          }
+
+          acc.push({
+            eid: record.eid,
+            name: record.name,
+            clock_in: record.clock_in,
+            clock_out: record.clock_out,
+            hours,
+            status
+          });
+          return acc;
+        }, []);
+
+        setAttendanceRecords(processedRecords);
+        const present = processedRecords.filter(r => r.status === "Present").length;
+        const absent = processedRecords.filter(r => r.status === "Absent").length;
+        const on_leave = processedRecords.filter(r => r.status === "On Leave").length;
+        setAttendanceStats({ present, absent, on_leave });
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching attendance data:', error);
       toast.error('Failed to load attendance data');
     } finally {
       setLoading(false);
     }
-  };
-  
-  // Load data on component mount
+  }, [backendURL, isLoggedIn]);
+
+  // Load data on component mount and whenever dependencies change
   useEffect(() => {
     fetchData();
-  }, [backendURL, isLoggedIn]);
+  }, [fetchData]);
 
   // Helper function to determine status badge color
   const getStatusBadgeColor = (status: string) => {
@@ -210,9 +203,7 @@ export default function TimeManagementPage() {
       case 'absent':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'weekend':
-        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
-      case 'on leave':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-gray-100 text-gray-700 border-gray-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -296,6 +287,7 @@ export default function TimeManagementPage() {
           </Card>
           
 
+          
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center">
@@ -304,7 +296,7 @@ export default function TimeManagementPage() {
                 </div>
                 <div>
                   <CardTitle className="text-xl">Absent</CardTitle>
-                  <CardDescription>Missing staff with shifts today</CardDescription>
+                  <CardDescription>Missing staff</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -344,19 +336,13 @@ export default function TimeManagementPage() {
                   <div>
                     <CardTitle className="text-xl">Today's Attendance</CardTitle>
                     <CardDescription>
-                      Staff with shifts on {new Date().toLocaleDateString('en-US', { dateStyle: 'full' })}
+                      Staff time tracking for {new Date().toLocaleDateString('en-US', { dateStyle: 'full' })}
                     </CardDescription>
                   </div>
-                  <div className="flex space-x-2">
-                    <Button size="sm" variant="outline" className="text-blue-600" onClick={fetchData}>
-                      <RefreshCcw className="h-4 w-4 mr-2" />
-                      Refresh
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-blue-600">
-                      <Clock className="h-4 w-4 mr-2" />
-                      Export Report
-                    </Button>
-                  </div>
+                  <Button size="sm" variant="outline" className="text-blue-600">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Export Report
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -401,7 +387,12 @@ export default function TimeManagementPage() {
             {/* Shift Schedule */}
             <Card className="hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
-                <ShiftSchedule loading={loading} shifts={todayShifts} onUpdate={fetchData} />
+                <ShiftSchedule 
+                  loading={loading} 
+                  shifts={shiftsToday}
+                  partTimeEmployees={employees.filter(e => e.employment_status === 'part time')}
+                  onShiftAdded={() => fetchData()}
+                />
               </CardContent>
             </Card>
           </div>
