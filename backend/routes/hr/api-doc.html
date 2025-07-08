@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR Module API Integration Guide</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 1in;
+            background: white;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 24px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #34495e;
+            font-size: 20px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-left: 4px solid #3498db;
+            padding-left: 15px;
+        }
+        
+        h3 {
+            color: #2c3e50;
+            font-size: 16px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+        
+        h4 {
+            color: #34495e;
+            font-size: 14px;
+            margin-top: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .header-info {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .base-url {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .method {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+        
+        .method.get { background: #d4edda; color: #155724; }
+        .method.post { background: #d1ecf1; color: #0c5460; }
+        .method.put { background: #fff3cd; color: #856404; }
+        .method.delete { background: #f8d7da; color: #721c24; }
+        
+        .url-path {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        
+        pre {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-x: auto;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .json-example {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 5px;
+            padding: 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 10px 0;
+        }
+        
+        .json-key { color: #9cdcfe; }
+        .json-string { color: #ce9178; }
+        .json-number { color: #b5cea8; }
+        .json-boolean { color: #569cd6; }
+        .json-null { color: #569cd6; }
+        
+        .table-of-contents {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .table-of-contents ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .table-of-contents li {
+            margin: 5px 0;
+        }
+        
+        .table-of-contents a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .table-of-contents a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-responses {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .success-response {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .required-fields {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .section-divider {
+            border-top: 2px solid #ecf0f1;
+            margin: 40px 0;
+        }
+        
+        @media print {
+            body {
+                font-size: 12px;
+                line-height: 1.4;
+            }
+            
+            .endpoint {
+                page-break-inside: avoid;
+            }
+            
+            h2 {
+                page-break-before: always;
+            }
+            
+            h2:first-of-type {
+                page-break-before: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>HR Module API Integration Guide</h1>
+    
+    <div class="header-info">
+        <p><strong>Document Version:</strong> 1.0</p>
+        <p><strong>Date:</strong> July 2025</p>
+        <p><strong>Target Audience:</strong> Frontend Developers</p>
+        <p><strong>Purpose:</strong> Complete API reference for HR module integration</p>
+    </div>
+    
+    <div class="base-url">
+        <strong>Base URL:</strong> http://localhost:5000/hr
+    </div>
+    
+    <div class="table-of-contents">
+        <h3>Table of Contents</h3>
+        <ul>
+            <li><a href="#employee-management">1. Employee Management</a></li>
+            <li><a href="#attendance-management">2. Attendance Management</a></li>
+            <li><a href="#leave-management">3. Leave Management</a></li>
+        </ul>
+    </div>
+    
+    <div class="section-divider"></div>
+    
+    <h2 id="employee-management">1. Employee Management</h2>
+    <p><strong>Base Path:</strong> <code>/employees</code></p>
+    
+    <h3>Get All Employees</h3>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/employees</span></p>
+        <p>Retrieves a list of all employees with their bank information and emergency contacts.</p>
+        
+        <h4>Response Format:</h4>
+        <div class="json-example">
+[
+  {
+    <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+    <span class="json-key">"name"</span>: <span class="json-string">"John Doe"</span>,
+    <span class="json-key">"dob"</span>: <span class="json-string">"1990-01-01"</span>,
+    <span class="json-key">"gender"</span>: <span class="json-string">"male"</span>,
+    <span class="json-key">"email"</span>: <span class="json-string">"john.doe@example.com"</span>,
+    <span class="json-key">"phone"</span>: <span class="json-string">"1234567890"</span>,
+    <span class="json-key">"address"</span>: <span class="json-string">"123 Main St"</span>,
+    <span class="json-key">"city"</span>: <span class="json-string">"New York"</span>,
+    <span class="json-key">"state"</span>: <span class="json-string">"NY"</span>,
+    <span class="json-key">"province"</span>: <span class="json-null">null</span>,
+    <span class="json-key">"zip_code"</span>: <span class="json-string">"10001"</span>,
+    <span class="json-key">"job_title"</span>: <span class="json-string">"Software Engineer"</span>,
+    <span class="json-key">"employment_status"</span>: <span class="json-string">"full time"</span>,
+    <span class="json-key">"salary"</span>: <span class="json-number">75000</span>,
+    <span class="json-key">"bank_info"</span>: [
+      {
+        <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+        <span class="json-key">"account_holder"</span>: <span class="json-string">"John Doe"</span>,
+        <span class="json-key">"account_no"</span>: <span class="json-string">"1234567890"</span>,
+        <span class="json-key">"bank_name"</span>: <span class="json-string">"ABC Bank"</span>,
+        <span class="json-key">"branch"</span>: <span class="json-string">"Main Branch"</span>,
+        <span class="json-key">"account_type"</span>: <span class="json-string">"Savings"</span>
+      }
+    ],
+    <span class="json-key">"emergency_contact"</span>: [
+      {
+        <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+        <span class="json-key">"name"</span>: <span class="json-string">"Jane Doe"</span>,
+        <span class="json-key">"relationship"</span>: <span class="json-string">"Spouse"</span>,
+        <span class="json-key">"phone"</span>: <span class="json-string">"0987654321"</span>,
+        <span class="json-key">"email"</span>: <span class="json-string">"jane.doe@example.com"</span>
+      }
+    ]
+  }
+]
+        </div>
+    </div>
+    
+    <h3>Get Employee by ID</h3>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/employees/:id</span></p>
+        <p>Retrieves a specific employee by their ID.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>id</code> - Employee ID (integer)</li>
+        </ul>
+        
+        <h4>Response:</h4>
+        <p>Returns single employee object with same structure as Get All Employees</p>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Employee with the specified ID does not exist</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h3>Create Employee</h3>
+    <div class="endpoint">
+        <p><span class="method post">POST</span> <span class="url-path">/employees</span></p>
+        <p>Creates a new employee record.</p>
+        
+        <div class="required-fields">
+            <h4>Required Fields:</h4>
+            <ul>
+                <li><code>name</code> - Employee full name</li>
+                <li><code>dob</code> - Date of birth (YYYY-MM-DD format)</li>
+                <li><code>gender</code> - "male" or "female"</li>
+                <li><code>email</code> - Valid email address</li>
+                <li><code>phone</code> - Contact number</li>
+                <li><code>employment_status</code> - "part time" or "full time"</li>
+            </ul>
+        </div>
+        
+        <h4>Request Body Example:</h4>
+        <div class="json-example">
+{
+  <span class="json-key">"name"</span>: <span class="json-string">"John Doe"</span>,
+  <span class="json-key">"dob"</span>: <span class="json-string">"1990-01-01"</span>,
+  <span class="json-key">"gender"</span>: <span class="json-string">"male"</span>,
+  <span class="json-key">"email"</span>: <span class="json-string">"john.doe@example.com"</span>,
+  <span class="json-key">"phone"</span>: <span class="json-string">"1234567890"</span>,
+  <span class="json-key">"address"</span>: <span class="json-string">"123 Main St"</span>,
+  <span class="json-key">"city"</span>: <span class="json-string">"New York"</span>,
+  <span class="json-key">"state"</span>: <span class="json-string">"NY"</span>,
+  <span class="json-key">"province"</span>: <span class="json-string">""</span>,
+  <span class="json-key">"zip_code"</span>: <span class="json-string">"10001"</span>,
+  <span class="json-key">"job_title"</span>: <span class="json-string">"Software Engineer"</span>,
+  <span class="json-key">"employment_status"</span>: <span class="json-string">"full time"</span>,
+  <span class="json-key">"salary"</span>: <span class="json-number">75000</span>,
+  <span class="json-key">"bank_info"</span>: [
+    {
+      <span class="json-key">"account_holder"</span>: <span class="json-string">"John Doe"</span>,
+      <span class="json-key">"account_no"</span>: <span class="json-string">"1234567890"</span>,
+      <span class="json-key">"bank_name"</span>: <span class="json-string">"ABC Bank"</span>,
+      <span class="json-key">"branch"</span>: <span class="json-string">"Main Branch"</span>,
+      <span class="json-key">"account_type"</span>: <span class="json-string">"Savings"</span>
+    }
+  ],
+  <span class="json-key">"emergency_contact"</span>: [
+    {
+      <span class="json-key">"name"</span>: <span class="json-string">"Jane Doe"</span>,
+      <span class="json-key">"relationship"</span>: <span class="json-string">"Spouse"</span>,
+      <span class="json-key">"phone"</span>: <span class="json-string">"0987654321"</span>,
+      <span class="json-key">"email"</span>: <span class="json-string">"jane.doe@example.com"</span>
+    }
+  ]
+}
+        </div>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>400 Bad Request:</strong> Missing required fields or validation errors</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h3>Update Employee</h3>
+    <div class="endpoint">
+        <p><span class="method put">PUT</span> <span class="url-path">/employees/:id</span></p>
+        <p>Updates an existing employee's information.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>id</code> - Employee ID (integer)</li>
+        </ul>
+        
+        <h4>Request Body:</h4>
+        <p>Same as Create Employee (partial updates allowed)</p>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Employee with the specified ID does not exist</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h3>Delete Employee</h3>
+    <div class="endpoint">
+        <p><span class="method delete">DELETE</span> <span class="url-path">/employees/:id</span></p>
+        <p>Deletes an employee record.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>id</code> - Employee ID (integer)</li>
+        </ul>
+        
+        <div class="success-response">
+            <h4>Success Response:</h4>
+            <div class="json-example">
+{
+  <span class="json-key">"message"</span>: <span class="json-string">"Employee deleted successfully"</span>
+}
+            </div>
+        </div>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Employee with the specified ID does not exist</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h3>Bank Information Management</h3>
+    
+    <h4>Get Bank Information</h4>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/employees/:id/bank-info</span></p>
+        <p>Retrieves all bank accounts for a specific employee.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>id</code> - Employee ID (integer)</li>
+        </ul>
+    </div>
+    
+    <h4>Add Bank Information</h4>
+    <div class="endpoint">
+        <p><span class="method post">POST</span> <span class="url-path">/employees/:id/bank-info</span></p>
+        <p>Adds a new bank account for an employee.</p>
+        
+        <div class="required-fields">
+            <h4>Required Fields:</h4>
+            <ul>
+                <li><code>account_holder</code> - Account holder name</li>
+                <li><code>account_no</code> - Account number</li>
+                <li><code>bank_name</code> - Bank name</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h4>Update Bank Information</h4>
+    <div class="endpoint">
+        <p><span class="method put">PUT</span> <span class="url-path">/employees/:id/bank-info/:account_no</span></p>
+        <p>Updates an existing bank account.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>id</code> - Employee ID (integer)</li>
+            <li><code>account_no</code> - Account number (string)</li>
+        </ul>
+    </div>
+    
+    <h4>Delete Bank Information</h4>
+    <div class="endpoint">
+        <p><span class="method delete">DELETE</span> <span class="url-path">/employees/:id/bank-info/:account_no</span></p>
+        <p>Deletes a bank account.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>id</code> - Employee ID (integer)</li>
+            <li><code>account_no</code> - Account number (string)</li>
+        </ul>
+    </div>
+    
+    <h3>Emergency Contact Management</h3>
+    
+    <h4>Get Emergency Contacts</h4>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/employees/:id/emergency-contacts</span></p>
+        <p>Retrieves all emergency contacts for a specific employee.</p>
+    </div>
+    
+    <h4>Add Emergency Contact</h4>
+    <div class="endpoint">
+        <p><span class="method post">POST</span> <span class="url-path">/employees/:id/emergency-contacts</span></p>
+        <p>Adds a new emergency contact for an employee.</p>
+        
+        <div class="required-fields">
+            <h4>Required Fields:</h4>
+            <ul>
+                <li><code>name</code> - Contact name</li>
+                <li><code>relationship</code> - Relationship to employee</li>
+                <li><code>phone</code> - Contact phone number</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h4>Update Emergency Contact</h4>
+    <div class="endpoint">
+        <p><span class="method put">PUT</span> <span class="url-path">/employees/:id/emergency-contacts/:phone</span></p>
+        <p>Updates an existing emergency contact.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>id</code> - Employee ID (integer)</li>
+            <li><code>phone</code> - Contact phone number (string)</li>
+        </ul>
+    </div>
+    
+    <h4>Delete Emergency Contact</h4>
+    <div class="endpoint">
+        <p><span class="method delete">DELETE</span> <span class="url-path">/employees/:id/emergency-contacts/:phone</span></p>
+        <p>Deletes an emergency contact.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>id</code> - Employee ID (integer)</li>
+            <li><code>phone</code> - Contact phone number (string)</li>
+        </ul>
+    </div>
+    
+    <div class="section-divider"></div>
+    
+    <h2 id="attendance-management">2. Attendance Management</h2>
+    <p><strong>Base Path:</strong> <code>/attendance</code></p>
+    
+    <h3>Get Employee Attendance</h3>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/attendance/:eid</span></p>
+        <p>Retrieves attendance records for a specific employee for the current month.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>eid</code> - Employee ID (integer)</li>
+        </ul>
+        
+        <h4>Response Example:</h4>
+        <div class="json-example">
+[
+  {
+    <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+    <span class="json-key">"name"</span>: <span class="json-string">"John Doe"</span>,
+    <span class="json-key">"date"</span>: <span class="json-string">"2025-07-01"</span>,
+    <span class="json-key">"clock_in"</span>: <span class="json-string">"09:00 AM"</span>,
+    <span class="json-key">"clock_out"</span>: <span class="json-string">"05:00 PM"</span>
+  }
+]
+        </div>
+    </div>
+    
+    <h3>Get Total Attendance Days</h3>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/attendance/total/:eid</span></p>
+        <p>Retrieves the total attendance days for a specific employee, including approved leave days.</p>
+        
+        <h4>Response Example:</h4>
+        <div class="json-example">
+{
+  <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+  <span class="json-key">"name"</span>: <span class="json-string">"John Doe"</span>,
+  <span class="json-key">"total_attendance_days"</span>: <span class="json-number">20</span>,
+  <span class="json-key">"total_leave_days"</span>: <span class="json-number">5</span>,
+  <span class="json-key">"effective_attendance"</span>: <span class="json-number">25</span>
+}
+        </div>
+    </div>
+    
+    <h3>Get Attendance with Leave Information</h3>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/attendance/with-leaves/:eid</span></p>
+        <p>Retrieves attendance and leave information for a specific employee.</p>
+        
+        <h4>Response Example:</h4>
+        <div class="json-example">
+{
+  <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+  <span class="json-key">"name"</span>: <span class="json-string">"John Doe"</span>,
+  <span class="json-key">"total_days_present"</span>: <span class="json-number">20</span>,
+  <span class="json-key">"total_leave_days"</span>: <span class="json-number">5</span>,
+  <span class="json-key">"effective_attendance"</span>: <span class="json-number">25</span>,
+  <span class="json-key">"leaves"</span>: [
+    {
+      <span class="json-key">"from_date"</span>: <span class="json-string">"2025-07-10"</span>,
+      <span class="json-key">"to_date"</span>: <span class="json-string">"2025-07-15"</span>,
+      <span class="json-key">"type"</span>: <span class="json-string">"Annual Leave"</span>,
+      <span class="json-key">"days"</span>: <span class="json-number">6</span>
+    }
+  ]
+}
+        </div>
+    </div>
+    
+    <h3>Get Weekly Attendance</h3>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/attendance/weekly/all</span></p>
+        <p>Retrieves weekly attendance for all employees, including leave information.</p>
+        
+        <h4>Response Structure:</h4>
+        <p>Returns an array of objects containing weekly attendance data for each employee, including:</p>
+        <ul>
+            <li>Daily attendance records</li>
+            <li>Leave information per day</li>
+            <li>Total days present and on leave</li>
+            <li>Week date range</li>
+        </ul>
+    </div>
+    
+    <h3>Record Clock In</h3>
+    <div class="endpoint">
+        <p><span class="method post">POST</span> <span class="url-path">/attendance/clock-in</span></p>
+        <p>Records a clock-in event for an employee.</p>
+        
+        <h4>Request Body:</h4>
+        <div class="json-example">
+{
+  <span class="json-key">"eid"</span>: <span class="json-number">1</span>
+}
+        </div>
+        
+        <div class="success-response">
+            <h4>Success Response:</h4>
+            <div class="json-example">
+{
+  <span class="json-key">"message"</span>: <span class="json-string">"Clock in recorded successfully"</span>,
+  <span class="json-key">"attendance"</span>: {
+    <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+    <span class="json-key">"name"</span>: <span class="json-string">"John Doe"</span>,
+    <span class="json-key">"clock_in"</span>: <span class="json-string">"09:00 AM"</span>,
+    <span class="json-key">"date"</span>: <span class="json-string">"2025-07-07"</span>
+  }
+}
+            </div>
+        </div>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Employee with the specified ID does not exist</li>
+                <li><strong>400 Bad Request:</strong> Employee is already clocked in today</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h3>Record Clock Out</h3>
+    <div class="endpoint">
+        <p><span class="method post">POST</span> <span class="url-path">/attendance/clock-out</span></p>
+        <p>Records a clock-out event for an employee.</p>
+        
+        <h4>Request Body:</h4>
+        <div class="json-example">
+{
+  <span class="json-key">"eid"</span>: <span class="json-number">1</span>
+}
+        </div>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Employee with the specified ID does not exist</li>
+                <li><strong>400 Bad Request:</strong> No active clock in found for today</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="section-divider"></div>
+    
+    <h2 id="leave-management">3. Leave Management</h2>
+    <p><strong>Base Path:</strong> <code>/leaves</code></p>
+    
+    <h3>Get All Leave Requests</h3>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/leaves</span></p>
+        <p>Retrieves all leave requests across all employees.</p>
+        
+        <h4>Response Example:</h4>
+        <div class="json-example">
+[
+  {
+    <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+    <span class="json-key">"employee_name"</span>: <span class="json-string">"John Doe"</span>,
+    <span class="json-key">"from_date"</span>: <span class="json-string">"2025-07-10"</span>,
+    <span class="json-key">"to_date"</span>: <span class="json-string">"2025-07-15"</span>,
+    <span class="json-key">"type"</span>: <span class="json-string">"Annual Leave"</span>,
+    <span class="json-key">"status"</span>: <span class="json-string">"Approved"</span>,
+    <span class="json-key">"job_title"</span>: <span class="json-string">"Software Engineer"</span>,
+    <span class="json-key">"employment_status"</span>: <span class="json-string">"full time"</span>
+  }
+]
+        </div>
+    </div>
+    
+    <h3>Get Leaves for Specific Employee</h3>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/leaves/:eid</span></p>
+        <p>Retrieves all leave requests for a specific employee.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>eid</code> - Employee ID (integer)</li>
+        </ul>
+        
+        <h4>Response Example:</h4>
+        <div class="json-example">
+[
+  {
+    <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+    <span class="json-key">"employee_name"</span>: <span class="json-string">"John Doe"</span>,
+    <span class="json-key">"from_date"</span>: <span class="json-string">"2025-07-10"</span>,
+    <span class="json-key">"to_date"</span>: <span class="json-string">"2025-07-15"</span>,
+    <span class="json-key">"type"</span>: <span class="json-string">"Annual Leave"</span>,
+    <span class="json-key">"status"</span>: <span class="json-string">"Approved"</span>,
+    <span class="json-key">"duration"</span>: <span class="json-number">6</span>
+  }
+]
+        </div>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Employee with the specified ID does not exist</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h3>Apply for Leave</h3>
+    <div class="endpoint">
+        <p><span class="method post">POST</span> <span class="url-path">/leaves</span></p>
+        <p>Creates a new leave request.</p>
+        
+        <div class="required-fields">
+            <h4>Required Fields:</h4>
+            <ul>
+                <li><code>eid</code> - Employee ID (integer)</li>
+                <li><code>from_date</code> - Start date (YYYY-MM-DD format)</li>
+                <li><code>to_date</code> - End date (YYYY-MM-DD format)</li>
+                <li><code>type</code> - Leave type (e.g., "Annual Leave", "Sick Leave")</li>
+            </ul>
+        </div>
+        
+        <h4>Request Body Example:</h4>
+        <div class="json-example">
+{
+  <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+  <span class="json-key">"from_date"</span>: <span class="json-string">"2025-07-10"</span>,
+  <span class="json-key">"to_date"</span>: <span class="json-string">"2025-07-15"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"Annual Leave"</span>
+}
+        </div>
+        
+        <div class="success-response">
+            <h4>Success Response:</h4>
+            <div class="json-example">
+{
+  <span class="json-key">"message"</span>: <span class="json-string">"Leave request submitted successfully"</span>,
+  <span class="json-key">"leave"</span>: {
+    <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+    <span class="json-key">"from_date"</span>: <span class="json-string">"2025-07-10"</span>,
+    <span class="json-key">"to_date"</span>: <span class="json-string">"2025-07-15"</span>,
+    <span class="json-key">"type"</span>: <span class="json-string">"Annual Leave"</span>,
+    <span class="json-key">"status"</span>: <span class="json-string">"Pending"</span>
+  }
+}
+            </div>
+        </div>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Employee with the specified ID does not exist</li>
+                <li><strong>400 Bad Request:</strong> End date cannot be before start date</li>
+                <li><strong>409 Conflict:</strong> Overlapping leave request exists</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h3>Update Leave Status</h3>
+    <div class="endpoint">
+        <p><span class="method put">PUT</span> <span class="url-path">/leaves/:eid/:fromDate/:toDate/status</span></p>
+        <p>Updates the status of a leave request (approve, reject, or cancel).</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>eid</code> - Employee ID (integer)</li>
+            <li><code>fromDate</code> - Start date (YYYY-MM-DD format)</li>
+            <li><code>toDate</code> - End date (YYYY-MM-DD format)</li>
+        </ul>
+        
+        <h4>Request Body:</h4>
+        <div class="json-example">
+{
+  <span class="json-key">"status"</span>: <span class="json-string">"Approved"</span>
+}
+        </div>
+        
+        <div class="required-fields">
+            <h4>Valid Status Values:</h4>
+            <ul>
+                <li>"Approved"</li>
+                <li>"Rejected"</li>
+                <li>"Cancelled"</li>
+            </ul>
+        </div>
+        
+        <div class="success-response">
+            <h4>Success Response:</h4>
+            <div class="json-example">
+{
+  <span class="json-key">"message"</span>: <span class="json-string">"Leave request approved successfully"</span>,
+  <span class="json-key">"leave"</span>: {
+    <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+    <span class="json-key">"from_date"</span>: <span class="json-string">"2025-07-10"</span>,
+    <span class="json-key">"to_date"</span>: <span class="json-string">"2025-07-15"</span>,
+    <span class="json-key">"type"</span>: <span class="json-string">"Annual Leave"</span>,
+    <span class="json-key">"status"</span>: <span class="json-string">"Approved"</span>
+  }
+}
+            </div>
+        </div>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Leave request not found</li>
+                <li><strong>400 Bad Request:</strong> Invalid status value</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h3>Delete Leave Request</h3>
+    <div class="endpoint">
+        <p><span class="method delete">DELETE</span> <span class="url-path">/leaves/:eid/:fromDate/:toDate</span></p>
+        <p>Deletes a leave request.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>eid</code> - Employee ID (integer)</li>
+            <li><code>fromDate</code> - Start date (YYYY-MM-DD format)</li>
+            <li><code>toDate</code> - End date (YYYY-MM-DD format)</li>
+        </ul>
+        
+        <div class="success-response">
+            <h4>Success Response:</h4>
+            <div class="json-example">
+{
+  <span class="json-key">"message"</span>: <span class="json-string">"Leave request deleted successfully"</span>
+}
+            </div>
+        </div>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Leave request not found</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h3>Get Leave Summary</h3>
+    <div class="endpoint">
+        <p><span class="method get">GET</span> <span class="url-path">/leaves/summary/:eid</span></p>
+        <p>Retrieves a summary of approved leaves by type for a specific employee.</p>
+        
+        <h4>URL Parameters:</h4>
+        <ul>
+            <li><code>eid</code> - Employee ID (integer)</li>
+        </ul>
+        
+        <h4>Response Example:</h4>
+        <div class="json-example">
+{
+  <span class="json-key">"eid"</span>: <span class="json-number">1</span>,
+  <span class="json-key">"name"</span>: <span class="json-string">"John Doe"</span>,
+  <span class="json-key">"summary"</span>: {
+    <span class="json-key">"Annual Leave"</span>: {
+      <span class="json-key">"total_days"</span>: <span class="json-number">15</span>,
+      <span class="json-key">"count"</span>: <span class="json-number">2</span>
+    },
+    <span class="json-key">"Sick Leave"</span>: {
+      <span class="json-key">"total_days"</span>: <span class="json-number">5</span>,
+      <span class="json-key">"count"</span>: <span class="json-number">1</span>
+    }
+  }
+}
+        </div>
+        
+        <div class="error-responses">
+            <h4>Error Responses:</h4>
+            <ul>
+                <li><strong>404 Not Found:</strong> Employee with the specified ID does not exist</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="section-divider"></div>
+    
+    <h2>Integration Notes for Frontend Developers</h2>
+    
+    <h3>Authentication & Headers</h3>
+    <p>All API requests should include appropriate headers. While not explicitly documented, ensure you include:</p>
+    <ul>
+        <li><code>Content-Type: application/json</code> for POST/PUT requests</li>
+        <li>Any authentication tokens as required by your system</li>
+    </ul>
+    
+    <h3>Error Handling</h3>
+    <p>Always implement proper error handling for HTTP status codes:</p>
+    <ul>
+        <li><strong>200 OK:</strong> Successful GET requests</li>
+        <li><strong>201 Created:</strong> Successful POST requests</li>
+        <li><strong>400 Bad Request:</strong> Invalid request data</li>
+        <li><strong>404 Not Found:</strong> Resource not found</li>
+        <li><strong>409 Conflict:</strong> Data conflicts (e.g., overlapping leave requests)</li>
+        <li><strong>500 Internal Server Error:</strong> Server-side errors</li>
+    </ul>
+    
+    <h3>Date Format Standards</h3>
+    <p>All dates in the API follow these formats:</p>
+    <ul>
+        <li><strong>Date fields:</strong> YYYY-MM-DD (e.g., "2025-07-10")</li>
+        <li><strong>Time fields:</strong> HH:MM AM/PM (e.g., "09:00 AM")</li>
+    </ul>
+    
+    <h3>Data Validation</h3>
+    <p>Client-side validation should match server-side requirements:</p>
+    <ul>
+        <li><strong>Gender:</strong> Must be "male" or "female"</li>
+        <li><strong>Employment Status:</strong> Must be "part time" or "full time"</li>
+        <li><strong>Leave Status:</strong> Must be "Pending", "Approved", "Rejected", or "Cancelled"</li>
+        <li><strong>Email:</strong> Must be a valid email format</li>
+        <li><strong>Phone:</strong> Should be numeric string</li>
+    </ul>
+    
+    <h3>Common Use Cases</h3>
+    
+    <h4>Employee Registration Flow:</h4>
+    <ol>
+        <li>Create employee with basic information</li>
+        <li>Add bank information (if provided)</li>
+        <li>Add emergency contacts (if provided)</li>
+    </ol>
+    
+    <h4>Daily Attendance Flow:</h4>
+    <ol>
+        <li>Employee clocks in using <code>/attendance/clock-in</code></li>
+        <li>Employee clocks out using <code>/attendance/clock-out</code></li>
+        <li>View attendance records using <code>/attendance/:eid</code></li>
+    </ol>
+    
+    <h4>Leave Management Flow:</h4>
+    <ol>
+        <li>Employee applies for leave using <code>/leaves</code></li>
+        <li>Manager views all leave requests using <code>/leaves</code></li>
+        <li>Manager approves/rejects using <code>/leaves/:eid/:fromDate/:toDate/status</code></li>
+        <li>View leave summary using <code>/leaves/summary/:eid</code></li>
+    </ol>
+    
+    <h3>Performance Considerations</h3>
+    <ul>
+        <li>Use pagination for large employee lists (if supported)</li>
+        <li>Cache employee data when possible</li>
+        <li>Implement loading states for API calls</li>
+        <li>Use debouncing for search functionality</li>
+    </ul>
+    
+    <h3>Testing Recommendations</h3>
+    <ul>
+        <li>Test all CRUD operations for each endpoint</li>
+        <li>Test error scenarios (404, 400, 409)</li>
+        <li>Test date edge cases (leap years, month boundaries)</li>
+        <li>Test concurrent clock-in/clock-out scenarios</li>
+        <li>Test overlapping leave requests</li>
+    </ul>
+    
+    <div class="section-divider"></div>
+    
+    <h2>Contact Information</h2>
+    <p>For technical support or questions about this API documentation, please contact:</p>
+    <ul>
+        <li><strong>Backend Team:</strong> backend@company.com</li>
+        <li><strong>API Documentation:</strong> docs@company.com</li>
+        <li><strong>Technical Support:</strong> support@company.com</li>
+    </ul>
+    
+    <p><em>This document was generated on July 7, 2025, and reflects the current state of the HR Module API. Please ensure you're using the latest version of this documentation.</em></p>
+    
+</body>
+</html>

@@ -75,7 +75,7 @@ export default function HrmLayout({
       </div>
 
       {/* Page Content */}
-      <div className="flex-1 py-4 md:py-6 bg-gray-50">
+      <div className="flex-1 py-4 md:py-6 bg-gray-50 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 w-full">
           {children}
         </div>
