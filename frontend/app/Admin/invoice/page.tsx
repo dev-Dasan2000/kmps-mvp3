@@ -39,6 +39,11 @@ interface Dentist {
   specialization: string;
 }
 
+interface InvoiceServiceAssign {
+  invoice_id: number;
+  service_id: number;
+}
+
 interface InvoiceService {
   service_id: number;
   service_name: string;
@@ -58,7 +63,7 @@ interface Invoice {
   note: string;
   patients: Patient;
   dentists: Dentist | null;
-  services: InvoiceService[];
+  
 }
 
 interface InvoiceFormData {
