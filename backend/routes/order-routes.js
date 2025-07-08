@@ -62,7 +62,7 @@ router.post('/', async (req, res) => {
   try {
     const data = req.body;
     const order = await prisma.orders.create({ data });
-    res.status(201).json(order);
+    res.status(201).json(order.order_id);
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: 'Failed to create order' });

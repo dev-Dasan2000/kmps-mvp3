@@ -5,6 +5,7 @@ import { Loader, Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, 
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { headers } from 'next/headers';
 // ======================== TYPES ========================
 
 type Lab = {
@@ -110,6 +111,7 @@ const DentalLabModule = () => {
   const [stageAssigns, setStageAssigns] = useState<StageAssign[]>([]);
   const [patients, setPatients] = useState<PatientType[]>([]);
   const [dentists, setDentists] = useState<DenstistType[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const [showNewLab, setShowNewLab] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -500,6 +502,46 @@ const DentalLabModule = () => {
       if (res.status != 201) {
         throw new Error("Error Creating an Order");
       }
+      for (const file of selectedFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await axios.post(`${backendURL}/files`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          },
+          withCredentials: true
+        });
+
+        const uploadedFile = {
+          id: Date.now() + Math.random(),
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: response.data.url,
+          category: 'uncategorized'
+        };
+
+        const res2 = await axios.post(
+          `${backendURL}/order-files`,
+          {
+            url: response.data.url,
+            order_id: res.data // or `newOrderID` if set
+          },
+          {
+            withCredentials: true,
+            headers: {
+              "content-type": "application/json",
+            }
+          }
+        );
+
+        if (res2.status !== 201) {
+          throw new Error("Error creating order file entry");
+        }
+        setUploadedFiles(prev => [...prev, uploadedFile]);
+      }
+
       setToast({
         message: "Order created successfully.",
         type: "success",
@@ -519,16 +561,15 @@ const DentalLabModule = () => {
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files ? Array.from(event.target.files) : [];
-    const newFiles = files.map(file => ({
-      id: Date.now() + Math.random(),
-      name: file.name,
-      size: file.size,
-      type: file.type,
-      category: 'uncategorized'
-    }));
-    setUploadedFiles([...uploadedFiles, ...newFiles]);
+    const fileList = event.target.files;
+    if (!fileList) return;
+
+    const filesArray = Array.from(fileList);
+    setSelectedFiles(prev => [...prev, ...filesArray]);
+
+    event.target.value = ''; // allow re-selecting same file
   };
+
 
   const handleRequestAcceptance = async (order_id: number) => {
     setAcceptingOrder(true);
@@ -562,8 +603,8 @@ const DentalLabModule = () => {
     }
   };
 
-  const removeFile = (fileId: number) => {
-    setUploadedFiles(uploadedFiles.filter(file => file.id !== fileId));
+  const removeFile = (fileName: string) => {
+    setSelectedFiles(selectedFiles.filter(file => file.name !== fileName));
   };
 
   const handleSendInvite = async () => {
@@ -939,11 +980,11 @@ const DentalLabModule = () => {
               </div>
             </div>
 
-            {uploadedFiles.length > 0 && (
+            {selectedFiles.length > 0 && (
               <div className="space-y-2">
                 <h4 className="font-medium text-gray-900">Uploaded Files</h4>
-                {uploadedFiles.map((file) => (
-                  <div key={file.id} className="flex items-center justify-between bg-white p-3 rounded border">
+                {selectedFiles.map((file) => (
+                  <div key={file.name} className="flex items-center justify-between bg-white p-3 rounded border">
                     <div className="flex items-center">
                       <FileText className="h-5 w-5 text-gray-400 mr-3" />
                       <div>
@@ -952,7 +993,7 @@ const DentalLabModule = () => {
                       </div>
                     </div>
                     <button
-                      onClick={() => removeFile(file.id)}
+                      onClick={() => removeFile(file.name)}
                       className="text-red-600 hover:text-red-800 text-sm"
                     >
                       Remove
