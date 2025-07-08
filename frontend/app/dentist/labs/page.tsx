@@ -5,7 +5,6 @@ import { Loader, Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, 
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { headers } from 'next/headers';
 // ======================== TYPES ========================
 
 type Lab = {
@@ -379,7 +378,7 @@ const DentalLabModule = () => {
       router.push('/');
       return;
     }
-    if (user.role != "admin") {
+    if (user.role != "dentist") {
       setToast({
         show: true,
         message: 'Access Denied',
@@ -681,7 +680,6 @@ const DentalLabModule = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
@@ -695,12 +693,6 @@ const DentalLabModule = () => {
             {orders.filter(or => or.status != "request").map((order) => (
               <tr key={order.order_id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{order.dentist?.name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{order.dentist?.dentist_id || 'N/A'}</div>
-                  </div>
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
@@ -1377,7 +1369,6 @@ const DentalLabModule = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
@@ -1391,12 +1382,6 @@ const DentalLabModule = () => {
             {orders.filter(or => or.status === "request").map((order) => (
               <tr key={order.order_id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{order.dentist?.name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{order.dentist?.dentist_id || 'N/A'}</div>
-                  </div>
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div>
                     <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
