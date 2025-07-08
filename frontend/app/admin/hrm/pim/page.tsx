@@ -1,27 +1,99 @@
+'use client';
+
 import { Metadata } from 'next';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuickActions } from '../components/QuickActions';
 import { StaffDirectory } from '../components/StaffDirectort';
+import { useEffect, useState, useCallback } from 'react';
 
-export const metadata: Metadata = {
-  title: 'PIM - HRM',
-  description: 'Manage employee information, job titles, and departments.',
-};
+//backend url
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-const staffOverview = {
-  totalStaff: 25,
-  dentists: 8,
-  assistants: 12,
-  supportStaff: 5,
-};
+interface Employee {
+  eid: number;
+  name: string;
+  job_title: string;
+  employment_status: 'full time' | 'part time';
+  email: string;
+  phone: string;
+  bank_info: any[];
+  emergency_contact: any[];
+}
 
-const scheduleStats = {
-  fullTime: 18,
-  partTime: 5,
-  onLeave: 2,
-};
+interface StaffStats {
+  totalStaff: number;
+  fullTime: number;
+  partTime: number;
+  onLeave: number;
+  byJobTitle: {
+    [key: string]: number;
+  };
+}
 
 export default function PIMPage() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [staffStats, setStaffStats] = useState<StaffStats>({
+    totalStaff: 0,
+    fullTime: 0,
+    partTime: 0,
+    onLeave: 0,
+    byJobTitle: {}
+  });
+
+  const calculateStats = (data: Employee[]) => {
+    const stats: StaffStats = {
+      totalStaff: data.length,
+      fullTime: data.filter((emp: Employee) => emp.employment_status === 'full time').length,
+      partTime: data.filter((emp: Employee) => emp.employment_status === 'part time').length,
+      onLeave: 0,
+      byJobTitle: {}
+    };
+
+    data.forEach((emp: Employee) => {
+      if (emp.job_title) {
+        stats.byJobTitle[emp.job_title] = (stats.byJobTitle[emp.job_title] || 0) + 1;
+      }
+    });
+
+    return stats;
+  };
+
+  const fetchEmployees = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${backendUrl}/hr/employees`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch employees');
+      }
+      const data = await response.json();
+      setEmployees(data);
+      setStaffStats(calculateStats(data));
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
+
+  const handleEmployeeAdded = useCallback(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-full">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">Error: {error}</div>;
+  }
+
   return (
     <div className="space-y-6 p-1">
       <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
@@ -45,20 +117,14 @@ export default function PIMPage() {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Total Staff:</span>
-                <span className="font-semibold">{staffOverview.totalStaff}</span>
+                <span className="font-semibold">{staffStats.totalStaff}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Dentists:</span>
-                <span className="font-semibold">{staffOverview.dentists}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Assistants:</span>
-                <span className="font-semibold">{staffOverview.assistants}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Support Staff:</span>
-                <span className="font-semibold">{staffOverview.supportStaff}</span>
-              </div>
+              {Object.entries(staffStats.byJobTitle).map(([title, count]) => (
+                <div key={title} className="flex justify-between items-center">
+                  <span className="text-gray-600">{title}:</span>
+                  <span className="font-semibold">{count}</span>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -73,19 +139,19 @@ export default function PIMPage() {
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Full-time:</span>
                 <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
-                  {scheduleStats.fullTime}
+                  {staffStats.fullTime}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Part-time:</span>
                 <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                  {scheduleStats.partTime}
+                  {staffStats.partTime}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">On Leave:</span>
                 <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                  {scheduleStats.onLeave}
+                  {staffStats.onLeave}
                 </span>
               </div>
             </div>
@@ -94,7 +160,7 @@ export default function PIMPage() {
       </div>
 
       {/* Staff Directory */}
-      <StaffDirectory />
+      <StaffDirectory employees={employees} onEmployeeAdded={handleEmployeeAdded} />
     </div>
   );
 }

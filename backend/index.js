@@ -51,6 +51,7 @@ import hrEmployeeRouter from './routes/hr/employee-routes.js';
 import hrAttendanceRouter from './routes/hr/attendance-routes.js';
 import hrLeaveRouter from './routes/hr/leave-routes.js';
 import './routes/automated-routes.js';
+import consentFormRouter from './routes/consent-routes.js';
 
 dotenv.config();
 
@@ -112,5 +113,6 @@ app.use('/labs', labRouter);
 app.use('/hr/employees', hrEmployeeRouter);
 app.use('/hr/attendance', hrAttendanceRouter);
 app.use('/hr/leaves', hrLeaveRouter);
+app.use('/consent-forms', consentFormRouter);
 
 app.listen(PORT, () => console.log(`Server listening on ${PORT}`));

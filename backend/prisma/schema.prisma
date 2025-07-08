@@ -30,6 +30,7 @@ model patients {
   soap_notes           soap_notes[]
   studies              study[]
   orders               orders[]
+  consent_forms        consent_form[]
 }
 
 model emergency_contacts {
@@ -64,6 +65,7 @@ model dentists {
   dentistAssigns      DentistAssign[]
   room_assigns         room_assign[]
   orders                orders[]
+  consent_forms        consent_form[]
 }
 
 model appointments {
@@ -455,4 +457,19 @@ model leaves {
 
   @@id([eid, from_date, to_date])
   @@map("leaves")
+}
+
+model consent_form {
+  form_id            Int      @id @default(autoincrement())
+  patient_id         String
+  dentist_id         String
+  procedure_details  String?
+  explanation_given  String?
+  sign               String?
+  status             String?
+  created_date       String?
+  signed_date        String?
+
+  patient            patients @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
+  dentist            dentists @relation(fields: [dentist_id], references: [dentist_id], onDelete: Cascade)
 }
