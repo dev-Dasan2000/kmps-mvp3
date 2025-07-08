@@ -74,7 +74,6 @@ const getStatusColor = (status: string) => {
 
 export default function ExpenseManagement() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [dentists, setDentists] = useState<Dentist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [isLoadingDentists, setIsLoadingDentists] = useState(false);
@@ -99,15 +98,15 @@ export default function ExpenseManagement() {
   const { isLoadingAuth, isLoggedIn, user } = useContext(AuthContext);
 
   useEffect(() => {
+    if(!user) return;
     fetchExpenses();
-    fetchDentists();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
-    if (expenses && dentists) {
+    if (expenses) {
       setIsLoading(false);
     }
-  }, [dentists, expenses])
+  }, [expenses])
 
   useEffect(() => {
     if (!isLoadingAuth) {
@@ -116,7 +115,7 @@ export default function ExpenseManagement() {
           description: "Your session is expired, please login again"
         });
         router.push("/");
-      } else if (user?.role !== "admin") {
+      } else if (user?.role !== "dentist") {
         toast.error("Access Error", {
           description: "You do not have access, redirecting..."
         });
@@ -125,29 +124,11 @@ export default function ExpenseManagement() {
     }
   }, [isLoadingAuth, isLoggedIn, user, router]);
 
-  const fetchDentists = async () => {
-    setIsLoadingDentists(true);
-    try {
-      const res = await axios.get(
-        `${backendURL}/dentists`
-      );
-      if (res.status == 500) {
-        throw new Error("Error fetching dentists");
-      }
-      setDentists(res.data);
-    } catch (error: any) {
-      toast.error(error.message);
-    }
-    finally {
-      setIsLoadingDentists(false);
-    }
-  };
-
   const fetchExpenses = async () => {
     setIsLoadingExpenses(true);
     try {
       const res = await axios.get(
-        `${backendURL}/expense`
+        `${backendURL}/expense/fordentist/${user.id}`
       );
       if (res.status == 500) {
         throw new Error("Error fetching expense");
@@ -175,7 +156,7 @@ export default function ExpenseManagement() {
       description: expense.description || '',
       amount: expense.amount.toString(),
       receipt_url: expense.receipt_url,
-      dentist_id: expense.dentists.dentist_id,
+      dentist_id: user.id,
       status: expense.status
     });
     setIsAddingExpense(true);
@@ -218,7 +199,7 @@ export default function ExpenseManagement() {
         description: formData.description,
         amount: parseFloat(formData.amount),
         receipt_url: uploadedUrl,
-        dentist_id: formData.dentist_id,
+        dentist_id: user.id,
         status: formData.status
       };
 
@@ -249,8 +230,8 @@ export default function ExpenseManagement() {
             description: expenseData.description,
             amount: expenseData.amount,
             receipt_url: expenseData.receipt_url,
-            dentist_id: expenseData.dentist_id,
-            status: "approved",
+            dentist_id: user.id,
+            status: "pending",
             reciept_url:expenseData.receipt_url
           },
           {
@@ -272,9 +253,9 @@ export default function ExpenseManagement() {
           receipt_url: expenseData.receipt_url,
           dentists: {
             dentist_id: expenseData.dentist_id,
-            name: dentists.find((dent) => dent.dentist_id == expenseData.dentist_id)?.name || "N/A"
+            name: ""
           },
-          status: "approved"
+          status: "pending"
         };
 
         setExpenses([...expenses, newExpense]);
@@ -405,7 +386,6 @@ export default function ExpenseManagement() {
               <div className="flex items-center">ID</div>
               <div className="flex items-center">Date</div>
               <div className="flex items-center">Title</div>
-              <div className="flex items-center">Dentist</div>
               <div className="flex items-center">Amount</div>
               <div className="flex items-center">Status</div>
               <div className="flex items-center justify-end pr-4">Action</div>
@@ -426,7 +406,6 @@ export default function ExpenseManagement() {
                       </div>
                     )}
                   </div>
-                  <div className="text-sm text-gray-600">Dr. {expense.dentists?.name}</div>
                   <div className="text-sm font-medium text-gray-900">${expense.amount.toFixed(2)}</div>
                   <div>
                     <Badge className={`${getStatusColor(expense.status)} flex items-center gap-1`}>
@@ -461,23 +440,6 @@ export default function ExpenseManagement() {
                     >
                       <Edit size={16} />
                     </Button>
-
-                    {/* Accept Button - Shows for pending, invisible placeholder for others */}
-                    {expense.status === 'pending' ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => acceptExpense(expense.expence_id)}
-                        className="p-1 h-8 w-8 hover:text-green-600"
-                        title="Accept Expense"
-                      >
-                        <Check size={16} />
-                      </Button>
-                    ) : (
-                      <div className="p-1 h-8 w-8"></div>
-                    )}
-
-
                   </div>
                 </div>
               </div>
@@ -591,24 +553,6 @@ export default function ExpenseManagement() {
                     required
                     className="w-full"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dentist_id" className="text-sm font-medium">Dentist *</Label>
-                  <Select
-                    value={formData.dentist_id}
-                    onValueChange={(value) => handleInputChange('dentist_id', value)}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select dentist" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dentists.map((dentist) => (
-                        <SelectItem key={dentist.dentist_id} value={dentist.dentist_id}>
-                          {dentist?.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 
