@@ -7,16 +7,44 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Trash2, Edit } from "lucide-react";
 import { AddStaffDialog } from '@/components/AddStaffDialog';
+import { toast } from "sonner";
+import { useRouter } from 'next/navigation';
+import axios from 'axios';
+
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+interface BankInfo {
+  account_holder: string;
+  account_no: string;
+  bank_name: string;
+  branch: string;
+  account_type: string;
+}
+
+interface EmergencyContact {
+  name: string;
+  relationship: string;
+  phone: string;
+  email: string;
+}
 
 interface Employee {
   eid: number;
   name: string;
-  job_title: string;
-  employment_status: 'full time' | 'part time';
+  dob: string;
+  gender: string;
   email: string;
   phone: string;
-  bank_info: any[];
-  emergency_contact: any[];
+  address: string;
+  city: string;
+  state: string;
+  province: string;
+  zip_code: string;
+  job_title: string;
+  employment_status: 'full time' | 'part time';
+  salary: string;
+  bank_info: BankInfo[];
+  emergency_contact: EmergencyContact[];
 }
 
 interface StaffDirectoryProps {
@@ -27,6 +55,10 @@ interface StaffDirectoryProps {
 export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const filteredStaff = employees.filter(staff => 
     staff.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -34,12 +66,76 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
     staff.job_title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleEdit = (id: number) => {
-    console.log('Edit staff member:', id);
+  const handleEdit = async (id: number) => {
+    const employee = employees.find(emp => emp.eid === id);
+    if (employee) {
+      setSelectedEmployee(employee);
+      setIsEditDialogOpen(true);
+    }
   };
 
-  const handleDelete = (id: number) => {
-    console.log('Delete staff member:', id);
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this employee?')) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await axios.delete(`${backendUrl}/hr/employees/${id}`, {
+        withCredentials: true
+      });
+
+      if (response.status === 200) {
+        toast.success('Employee deleted successfully');
+        onEmployeeAdded(); // Refresh the employee list
+      } else {
+        throw new Error('Failed to delete employee');
+      }
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 404) {
+          toast.error('Employee not found');
+        } else {
+          toast.error(error.response?.data?.message || 'Failed to delete employee');
+        }
+      } else {
+        toast.error('An unexpected error occurred');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateEmployee = async (employeeData: Partial<Employee>) => {
+    if (!selectedEmployee) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${selectedEmployee.eid}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(employeeData),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Employee not found');
+        }
+        throw new Error('Failed to update employee');
+      }
+
+      toast.success('Employee updated successfully');
+      setIsEditDialogOpen(false);
+      onEmployeeAdded(); // Refresh the employee list
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update employee');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const ScheduleBadge = ({ status }: { status: string }) => (
@@ -117,6 +213,7 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEdit(staff.eid)}
+                        disabled={isLoading}
                       >
                         <Edit />
                       </Button>
@@ -125,6 +222,7 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
                         size="sm" 
                         className="text-red-600 hover:text-red-700"
                         onClick={() => handleDelete(staff.eid)}
+                        disabled={isLoading}
                       >
                         <Trash2 />
                       </Button>
@@ -163,6 +261,7 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
                         size="sm" 
                         className="flex-1"
                         onClick={() => handleEdit(staff.eid)}
+                        disabled={isLoading}
                       >
                         Edit
                       </Button>
@@ -171,6 +270,7 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
                         size="sm" 
                         className="flex-1 text-red-600 hover:text-red-700"
                         onClick={() => handleDelete(staff.eid)}
+                        disabled={isLoading}
                       >
                         Delete
                       </Button>
@@ -187,6 +287,19 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
           onOpenChange={setIsAddDialogOpen}
           onSuccess={onEmployeeAdded}
         />
+
+        {selectedEmployee && (
+          <AddStaffDialog
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            onSuccess={() => {
+              onEmployeeAdded();
+              setSelectedEmployee(null);
+            }}
+            employeeData={selectedEmployee}
+            isEditing={true}
+          />
+        )}
       </CardContent>
     </Card>
   );

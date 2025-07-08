@@ -132,7 +132,7 @@ router.post('/employees', async (req, res) => {
   }
 });
 
-router.put('/employees/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const {
