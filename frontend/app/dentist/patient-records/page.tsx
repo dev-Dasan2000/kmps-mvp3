@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from 'react'
-import { Search, User, FileText, Calendar, Phone, Mail, Download, Upload, AlertCircle, Activity, X, ArrowLeft, Plus, ClipboardCheck, Eye, FileSignature, CheckCircle, Trash2 } from 'lucide-react'
+import { Search, User, FileText, Calendar, Phone, Mail, Download, Upload, AlertCircle, Activity, X, ArrowLeft, Plus, ClipboardCheck, Eye, FileSignature, CheckCircle, Trash2, AlertTriangle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +18,7 @@ import MedicalHistoryForm from '@/Components/medicalhistoryform'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Patient {
   patient_id: string
@@ -83,6 +84,12 @@ interface ConsentForm {
   status: string;
   created_date: string;
   signed_date: string;
+}
+
+// Add new interface for critical conditions
+interface CriticalCondition {
+  patientId: string;
+  conditions: string[];
 }
 
 // ConsentFormContent component to prevent unnecessary re-renders
@@ -726,6 +733,8 @@ export default function DentistDashboard({ params }: DashboardProps) {
   const [selectedForm, setSelectedForm] = useState<any>(null);
   const [isViewFormOpen, setIsViewFormOpen] = useState(false);
   const [isDeletingForm, setIsDeletingForm] = useState(false);
+  // Add state for critical conditions
+  const [criticalConditions, setCriticalConditions] = useState<CriticalCondition[]>([]);
   
   // Open create form
   const openCreateForm = useCallback(() => {
@@ -894,12 +903,62 @@ export default function DentistDashboard({ params }: DashboardProps) {
         throw new Error("Internal Server Error");
       }
       setFetchedPatients(response.data);
+      
+      // Fetch critical conditions for all patients
+      for (const patient of response.data) {
+        fetchPatientCriticalConditions(patient.patient_id);
+      }
     }
     catch (err: any) {
      toast.error(err.message);
     }
     finally {
       setLoadingPatients(false);
+    }
+  };
+
+  // New function to fetch only critical conditions
+  const fetchPatientCriticalConditions = async (patient_id: string) => {
+    try {
+      const response = await axios.get(
+        `${backendURL}/medical-history/${patient_id}`
+      );
+      
+      if (response.status === 200) {
+        // Check for critical conditions
+        const criticalConditionsList: string[] = [];
+        response.data.forEach((item: MedicalHistory) => {
+          // Check for critical medical conditions
+          if (item.medical_question_answer === 'Yes') {
+            if (item.question.question.includes('heart disease')) {
+              criticalConditionsList.push('Heart Disease');
+            } else if (item.question.question.includes('diabetes')) {
+              criticalConditionsList.push('Diabetes');
+            } else if (item.question.question.includes('kidney disease')) {
+              criticalConditionsList.push('Kidney Disease');
+            } else if (item.question.question.includes('liver disease')) {
+              criticalConditionsList.push('Liver Disease');
+            } else if (item.question.question.includes('blood disorder')) {
+              criticalConditionsList.push('Blood Disorder');
+            } else if (item.question.question.includes('hypertension')) {
+              criticalConditionsList.push('Hypertension');
+            }
+          }
+        });
+        
+        if (criticalConditionsList.length > 0) {
+          // Update critical conditions state
+          setCriticalConditions(prev => {
+            const filtered = prev.filter(c => c.patientId !== patient_id);
+            return [...filtered, { patientId: patient_id, conditions: criticalConditionsList }];
+          });
+        } else {
+          // Remove any existing critical conditions for this patient
+          setCriticalConditions(prev => prev.filter(c => c.patientId !== patient_id));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching critical conditions:', error);
     }
   };
 
@@ -913,6 +972,9 @@ export default function DentistDashboard({ params }: DashboardProps) {
         throw new Error("Internal Server Error");
       }
       setMedicalHistory(response.data);
+      
+      // Update critical conditions when medical history is fetched
+      fetchPatientCriticalConditions(patient_id);
     }
     catch (err: any) {
       toast.error(err.message);
@@ -1134,7 +1196,11 @@ export default function DentistDashboard({ params }: DashboardProps) {
     setSelectedPatient(patient);
     setIsMobileOverlayOpen(true);
     setActiveTab('details');
-  }
+    fetchPatientMedicalHistory(patient.patient_id);
+    fetchPatientMedicalReports(patient.patient_id);
+    fetchPatientSOAPNotes(patient.patient_id);
+    fetchConsentForms(patient.patient_id);
+  };
 
   const closeMobileOverlay = () => {
     setIsMobileOverlayOpen(false)
@@ -1176,6 +1242,26 @@ export default function DentistDashboard({ params }: DashboardProps) {
                   <CardTitle>Patient Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Critical conditions alert */}
+                  {selectedPatient && getPatientCriticalConditions(selectedPatient.patient_id).length > 0 && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="h-6 w-6 text-red-600 flex-shrink-0" />
+                        <div>
+                          <h3 className="font-medium text-red-800 text-lg">Critical Medical Conditions</h3>
+                          <p className="text-red-700 mt-1 mb-3">This patient has medical conditions that require special attention:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {getPatientCriticalConditions(selectedPatient.patient_id).map((condition, idx) => (
+                              <Badge key={idx} variant="outline" className="bg-white text-red-700 border-red-300 py-1.5 px-3">
+                                {condition}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium text-gray-700">Date of Birth</label>
@@ -1209,7 +1295,15 @@ export default function DentistDashboard({ params }: DashboardProps) {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
                           </div>
             ) : (
-              <MedicalHistoryForm patientId={selectedPatient?.patient_id} />
+              <MedicalHistoryForm 
+                patientId={selectedPatient?.patient_id} 
+                onSave={() => {
+                  // Refetch medical history after saving to update critical conditions
+                  if (selectedPatient) {
+                    fetchPatientMedicalHistory(selectedPatient.patient_id);
+                  }
+                }}
+              />
                             )}
                         </div>
             </TabsContent>
@@ -1432,6 +1526,25 @@ export default function DentistDashboard({ params }: DashboardProps) {
               </div>
             )}
           </div>
+          
+          {/* Display critical conditions */}
+          {selectedPatient && getPatientCriticalConditions(selectedPatient.patient_id).length > 0 && (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-red-800">Critical Medical Conditions</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {getPatientCriticalConditions(selectedPatient.patient_id).map((condition, idx) => (
+                      <Badge key={idx} variant="outline" className="bg-white text-red-700 border-red-300">
+                        {condition}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1934,6 +2047,12 @@ export default function DentistDashboard({ params }: DashboardProps) {
     );
   }, [view, selectedPatient, user, handleConsentFormSubmit, submittingConsentForm, closeDialog, consentForms, handleSignClick, openCreateForm, handleViewForm, handleDeleteForm]);
 
+  // Add helper function to get critical conditions for a patient
+  const getPatientCriticalConditions = (patientId: string): string[] => {
+    const patientCondition = criticalConditions.find(c => c.patientId === patientId);
+    return patientCondition?.conditions || [];
+  };
+
   return (
     <div className="h-screen bg-gray-100">
       {isDetailsOverlayOpen && selectedPatient && renderDetailsOverlay()}
@@ -1993,6 +2112,29 @@ export default function DentistDashboard({ params }: DashboardProps) {
                             <Badge variant="secondary" className="text-xs">
                               {patient.blood_group}
                             </Badge>
+                          )}
+                          {/* Display critical conditions warning */}
+                          {getPatientCriticalConditions(patient.patient_id).length > 0 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200 hover:bg-red-100">
+                                    <AlertTriangle className="h-3 w-3 mr-1" />
+                                    Critical Condition
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-white p-3 shadow-lg border border-gray-200 rounded-lg max-w-xs">
+                                  <div className="space-y-2">
+                                    <p className="font-medium text-red-700">Critical Medical Conditions:</p>
+                                    <ul className="list-disc pl-4 text-sm text-gray-700">
+                                      {getPatientCriticalConditions(patient.patient_id).map((condition, idx) => (
+                                        <li key={idx}>{condition}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           )}
                           {medicalHistory.length > 0 && (
                             <Badge variant="outline" className="text-xs">
