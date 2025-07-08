@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useContext } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, DollarSign, Upload, Download, Eye, Edit, Trash2, Plus, Search, User, FileText, Clock, CheckCircle, XCircle, Check } from 'lucide-react';
+import { Calendar, DollarSign, Upload, Download, Eye, Edit, Trash2, Plus, Search, User, FileText, Clock, CheckCircle, XCircle, Check, Loader } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -22,7 +21,7 @@ interface Expense {
   description: string;
   amount: number;
   receipt_url: string | null;
-  dentist_id: string;
+  dentists: Dentist;
   status: string;
 }
 
@@ -78,7 +77,12 @@ export default function ExpenseManagement() {
   const [dentists, setDentists] = useState<Dentist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
+  const [isLoadingDentists, setIsLoadingDentists] = useState(false);
+  const [isLoadingExpense, setIsLoadingExpenses] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAccepting, setIsAccepting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [formData, setFormData] = useState<ExpenseFormData>({
     date: '',
@@ -94,61 +98,16 @@ export default function ExpenseManagement() {
   const router = useRouter();
   const { isLoadingAuth, isLoggedIn, user } = useContext(AuthContext);
 
-  // Mock dentists data - replace with actual API call
-  const mockDentists: Dentist[] = [
-    { dentist_id: 'knrsdent001', name: 'Dr. Sarah Johnson' },
-    { dentist_id: 'knrsdent002', name: 'Dr. Michael Chen' },
-    { dentist_id: 'knrsdent003', name: 'Dr. Emily Rodriguez' }
-  ];
-
-  // Mock expenses data - replace with actual API call
-  const mockExpenses: Expense[] = [
-    {
-      expence_id: 1,
-      date: '2025-07-08T00:00:00.000Z',
-      title: '123',
-      description: '2134',
-      amount: 500,
-      receipt_url: null,
-      dentist_id: 'knrsdent001',
-      status: 'pending'
-    },
-    {
-      expence_id: 2,
-      date: '2025-07-07T00:00:00.000Z',
-      title: 'Lab Costs',
-      description: 'Crown fabrication costs',
-      amount: 350.00,
-      receipt_url: null,
-      dentist_id: 'knrsdent002',
-      status: 'approved'
-    },
-    {
-      expence_id: 3,
-      date: '2025-07-06T00:00:00.000Z',
-      title: 'Office Supplies',
-      description: 'Monthly office supplies and stationery',
-      amount: 120.50,
-      receipt_url: 'https://example.com/receipts/receipt-3.pdf',
-      dentist_id: 'knrsdent003',
-      status: 'pending'
-    },
-    {
-      expence_id: 4,
-      date: '2025-07-05T00:00:00.000Z',
-      title: 'Equipment Maintenance',
-      description: 'Dental chair repair and maintenance',
-      amount: 450.75,
-      receipt_url: 'https://example.com/receipts/receipt-4.pdf',
-      dentist_id: 'knrsdent001',
-      status: 'rejected'
-    }
-  ];
-
   useEffect(() => {
     fetchExpenses();
     fetchDentists();
   }, []);
+
+  useEffect(() => {
+    if (expenses && dentists) {
+      setIsLoading(false);
+    }
+  }, [dentists, expenses])
 
   useEffect(() => {
     if (!isLoadingAuth) {
@@ -166,33 +125,39 @@ export default function ExpenseManagement() {
     }
   }, [isLoadingAuth, isLoggedIn, user, router]);
 
-  const fetchExpenses = async () => {
+  const fetchDentists = async () => {
+    setIsLoadingDentists(true);
     try {
-      // Replace with actual API endpoint
-      // const response = await fetch('/api/expenses');
-      // const data = await response.json();
-      // setExpenses(data);
-      
-      // Mock data for now
-      setExpenses(mockExpenses);
-    } catch (error) {
-      console.error('Error fetching expenses:', error);
-    } finally {
-      setIsLoading(false);
+      const res = await axios.get(
+        `${backendURL}/dentists`
+      );
+      if (res.status == 500) {
+        throw new Error("Error fetching dentists");
+      }
+      setDentists(res.data);
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+    finally {
+      setIsLoadingDentists(false);
     }
   };
 
-  const fetchDentists = async () => {
+  const fetchExpenses = async () => {
+    setIsLoadingExpenses(true);
     try {
-      // Replace with actual API endpoint
-      // const response = await fetch('/api/dentists');
-      // const data = await response.json();
-      // setDentists(data);
-      
-      // Mock data for now
-      setDentists(mockDentists);
-    } catch (error) {
-      console.error('Error fetching dentists:', error);
+      const res = await axios.get(
+        `${backendURL}/expense`
+      );
+      if (res.status == 500) {
+        throw new Error("Error fetching expense");
+      }
+      setExpenses(res.data);
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+    finally {
+      setIsLoadingExpenses(false);
     }
   };
 
@@ -210,7 +175,7 @@ export default function ExpenseManagement() {
       description: expense.description || '',
       amount: expense.amount.toString(),
       receipt_url: expense.receipt_url,
-      dentist_id: expense.dentist_id,
+      dentist_id: expense.dentists.dentist_id,
       status: expense.status
     });
     setIsAddingExpense(true);
@@ -230,54 +195,74 @@ export default function ExpenseManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
+    setIsSubmitting(true);
+    let uploadedUrl = ''
+    if (file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await axios.post(`${backendURL}/files`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        withCredentials: true
+      });
+  
+      uploadedUrl = res.data.url;
+      handleInputChange('receipt_url', uploadedUrl);
+    }
     try {
       const expenseData = {
+        expence_id: (expenses.length+1),
         date: new Date(formData.date).toISOString(),
         title: formData.title,
         description: formData.description,
         amount: parseFloat(formData.amount),
-        receipt_url: formData.receipt_url,
+        receipt_url: uploadedUrl,
         dentist_id: formData.dentist_id,
         status: formData.status
       };
 
       if (editingExpense) {
-        // Update existing expense
-        // Replace with actual API call
-        // const response = await fetch(`/api/expenses/${editingExpense.expence_id}`, {
-        //   method: 'PUT',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify(expenseData),
-        // });
-        // const updatedExpense = await response.json();
-
-        // Mock update for now
+        const res = await axios.put(
+          `${backendURL}/expense/${editingExpense.expence_id}`,
+          {
+            ...expenseData,
+          }
+        );
+        if (res.status != 202) {
+          throw new Error("Error Updating Expense Record");
+        }
         const updatedExpense: Expense = {
           ...editingExpense,
           ...expenseData
         };
 
-        setExpenses(expenses.map(expense => 
+        setExpenses(expenses.map(expense =>
           expense.expence_id === editingExpense.expence_id ? updatedExpense : expense
         ));
-        toast.success("Expense updated successfully");
       } else {
-        // Add new expense
-        // Replace with actual API call
-        // const response = await fetch('/api/expenses', {
-        //   method: 'POST',
-        //   headers: {
-        //     'Content-Type': 'application/json',
-        //   },
-        //   body: JSON.stringify(expenseData),
-        // });
-        // const newExpense = await response.json();
-
-        // Mock response for now
+        const res = await axios.post(
+          `${backendURL}/expense`,
+          {
+            date: expenseData.date,
+            title: expenseData.title,
+            description: expenseData.description,
+            amount: expenseData.amount,
+            receipt_url: expenseData.receipt_url,
+            dentist_id: expenseData.dentist_id,
+            status: "approved",
+            reciept_url:expenseData.receipt_url
+          },
+          {
+            withCredentials: true,
+            headers: {
+              "content-type": "application/json"
+            }
+          }
+        );
+        if (res.status != 201) {
+          throw new Error("Error Creating New Expense");
+        }
         const newExpense: Expense = {
           expence_id: expenses.length + 1,
           date: expenseData.date,
@@ -285,22 +270,25 @@ export default function ExpenseManagement() {
           description: expenseData.description,
           amount: expenseData.amount,
           receipt_url: expenseData.receipt_url,
-          dentist_id: expenseData.dentist_id,
-          status: expenseData.status
+          dentists: {
+            dentist_id: expenseData.dentist_id,
+            name: dentists.find((dent) => dent.dentist_id == expenseData.dentist_id)?.name || "N/A"
+          },
+          status: "approved"
         };
 
         setExpenses([...expenses, newExpense]);
         toast.success("Expense added successfully");
       }
-      
+
       resetForm();
       setIsAddingExpense(false);
       setEditingExpense(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving expense:', error);
-      toast.error(editingExpense ? "Failed to update expense" : "Failed to add expense");
+      toast.error("Error", { description: error.message });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -311,16 +299,7 @@ export default function ExpenseManagement() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Here you would typically upload the file to your storage service
-    // and get back a URL. For now, we'll just create a mock URL
-    const mockReceiptUrl = `https://example.com/receipts/${file.name}`;
-    handleInputChange('receipt_url', mockReceiptUrl);
-  };
-
-  const getDentistName = (dentist_id: string) => {
-    const dentist = dentists.find(d => d.dentist_id === dentist_id);
-    return dentist ? dentist.name : 'Unknown';
+    setFile(file);
   };
 
   const formatDate = (dateString: string) => {
@@ -331,23 +310,21 @@ export default function ExpenseManagement() {
     });
   };
 
-  const deleteExpense = async (expence_id: number) => {
-    try {
-      // Replace with actual API call
-      // await fetch(`/api/expenses/${expence_id}`, {
-      //   method: 'DELETE',
-      // });
-      
-      setExpenses(expenses.filter(expense => expense.expence_id !== expence_id));
-      toast.success("Expense deleted successfully");
-    } catch (error) {
-      console.error('Error deleting expense:', error);
-      toast.error("Failed to delete expense");
-    }
-  };
-
   const acceptExpense = async (expence_id: number) => {
+    setIsAccepting(true);
     try {
+      const res = await axios.put(
+        `${backendURL}/expense/${expence_id}`,
+        {
+          status: "approved"
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
       // Replace with actual API call
       // await fetch(`/api/expenses/${expence_id}/accept`, {
       //   method: 'PUT',
@@ -356,9 +333,9 @@ export default function ExpenseManagement() {
       //   },
       //   body: JSON.stringify({ status: 'approved' }),
       // });
-      
-      setExpenses(expenses.map(expense => 
-        expense.expence_id === expence_id 
+
+      setExpenses(expenses.map(expense =>
+        expense.expence_id === expence_id
           ? { ...expense, status: 'approved' }
           : expense
       ));
@@ -367,13 +344,16 @@ export default function ExpenseManagement() {
       console.error('Error accepting expense:', error);
       toast.error("Failed to approve expense");
     }
+    finally {
+      setIsAccepting(false);
+    }
   };
 
   // Filter expenses based on search term
-  const filteredExpenses = expenses.filter(expense => 
+  const filteredExpenses = expenses.filter(expense =>
     expense.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     expense.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getDentistName(expense.dentist_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    expense.dentists?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     expense.amount.toString().includes(searchTerm) ||
     expense.status.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -446,7 +426,7 @@ export default function ExpenseManagement() {
                       </div>
                     )}
                   </div>
-                  <div className="text-sm text-gray-600">{getDentistName(expense.dentist_id)}</div>
+                  <div className="text-sm text-gray-600">Dr. {expense.dentists?.name}</div>
                   <div className="text-sm font-medium text-gray-900">${expense.amount.toFixed(2)}</div>
                   <div>
                     <Badge className={`${getStatusColor(expense.status)} flex items-center gap-1`}>
@@ -454,52 +434,51 @@ export default function ExpenseManagement() {
                       {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
                     </Badge>
                   </div>
-                 {/* Desktop Table View - Action Column Section */}
-<div className="flex items-center justify-end gap-1 min-w-[120px]">
-  
-  {/* Receipt Download Button - Shows when receipt exists, invisible placeholder when not */}
-  {expense.receipt_url ? (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="p-1 h-8 w-8 hover:text-blue-600"
-      title="Download Receipt"
-    >
-      <Download size={16} />
-    </Button>
-  ) : (
-    <div className="p-1 h-8 w-8"></div>
-  )}
-  {/* Edit Button - Always present */}
-  <Button
-    variant="ghost"
-    size="sm"
-    onClick={() => handleEditExpense(expense)}
-    className="p-1 h-8 w-8"
-    title="Edit Expense"
-  >
-    <Edit size={16} />
-  </Button>
-  
-  
-  
-  {/* Accept Button - Shows for pending, invisible placeholder for others */}
-  {expense.status === 'pending' ? (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={() => acceptExpense(expense.expence_id)}
-      className="p-1 h-8 w-8 hover:text-green-600"
-      title="Accept Expense"
-    >
-      <Check size={16} />
-    </Button>
-  ) : (
-    <div className="p-1 h-8 w-8"></div>
-  )}
-  
- 
-</div>
+                  {/* Desktop Table View - Action Column Section */}
+                  <div className="flex items-center justify-end gap-1 min-w-[120px]">
+
+                    {/* Receipt Download Button - Shows when receipt exists, invisible placeholder when not */}
+                    {expense.receipt_url ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-1 h-8 w-8 hover:text-blue-600"
+                        title="Download Receipt"
+                        onClick={() => window.open(`${backendURL}${expense.receipt_url}`, '_blank')}
+                      >
+                        <Download size={16} />
+                      </Button>
+                    ) : (
+                      <div className="p-1 h-8 w-8"></div>
+                    )}
+                    {/* Edit Button - Always present */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditExpense(expense)}
+                      className="p-1 h-8 w-8"
+                      title="Edit Expense"
+                    >
+                      <Edit size={16} />
+                    </Button>
+
+                    {/* Accept Button - Shows for pending, invisible placeholder for others */}
+                    {expense.status === 'pending' ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => acceptExpense(expense.expence_id)}
+                        className="p-1 h-8 w-8 hover:text-green-600"
+                        title="Accept Expense"
+                      >
+                        <Check size={16} />
+                      </Button>
+                    ) : (
+                      <div className="p-1 h-8 w-8"></div>
+                    )}
+
+
+                  </div>
                 </div>
               </div>
             ))}
@@ -546,15 +525,6 @@ export default function ExpenseManagement() {
                     >
                       <Edit size={16} />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteExpense(expense.expence_id)}
-                      className="p-2 h-8 w-8 hover:text-red-600"
-                      title="Delete Expense"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -566,7 +536,7 @@ export default function ExpenseManagement() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <User size={16} />
-                  <span>{getDentistName(expense.dentist_id)}</span>
+                  <span>{expense.dentists?.name}</span>
                 </div>
                 {expense.description && (
                   <div className="flex items-start gap-2 text-sm text-gray-600">
@@ -624,7 +594,7 @@ export default function ExpenseManagement() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="dentist_id" className="text-sm font-medium">Dentist *</Label>
-                  <Select 
+                  <Select
                     value={formData.dentist_id}
                     onValueChange={(value) => handleInputChange('dentist_id', value)}
                   >
@@ -634,14 +604,14 @@ export default function ExpenseManagement() {
                     <SelectContent>
                       {dentists.map((dentist) => (
                         <SelectItem key={dentist.dentist_id} value={dentist.dentist_id}>
-                          {dentist.name}
+                          {dentist?.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-                
+
               <div className="space-y-2">
                 <Label htmlFor="title" className="text-sm font-medium">Title *</Label>
                 <Input
@@ -677,9 +647,9 @@ export default function ExpenseManagement() {
                     className="w-full"
                   />
                 </div>
-                <div className="space-y-2">
+                {/*<div className="space-y-2">
                   <Label htmlFor="status" className="text-sm font-medium">Status *</Label>
-                  <Select 
+                  <Select
                     value={formData.status}
                     onValueChange={(value) => handleInputChange('status', value)}
                   >
@@ -694,7 +664,7 @@ export default function ExpenseManagement() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
+                </div>*/}
               </div>
 
               <div className="space-y-2">
@@ -726,10 +696,10 @@ export default function ExpenseManagement() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isSubmitting}
                   className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
                 >
-                  {isLoading ? 'Saving...' : editingExpense ? 'Update Expense' : 'Add Expense'}
+                  {isSubmitting ? 'Saving...' : editingExpense ? 'Update Expense' : 'Add Expense'}
                 </Button>
               </div>
             </form>
