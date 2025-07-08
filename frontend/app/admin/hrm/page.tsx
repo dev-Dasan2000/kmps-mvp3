@@ -375,11 +375,20 @@ export default function HRMDashboardPage() {
                   <TableRow>
                     <TableHead className="w-[150px]">Employee</TableHead>
                     {weeklyAttendance.length > 0 && 
-                      Object.keys(weeklyAttendance[0].weekly_attendance).map((day) => (
-                        <TableHead key={day} className="text-center">
-                          {formatDayName(weeklyAttendance[0].weekly_attendance[day].date)}
-                        </TableHead>
-                      ))
+                      Object.keys(weeklyAttendance[0].weekly_attendance).map((day) => {
+                        const date = weeklyAttendance[0].weekly_attendance[day].date;
+                        const dayName = formatDayName(date);
+                        const formattedDate = new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                        
+                        return (
+                          <TableHead key={day} className="text-center">
+                            <div className="flex flex-col items-center">
+                              <span>{dayName}</span>
+                              <span className="text-xs text-muted-foreground">{formattedDate}</span>
+                            </div>
+                          </TableHead>
+                        );
+                      })
                     }
                     <TableHead className="text-right">Attendance %</TableHead>
                   </TableRow>
