@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 const router = express.Router();
 const prisma = new PrismaClient();
 
-router.get('/employees', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const employees = await prisma.employees.findMany({
       include: {
