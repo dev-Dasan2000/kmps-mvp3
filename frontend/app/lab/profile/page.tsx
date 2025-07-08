@@ -141,7 +141,7 @@ const LabProfilePage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 p-6 overflow-auto">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
         {/* Profile Card */}
-        {isLoading? <p>Loading...</p> : (<Card className="mb-6">
+        <Card className="mb-6">
           <CardHeader className="pb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -331,7 +331,6 @@ const LabProfilePage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        )}
       </div>
     </div>
   );

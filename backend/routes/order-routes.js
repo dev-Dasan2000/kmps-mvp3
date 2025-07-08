@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
       },
     });
     res.json(orders);
-  } catch(err) {
+  } catch (err) {
     console.log(err)
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
@@ -39,7 +39,11 @@ router.get('/:id', async (req, res) => {
 router.get('/forlab/:id', async (req, res) => {
   try {
     const orders = await prisma.orders.findMany({
-      where:{lab_id:req.params.id},
+      where:
+      {
+        lab_id: req.params.id,
+        status: { not: "request" }
+      },
       include: {
         lab: true,
         patient: true,
@@ -52,7 +56,7 @@ router.get('/forlab/:id', async (req, res) => {
       },
     });
     res.json(orders);
-  } catch(err) {
+  } catch (err) {
     console.log(err)
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
@@ -61,7 +65,7 @@ router.get('/forlab/:id', async (req, res) => {
 router.get('/fordentist/:id', async (req, res) => {
   try {
     const orders = await prisma.orders.findMany({
-      where:{dentist_id:req.params.id},
+      where: { dentist_id: req.params.id },
       include: {
         lab: true,
         patient: true,
@@ -73,7 +77,7 @@ router.get('/fordentist/:id', async (req, res) => {
       },
     });
     res.json(orders);
-  } catch(err) {
+  } catch (err) {
     console.log(err)
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
@@ -97,7 +101,7 @@ router.put('/:id', async (req, res) => {
       data: req.body,
     });
     res.status(202).json(updated);
-  } catch(err) {
+  } catch (err) {
     console.log(err);
     res.status(500).json({ error: 'Failed to update order' });
   }
