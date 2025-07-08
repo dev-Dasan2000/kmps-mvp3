@@ -1,6 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Package, CheckCircle, AlertCircle, Archive, Clock, User, MapPin, ChevronDown } from 'lucide-react';
+import { Package, CheckCircle, AlertCircle, Archive, Clock, User, MapPin, ChevronDown, ClipboardList } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 // TypeScript interfaces based on database schema
 interface Lab {
@@ -254,6 +256,86 @@ const OrdersList: React.FC<OrdersListProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
+  // New states for tracking dialog
+  const [isTrackingDialogOpen, setIsTrackingDialogOpen] = useState<boolean>(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [trackingOptions, setTrackingOptions] = useState<{[key: string]: boolean}>({
+    'In-Person Send': false,
+    'Wax Try-In': false,
+    'Final Processing': false,
+    'Quality Check': false,
+    'Ready for Pickup': false,
+    'Delivery': false,
+    'Completed': false
+  });
+
+  // Function to calculate status based on tracking options
+  const calculateStatus = (options: {[key: string]: boolean}): Order['status'] => {
+    if (options['Completed']) {
+      return '3'; // Completed
+    } else if (Object.values(options).some(value => value)) {
+      return '2'; // In Progress
+    }
+    return '1'; // Pending
+  };
+
+  // Function to handle tracking updates
+  const handleTrackingUpdate = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      setUpdatingOrderId(selectedOrder.order_id);
+      setError(null);
+
+      // Calculate new status based on tracking options
+      const newStatus = calculateStatus(trackingOptions);
+
+      // Update order status
+      await updateOrderStatus(selectedOrder.order_id, newStatus);
+      setIsTrackingDialogOpen(false);
+    } catch (err) {
+      console.error('Error updating tracking:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update tracking');
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  // Function to handle checkbox changes
+  const handleCheckboxChange = (option: string, checked: boolean) => {
+    const newTrackingOptions = {
+      ...trackingOptions,
+      [option]: checked
+    };
+    
+    // If completing the last step, automatically check "Completed"
+    if (option !== 'Completed' && 
+        Object.entries(newTrackingOptions)
+          .filter(([key]) => key !== 'Completed')
+          .every(([_, value]) => value)) {
+      newTrackingOptions['Completed'] = true;
+    }
+    
+    // If unchecking any step, uncheck "Completed"
+    if (!checked) {
+      newTrackingOptions['Completed'] = false;
+    }
+
+    setTrackingOptions(newTrackingOptions);
+
+    // If we have a selected order, update its status in the local state
+    if (selectedOrder) {
+      const newStatus = calculateStatus(newTrackingOptions);
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.order_id === selectedOrder.order_id
+            ? { ...order, status: newStatus }
+            : order
+        )
+      );
+    }
+  };
+
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -264,18 +346,6 @@ const OrdersList: React.FC<OrdersListProps> = ({
     try {
       setUpdatingOrderId(orderId);
       setError(null);
-
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update order status');
-      }
 
       // Update local state
       setOrders(prevOrders =>
@@ -354,6 +424,62 @@ const OrdersList: React.FC<OrdersListProps> = ({
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Tracking Dialog */}
+        <Dialog open={isTrackingDialogOpen} onOpenChange={setIsTrackingDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Order Progress Tracking</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-4">
+                {Object.entries(trackingOptions).map(([option, checked]) => (
+                  <div key={option} className="flex items-center space-x-3">
+                    <Checkbox
+                      id={option}
+                      checked={checked}
+                      onCheckedChange={(checked) => handleCheckboxChange(option, checked === true)}
+                      disabled={option === 'Completed' && !Object.entries(trackingOptions)
+                        .filter(([key]) => key !== 'Completed')
+                        .every(([_, value]) => value)}
+                    />
+                    <label
+                      htmlFor={option}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      {option}
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                <div className="text-sm font-medium text-gray-700">Current Status:</div>
+                <div className="mt-1">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    getStatusInfo(calculateStatus(trackingOptions)).color
+                  }`}>
+                    {getStatusInfo(calculateStatus(trackingOptions)).label}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end space-x-2">
+                <button
+                  onClick={() => setIsTrackingDialogOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleTrackingUpdate}
+                  disabled={updatingOrderId !== null}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {updatingOrderId !== null ? 'Updating...' : 'Update Progress'}
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Header */}
         <div className="mb-8 md:hidden">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Orders Management</h1>
@@ -484,11 +610,10 @@ const OrdersList: React.FC<OrdersListProps> = ({
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
-                  
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -539,25 +664,28 @@ const OrdersList: React.FC<OrdersListProps> = ({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="relative">
-                          <select
-                            value={order.status}
-                            onChange={(e) => updateOrderStatus(order.order_id, e.target.value as Order['status'])}
+                          <button
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              // Initialize tracking options based on current order status
+                              const newTrackingOptions = {
+                                'In-Person Send': order.status === '2' || order.status === '3',
+                                'Wax Try-In': order.status === '2' || order.status === '3',
+                                'Final Processing': order.status === '2' || order.status === '3',
+                                'Quality Check': order.status === '2' || order.status === '3',
+                                'Ready for Pickup': order.status === '2' || order.status === '3',
+                                'Delivery': order.status === '2' || order.status === '3',
+                                'Completed': order.status === '3'
+                              };
+                              setTrackingOptions(newTrackingOptions);
+                              setIsTrackingDialogOpen(true);
+                            }}
+                            className="inline-flex items-center justify-center px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                             disabled={updatingOrderId === order.order_id}
-                            className="appearance-none bg-white border border-gray-300 rounded-md px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed pr-8"
                           >
-                            {STATUS_OPTIONS.map(option => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                          <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                            {updatingOrderId === order.order_id ? (
-                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
-                            ) : (
-                              <ChevronDown className="w-3 h-3 text-gray-400" />
-                            )}
-                          </div>
+                            <ClipboardList className="w-4 h-4 mr-2" />
+                            Track Progress
+                          </button>
                         </div>
                       </td>
                     </tr>
