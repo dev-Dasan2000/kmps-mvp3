@@ -1,15 +1,18 @@
 "use client";
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/Components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Edit3, Save, X, Phone, Mail, MapPin, Stethoscope, Building2 } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context'
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import axios from 'axios';
 
 interface LabProfile {
   lab_id: string;
@@ -24,29 +27,82 @@ interface LabProfile {
 
 const LabProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
-   const { user } = useContext(AuthContext);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRequestingEdit, setIsRequestingEdit] = useState(false);
+  const { user, isLoadingAuth, isLoggedIn } = useContext(AuthContext);
   const [originalData, setOriginalData] = useState<LabProfile>({
-    lab_id: 'LAB001',
-    name: 'Central Medical Laboratory',
-    password: '********',
-    contact_person: 'Dr. Sarah Johnson',
-    contact_number: '+1 (555) 123-4567',
-    email: 'info@centralmedlab.com',
-    address: '123 Healthcare Ave, Medical District, City, State 12345',
-    specialties: 'Pathology, Hematology, Microbiology, Biochemistry, Immunology'
+    lab_id: '',
+    name: '',
+    password: '',
+    contact_person: '',
+    contact_number: '',
+    email: '',
+    address: '',
+    specialties: ''
   });
-  
-  const [formData, setFormData] = useState<LabProfile>(originalData);
+  const [formData, setFormData] = useState<LabProfile>({
+    lab_id: '',
+    name: '',
+    password: '',
+    contact_person: '',
+    contact_number: '',
+    email: '',
+    address: '',
+    specialties: ''
+  });
+
+  const router = useRouter();
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  const fetchLab = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(
+        `${backendURL}/labs/${user.id}`
+      );
+      setOriginalData(response.data);
+      setFormData({ ...response.data, password: "" });
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setIsLoading(false);
+    }
+  }
 
   const handleEdit = () => {
     setIsEditing(true);
   };
 
-  const handleSave = () => {
-    setOriginalData(formData);
-    setIsEditing(false);
-    // Here you would typically make an API call to save the data
-    console.log('Saving data:', formData);
+  const handleSave = async () => {
+    setIsRequestingEdit(true);
+    try {
+      const response = await axios.put(
+        `${backendURL}/labs/${user.id}`,
+        {
+          formData
+        },
+        {
+          withCredentials: true,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      );
+      if (response.status != 202) {
+        throw new Error("Error updating");
+      }
+      setOriginalData(formData);
+      toast.success("Profile Edited Successfully");
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setIsRequestingEdit(false);
+      setIsEditing(false);
+    }
   };
 
   const handleCancel = () => {
@@ -65,26 +121,38 @@ const LabProfilePage: React.FC = () => {
     return name.split(' ').map(word => word[0]).join('').toUpperCase();
   };
 
-  const specialtiesArray = formData.specialties.split(',').map(s => s.trim());
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
+      toast.error("Please Log In");
+      router.push("/");
+      return;
+    }
+    if (user.role != "lab") {
+      toast.error("Access Denied");
+      router.push("/");
+    }
+    fetchLab();
+  }, [isLoadingAuth])
+
+  const specialtiesArray = formData?.specialties.split(',').map(s => s.trim());
 
   return (
-     <div className="min-h-screen bg-gray-50 p-6 overflow-auto">
+    <div className="min-h-screen bg-gray-50 p-6 overflow-auto">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
-       
-
         {/* Profile Card */}
-        <Card className="mb-6">
+        {isLoading? <p>Loading...</p> : (<Card className="mb-6">
           <CardHeader className="pb-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
                 <Avatar className="w-16 h-16 md:w-20 md:h-20">
                   <AvatarFallback className="bg-blue-100 text-blue-600 text-xl font-semibold">
-                    {getInitials(formData.name)}
+                    {getInitials(formData?.name || "")}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <CardTitle className="text-xl md:text-2xl">{formData.name}</CardTitle>
-                  <p className="text-gray-600 text-sm md:text-base">Lab ID: {formData.lab_id}</p>
+                  <CardTitle className="text-xl md:text-2xl">{formData?.name}</CardTitle>
+                  <p className="text-gray-600 text-sm md:text-base">Lab ID: {formData?.lab_id}</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -95,7 +163,7 @@ const LabProfilePage: React.FC = () => {
                   </Button>
                 ) : (
                   <div className="flex gap-2">
-                    <Button className='bg-emerald-500 hover:bg-emerald-600 text-white hover:text-white' onClick={handleSave} size="sm">
+                    <Button className='bg-emerald-500 hover:bg-emerald-600 text-white hover:text-white' onClick={handleSave} size="sm" disabled={isRequestingEdit}>
                       <Save className="w-4 h-4 mr-2" />
                       Save
                     </Button>
@@ -116,7 +184,7 @@ const LabProfilePage: React.FC = () => {
                   <Building2 className="w-5 h-5" />
                   Basic Information
                 </h3>
-                
+
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="name" className="text-sm font-medium text-gray-700">
@@ -125,12 +193,12 @@ const LabProfilePage: React.FC = () => {
                     {isEditing ? (
                       <Input
                         id="name"
-                        value={formData.name}
+                        value={formData?.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         className="mt-1"
                       />
                     ) : (
-                      <p className="mt-1 text-gray-900">{formData.name}</p>
+                      <p className="mt-1 text-gray-900">{formData?.name}</p>
                     )}
                   </div>
 
@@ -141,12 +209,12 @@ const LabProfilePage: React.FC = () => {
                     {isEditing ? (
                       <Input
                         id="contact_person"
-                        value={formData.contact_person}
+                        value={formData?.contact_person}
                         onChange={(e) => handleInputChange('contact_person', e.target.value)}
                         className="mt-1"
                       />
                     ) : (
-                      <p className="mt-1 text-gray-900">{formData.contact_person}</p>
+                      <p className="mt-1 text-gray-900">{formData?.contact_person}</p>
                     )}
                   </div>
 
@@ -158,7 +226,7 @@ const LabProfilePage: React.FC = () => {
                       <Input
                         id="password"
                         type="password"
-                        value={formData.password}
+                        value={formData?.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className="mt-1"
                       />
@@ -170,7 +238,7 @@ const LabProfilePage: React.FC = () => {
               {/* Contact Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold text-gray-900">Contact Information</h3>
-                
+
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="contact_number" className="text-sm font-medium text-gray-700 flex items-center gap-2">
@@ -180,12 +248,12 @@ const LabProfilePage: React.FC = () => {
                     {isEditing ? (
                       <Input
                         id="contact_number"
-                        value={formData.contact_number}
+                        value={formData?.contact_number}
                         onChange={(e) => handleInputChange('contact_number', e.target.value)}
                         className="mt-1"
                       />
                     ) : (
-                      <p className="mt-1 text-gray-900">{formData.contact_number}</p>
+                      <p className="mt-1 text-gray-900">{formData?.contact_number}</p>
                     )}
                   </div>
 
@@ -198,12 +266,12 @@ const LabProfilePage: React.FC = () => {
                       <Input
                         id="email"
                         type="email"
-                        value={formData.email}
+                        value={formData?.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="mt-1"
                       />
                     ) : (
-                      <p className="mt-1 text-gray-900">{formData.email}</p>
+                      <p className="mt-1 text-gray-900">{formData?.email}</p>
                     )}
                   </div>
 
@@ -215,13 +283,13 @@ const LabProfilePage: React.FC = () => {
                     {isEditing ? (
                       <Textarea
                         id="address"
-                        value={formData.address}
+                        value={formData?.address}
                         onChange={(e) => handleInputChange('address', e.target.value)}
                         className="mt-1 min-h-[80px]"
                         rows={3}
                       />
                     ) : (
-                      <p className="mt-1 text-gray-900">{formData.address}</p>
+                      <p className="mt-1 text-gray-900">{formData?.address}</p>
                     )}
                   </div>
                 </div>
@@ -236,7 +304,7 @@ const LabProfilePage: React.FC = () => {
                 <Stethoscope className="w-5 h-5" />
                 Specialties
               </h3>
-              
+
               {isEditing ? (
                 <div>
                   <Label htmlFor="specialties" className="text-sm font-medium text-gray-700">
@@ -244,7 +312,7 @@ const LabProfilePage: React.FC = () => {
                   </Label>
                   <Textarea
                     id="specialties"
-                    value={formData.specialties}
+                    value={formData?.specialties}
                     onChange={(e) => handleInputChange('specialties', e.target.value)}
                     className="mt-1 min-h-[100px]"
                     rows={4}
@@ -253,7 +321,7 @@ const LabProfilePage: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {specialtiesArray.map((specialty, index) => (
+                  {specialtiesArray?.map((specialty, index) => (
                     <Badge key={index} variant="secondary" className="text-sm">
                       {specialty}
                     </Badge>
@@ -263,8 +331,7 @@ const LabProfilePage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-
-        
+        )}
       </div>
     </div>
   );
