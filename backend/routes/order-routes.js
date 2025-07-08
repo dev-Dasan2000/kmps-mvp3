@@ -36,6 +36,28 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+router.get('/forlab/:id', async (req, res) => {
+  try {
+    const orders = await prisma.orders.findMany({
+      where:{lab_id:req.params.id},
+      include: {
+        lab: true,
+        patient: true,
+        dentist: true,
+        work_type: true,
+        shade_type: true,
+        material_type: true,
+        order_files: true,
+        stage_assign: true,
+      },
+    });
+    res.json(orders);
+  } catch(err) {
+    console.log(err)
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
 router.post('/', async (req, res) => {
   try {
     const data = req.body;

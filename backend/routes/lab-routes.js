@@ -35,6 +35,18 @@ router.get('/:lab_id', async (req, res) => {
   }
 });
 
+router.get('/profile/:lab_id', async (req, res) => {
+  try {
+    const lab = await prisma.lab.findUnique({
+      where: { lab_id: req.params.lab_id },
+    });
+    if (!lab) return res.status(404).json({ error: 'Not found' });
+    res.json(lab);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch lab' });
+  }
+});
+
 router.post('/', async (req, res) => {
   try {
     const { password, ...rest } = req.body;
@@ -61,7 +73,7 @@ router.post('/', async (req, res) => {
 
 router.put('/:lab_id', async (req, res) => {
   try {
-    const { password, ...rest } = req.body;
+    const { password, ...rest } = req.body.formData;
     const data = { ...rest };
 
     if (password) {
@@ -74,8 +86,9 @@ router.put('/:lab_id', async (req, res) => {
       data,
     });
 
-    res.json(updatedLab);
-  } catch {
+    res.status(202).json(updatedLab);
+  } catch(err) {
+    console.log(err);
     res.status(500).json({ error: 'Failed to update lab' });
   }
 });
