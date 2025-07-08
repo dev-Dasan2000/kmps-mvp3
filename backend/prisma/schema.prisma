@@ -404,6 +404,8 @@ model employees {
   emergency_contact emergency_contact[]
   attendance        employee_atd[]
   leaves            leaves[]
+  payroll           payroll[]
+  shifts            shifts[]
 
   @@map("employees")
 }
@@ -472,4 +474,28 @@ model consent_form {
 
   patient            patients @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
   dentist            dentists @relation(fields: [dentist_id], references: [dentist_id], onDelete: Cascade)
+}
+
+model payroll {
+  payroll_id Int      @id @default(autoincrement())
+  eid        Int
+  net_salary Float
+  epf        Boolean
+  etf        Boolean
+  status     String
+
+  employee   employees @relation(fields: [eid], references: [eid], onDelete: Cascade)
+
+  @@map("payroll")
+}
+
+model shifts {
+  shift_id  Int       @id @default(autoincrement())
+  eid       Int
+  from_time DateTime
+  to_time   DateTime
+
+  employee  employees @relation(fields: [eid], references: [eid], onDelete: Cascade)
+
+  @@map("shifts")
 }
