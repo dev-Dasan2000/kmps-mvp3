@@ -166,8 +166,29 @@ export default function HRMDashboardPage() {
   // Format day name from ISO date
   const formatDayName = (dateString: string) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { weekday: 'short' });
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) return 'Invalid';
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    } catch (error) {
+      console.error('Date parsing error:', error);
+      return 'Invalid';
+    }
+  };
+
+  // Format date (for chart labels and table headers)
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return '';
+    }
   };
 
   useEffect(() => {
@@ -181,8 +202,8 @@ export default function HRMDashboardPage() {
     const ctx = weeklyChartRef.current.getContext('2d');
     if (!ctx) return;
     
-    // Format dates for labels
-    const labels = dailyAttendanceCounts.map(day => formatDayName(day.date));
+    // Format dates for labels with both day names and dates
+    const labels = dailyAttendanceCounts.map(day => `${formatDayName(day.date)}\n${formatDate(day.date)}`);
     const presentData = dailyAttendanceCounts.map(day => day.present);
     const leaveData = dailyAttendanceCounts.map(day => day.leave);
     
@@ -378,7 +399,7 @@ export default function HRMDashboardPage() {
                       Object.keys(weeklyAttendance[0].weekly_attendance).map((day) => {
                         const date = weeklyAttendance[0].weekly_attendance[day].date;
                         const dayName = formatDayName(date);
-                        const formattedDate = new Date(date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                        const formattedDate = formatDate(date);
                         
                         return (
                           <TableHead key={day} className="text-center">
