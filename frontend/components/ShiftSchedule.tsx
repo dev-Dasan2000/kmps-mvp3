@@ -51,6 +51,7 @@ export default function ShiftSchedule({ shifts, loading = false, onUpdate }: Shi
   const [startTime, setStartTime] = useState<string>('');
   const [endTime, setEndTime] = useState<string>('');
   const [formLoading, setFormLoading] = useState(false);
+  const today = new Date().toISOString().split('T')[0];
 
   // Fetch today's shifts and part-time employees
   useEffect(() => {
@@ -59,12 +60,9 @@ export default function ShiftSchedule({ shifts, loading = false, onUpdate }: Shi
       
       try {
         // Get today's date in YYYY-MM-DD format
-        const today = new Date().toISOString().split('T')[0];
         
         // Fetch today's shifts
-        const shiftsResponse = await axios.get(`${backendURL}/hr/shifts`, {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        });
+        const shiftsResponse = await axios.get(`${backendURL}/hr/shifts`);
         
         // Filter for today's shifts only
         const todayShifts = shiftsResponse.data.filter((shift: Shift) => {
@@ -75,10 +73,7 @@ export default function ShiftSchedule({ shifts, loading = false, onUpdate }: Shi
         setActiveShifts(todayShifts);
         
         // Fetch part-time employees
-        const employeesResponse = await axios.get(`${backendURL}/hr/employees`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          params: { employment_type: 'part-time' }
-        });
+        const employeesResponse = await axios.get(`${backendURL}/hr/employees`);
         
         setPartTimeEmployees(employeesResponse.data.filter((emp: Employee) => 
           emp.employment_type === 'part-time'
@@ -131,7 +126,6 @@ export default function ShiftSchedule({ shifts, loading = false, onUpdate }: Shi
     setFormLoading(true);
     try {
       // Format times to ISO format
-      const today = new Date().toISOString().split('T')[0];
       const fromTime = `${today}T${startTime}:00`;
       const toTime = `${today}T${endTime}:00`;
       
@@ -139,8 +133,6 @@ export default function ShiftSchedule({ shifts, loading = false, onUpdate }: Shi
         eid: parseInt(selectedEmployee),
         from_time: fromTime,
         to_time: toTime
-      }, {
-        headers: { Authorization: `Bearer ${accessToken}` }
       });
       
       toast.success('Shift added successfully');
@@ -157,7 +149,6 @@ export default function ShiftSchedule({ shifts, loading = false, onUpdate }: Shi
       });
       
       // Filter for today's shifts only
-      const today = new Date().toISOString().split('T')[0];
       const todayShifts = shiftsResponse.data.filter((shift: Shift) => {
         const shiftDate = new Date(shift.from_time).toISOString().split('T')[0];
         return shiftDate === today;
