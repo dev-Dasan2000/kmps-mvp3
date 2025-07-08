@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { User, Calendar, Clock, CheckCircle, UserCog } from 'lucide-react';
+import { User, Calendar, Clock, CheckCircle, UserCog, RefreshCcw } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import ShiftSchedule from '@/components/ShiftSchedule';
 import axios from 'axios';
@@ -20,6 +20,7 @@ interface TodayAttendanceResponse {
     clock_out: string | null;
     date: string;
     present: boolean;
+    employment_type?: string;
   }[];
   stats: {
     present: number;
@@ -46,6 +47,18 @@ interface TodayLeavesResponse {
   };
 }
 
+// Interface for shift data
+interface ShiftResponse {
+  shift_id: number;
+  eid: number;
+  from_time: string;
+  to_time: string;
+  employee?: {
+    name: string;
+    employment_type: string;
+  };
+}
+
 // Interface for today's attendance records
 interface AttendanceRecord {
   eid: number;
@@ -54,6 +67,8 @@ interface AttendanceRecord {
   clock_out: string | null;
   hours?: number;
   status: string;
+  employment_type?: string;
+  has_shift_today?: boolean;
 }
 
 // Interface for daily attendance stats
@@ -70,34 +85,70 @@ export default function TimeManagementPage() {
   // State variables
   const [loading, setLoading] = useState(true);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [todayShifts, setTodayShifts] = useState<ShiftResponse[]>([]);
   const [attendanceStats, setAttendanceStats] = useState<AttendanceStats>({
     present: 0,
     absent: 0,
     on_leave: 0
   });
   
-  // Load data on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!isLoggedIn || !backendURL) {
-        return;
-      }
+  // Function to reload data
+  const fetchData = async () => {
+    if (!isLoggedIn || !backendURL) {
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      // Get today's date and day of week (0 = Sunday, 6 = Saturday)
+      const today = new Date();
+      const dayOfWeek = today.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
       
-      setLoading(true);
-      try {
-        // Fetch today's attendance data using the new endpoint
-        const attendanceResponse = await axios.get<TodayAttendanceResponse>(`${backendURL}/hr/attendance/today`);
+      // Fetch today's attendance data
+      const attendanceResponse = await axios.get<TodayAttendanceResponse>(
+        `${backendURL}/hr/attendance/today`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      
+      // Fetch today's leave data
+      const leavesResponse = await axios.get<TodayLeavesResponse>(
+        `${backendURL}/hr/leaves/today/all`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      
+      // Fetch today's shifts
+      const shiftsResponse = await axios.get<ShiftResponse[]>(
+        `${backendURL}/hr/shifts`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      
+      // Filter shifts for today
+      const todayDateStr = today.toISOString().split('T')[0];
+      const shiftsForToday = shiftsResponse.data.filter(shift => {
+        const shiftDate = new Date(shift.from_time).toISOString().split('T')[0];
+        return shiftDate === todayDateStr;
+      });
+      
+      setTodayShifts(shiftsForToday);
+      
+      // Get employee IDs with shifts today
+      const employeesWithShifts = new Set(shiftsForToday.map(shift => shift.eid));
+      
+      if (attendanceResponse.data && leavesResponse.data) {
+        const attendanceData = attendanceResponse.data;
+        const leavesData = leavesResponse.data;
         
-        // Fetch today's leave data
-        const leavesResponse = await axios.get<TodayLeavesResponse>(`${backendURL}/hr/leaves/today/all`);
+        // Get employees on leave
+        const employeesOnLeave = new Set(leavesData.records.map(leave => leave.eid));
         
-        if (attendanceResponse.data && leavesResponse.data) {
-          const attendanceData = attendanceResponse.data;
-          const leavesData = leavesResponse.data;
-          
-          // Process records to add hours and status
-          const processedRecords: AttendanceRecord[] = attendanceData.records.map(record => {
-            // Determine status (Present or Absent)
+        // Process records to add hours and status
+        const processedRecords: AttendanceRecord[] = attendanceData.records
+          .map(record => {
+            // Check if this employee has a shift today
+            const hasShiftToday = employeesWithShifts.has(record.eid);
+            
+            // Determine status
             let status = record.present ? 'Present' : 'Absent';
             let hours = 0;
             
@@ -107,9 +158,14 @@ export default function TimeManagementPage() {
             }
             
             // Check if employee is on leave
-            const isOnLeave = leavesData.records.some(leave => leave.eid === record.eid);
+            const isOnLeave = employeesOnLeave.has(record.eid);
             if (isOnLeave) {
               status = 'On Leave';
+            }
+            
+            // For full-time employees on weekends, show 'Weekend' instead of 'Absent'
+            if (isWeekend && status === 'Absent' && record.employment_type === 'full-time') {
+              status = 'Weekend';
             }
             
             return {
@@ -118,25 +174,36 @@ export default function TimeManagementPage() {
               clock_in: record.clock_in,
               clock_out: record.clock_out,
               hours,
-              status
+              status,
+              employment_type: record.employment_type,
+              has_shift_today: hasShiftToday
             };
-          });
-          
-          setAttendanceRecords(processedRecords);
-          setAttendanceStats({
-            present: attendanceData.stats.present,
-            absent: attendanceData.stats.absent,
-            on_leave: leavesData.stats.on_leave
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching attendance data:', error);
-        toast.error('Failed to load attendance data');
-      } finally {
-        setLoading(false);
+          })
+          // Only show employees with shifts today in the attendance list
+          .filter(record => record.has_shift_today);
+        
+        // Calculate updated stats based on filtered records
+        const presentCount = processedRecords.filter(r => r.status === 'Present').length;
+        const absentCount = processedRecords.filter(r => r.status === 'Absent').length;
+        const onLeaveCount = processedRecords.filter(r => r.status === 'On Leave').length;
+        
+        setAttendanceRecords(processedRecords);
+        setAttendanceStats({
+          present: presentCount,
+          absent: absentCount,
+          on_leave: onLeaveCount
+        });
       }
-    };
-    
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load attendance data');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Load data on component mount
+  useEffect(() => {
     fetchData();
   }, [backendURL, isLoggedIn]);
 
@@ -151,6 +218,10 @@ export default function TimeManagementPage() {
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'absent':
         return 'bg-red-100 text-red-800 border-red-200';
+      case 'weekend':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'on leave':
+        return 'bg-amber-100 text-amber-800 border-amber-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -234,7 +305,6 @@ export default function TimeManagementPage() {
           </Card>
           
 
-          
           <Card className="hover:shadow-md transition-shadow">
             <CardHeader className="pb-2">
               <div className="flex items-center">
@@ -243,7 +313,7 @@ export default function TimeManagementPage() {
                 </div>
                 <div>
                   <CardTitle className="text-xl">Absent</CardTitle>
-                  <CardDescription>Missing staff</CardDescription>
+                  <CardDescription>Missing staff with shifts today</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -283,13 +353,19 @@ export default function TimeManagementPage() {
                   <div>
                     <CardTitle className="text-xl">Today's Attendance</CardTitle>
                     <CardDescription>
-                      Staff time tracking for {new Date().toLocaleDateString('en-US', { dateStyle: 'full' })}
+                      Staff with shifts on {new Date().toLocaleDateString('en-US', { dateStyle: 'full' })}
                     </CardDescription>
                   </div>
-                  <Button size="sm" variant="outline" className="text-blue-600">
-                    <Clock className="h-4 w-4 mr-2" />
-                    Export Report
-                  </Button>
+                  <div className="flex space-x-2">
+                    <Button size="sm" variant="outline" className="text-blue-600" onClick={fetchData}>
+                      <RefreshCcw className="h-4 w-4 mr-2" />
+                      Refresh
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-blue-600">
+                      <Clock className="h-4 w-4 mr-2" />
+                      Export Report
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -334,7 +410,7 @@ export default function TimeManagementPage() {
             {/* Shift Schedule */}
             <Card className="hover:shadow-md transition-shadow">
               <CardContent className="pt-6">
-                <ShiftSchedule loading={loading} />
+                <ShiftSchedule loading={loading} shifts={todayShifts} onUpdate={fetchData} />
               </CardContent>
             </Card>
           </div>

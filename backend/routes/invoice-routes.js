@@ -30,7 +30,7 @@ router.get('/:invoice_id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { patient_id, dentist_id, payment_type, tax_rate, lab_cost, discount, date, total_amount, note } = req.body;
+    const { patient_id, dentist_id, payment_type, tax_rate, lab_cost, discount, date, total_amount, note , status} = req.body;
     const newInvoice = await prisma.invoice.create({
       data: {
         patient_id,
@@ -41,7 +41,8 @@ router.post('/', async (req, res) => {
         discount,
         date: date ? new Date(date) : undefined,
         total_amount,
-        note
+        note,
+        status: status || 'pending',
       },
     });
     res.status(201).json(newInvoice);

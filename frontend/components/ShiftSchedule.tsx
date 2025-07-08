@@ -1,139 +1,322 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Users } from 'lucide-react';
+import { Calendar, Clock, Users, Plus, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { AuthContext } from '@/context/auth-context';
 
 // Shift schedule interface
 interface Shift {
-  id: number;
-  name: string;
-  start_time: string;
-  end_time: string;
-  staff_count: number;
+  shift_id: number;
+  eid: number;
+  from_time: string;
+  to_time: string;
+  name?: string;
+  staff_count?: number;
   group?: string;
+}
+
+// Employee interface
+interface Employee {
+  eid: number;
+  name: string;
+  email: string;
+  job_title: string;
+  employment_type: string;
 }
 
 interface ShiftScheduleProps {
   shifts?: Shift[];
   loading?: boolean;
+  onUpdate?: () => void;
 }
 
-export default function ShiftSchedule({ shifts, loading = false }: ShiftScheduleProps) {
-  const defaultShifts: Shift[] = [
-    {
-      id: 1,
-      name: "Morning Shift",
-      start_time: "08:00",
-      end_time: "16:00",
-      staff_count: 8,
-      group: "General"
-    },
-    {
-      id: 2,
-      name: "Afternoon Shift",
-      start_time: "12:00",
-      end_time: "20:00",
-      staff_count: 5,
-      group: "Emergency"
-    },
-    {
-      id: 3,
-      name: "Evening Shift",
-      start_time: "16:00",
-      end_time: "24:00",
-      staff_count: 3,
-      group: "Critical Care"
-    },
-    {
-      id: 4,
-      name: "Night Shift",
-      start_time: "00:00",
-      end_time: "08:00",
-      staff_count: 2,
-      group: "Emergency"
-    }
-  ];
+export default function ShiftSchedule({ shifts, loading = false, onUpdate }: ShiftScheduleProps) {
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const { accessToken } = useContext(AuthContext);
 
-  const [activeShifts, setActiveShifts] = useState<Shift[]>(shifts || defaultShifts);
+  const [activeShifts, setActiveShifts] = useState<Shift[]>([]);
+  const [partTimeEmployees, setPartTimeEmployees] = useState<Employee[]>([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
+  // Form state
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
+  const [startTime, setStartTime] = useState<string>('');
+  const [endTime, setEndTime] = useState<string>('');
+  const [formLoading, setFormLoading] = useState(false);
+
+  // Fetch today's shifts and part-time employees
+  useEffect(() => {
+    const fetchShiftsAndEmployees = async () => {
+      if (!backendURL) return;
+      
+      try {
+        // Get today's date in YYYY-MM-DD format
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Fetch today's shifts
+        const shiftsResponse = await axios.get(`${backendURL}/hr/shifts`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        
+        // Filter for today's shifts only
+        const todayShifts = shiftsResponse.data.filter((shift: Shift) => {
+          const shiftDate = new Date(shift.from_time).toISOString().split('T')[0];
+          return shiftDate === today;
+        });
+        
+        setActiveShifts(todayShifts);
+        
+        // Fetch part-time employees
+        const employeesResponse = await axios.get(`${backendURL}/hr/employees`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+          params: { employment_type: 'part-time' }
+        });
+        
+        setPartTimeEmployees(employeesResponse.data.filter((emp: Employee) => 
+          emp.employment_type === 'part-time'
+        ));
+        
+      } catch (error) {
+        console.error('Error fetching shifts or employees:', error);
+        toast.error('Failed to load shifts or employees');
+      }
+    };
+    
+    if (!loading) {
+      fetchShiftsAndEmployees();
+    }
+  }, [backendURL, accessToken, loading]);
 
   // Format time in 12-hour format
-  const formatTime = (time24: string) => {
-    const [hours, minutes] = time24.split(':');
-    const hour = parseInt(hours, 10);
-    const meridiem = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12;
-    return `${hour12}:${minutes} ${meridiem}`;
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return '';
+    
+    let date;
+    if (timeStr.includes('T')) {
+      // Handle ISO format
+      date = new Date(timeStr);
+    } else {
+      // Handle HH:MM format
+      const [hours, minutes] = timeStr.split(':');
+      date = new Date();
+      date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0);
+    }
+    
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
-  // Count active shifts (current time-based logic would be more complex in production)
-  const currentlyActiveCount = activeShifts.filter(shift => 
-    shift.name !== "Night Shift"
-  ).length;
+  // Count active shifts
+  const currentlyActiveCount = activeShifts.length;
+
+  // Handle form submission
+  const handleAddShift = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEmployee || !startTime || !endTime) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    
+    setFormLoading(true);
+    try {
+      // Format times to ISO format
+      const today = new Date().toISOString().split('T')[0];
+      const fromTime = `${today}T${startTime}:00`;
+      const toTime = `${today}T${endTime}:00`;
+      
+      await axios.post(`${backendURL}/hr/shifts`, {
+        eid: parseInt(selectedEmployee),
+        from_time: fromTime,
+        to_time: toTime
+      }, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      
+      toast.success('Shift added successfully');
+      setIsAddDialogOpen(false);
+      
+      // Reset form fields
+      setSelectedEmployee('');
+      setStartTime('');
+      setEndTime('');
+      
+      // Refetch shifts
+      const shiftsResponse = await axios.get(`${backendURL}/hr/shifts`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      
+      // Filter for today's shifts only
+      const today = new Date().toISOString().split('T')[0];
+      const todayShifts = shiftsResponse.data.filter((shift: Shift) => {
+        const shiftDate = new Date(shift.from_time).toISOString().split('T')[0];
+        return shiftDate === today;
+      });
+      
+      setActiveShifts(todayShifts);
+      if (onUpdate) onUpdate();
+      
+    } catch (error) {
+      console.error('Error adding shift:', error);
+      toast.error('Failed to add shift');
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold">Shift Schedule</h2>
-        <Button size="sm" variant="outline">
-          <span className="mr-2">+ Add Shift</span>
-        </Button>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold">Shift Schedule</h2>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline" className="text-xs">
+              <Plus className="h-3 w-3 mr-1" /> Add Shift
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Shift</DialogTitle>
+              <DialogDescription>Schedule a shift for a part-time employee</DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleAddShift}>
+              <div className="space-y-3 py-2">
+                <div className="space-y-1">
+                  <Label htmlFor="employee">Select Employee</Label>
+                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {partTimeEmployees.map((employee) => (
+                        <SelectItem key={employee.eid} value={employee.eid.toString()}>
+                          {employee.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="start-time">Start Time</Label>
+                    <Input 
+                      id="start-time" 
+                      type="time" 
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="end-time">End Time</Label>
+                    <Input 
+                      id="end-time" 
+                      type="time"
+                      value={endTime}
+                      onChange={(e) => setEndTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter className="mt-4">
+                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={formLoading}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={formLoading}>
+                  {formLoading ? 'Adding...' : 'Add Shift'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      <div className="mb-6">
-        <Card className="hover:shadow-md transition-shadow mb-6">
-          <CardHeader className="pb-2">
+      <div className="mb-3">
+        <Card className="hover:shadow-sm transition-shadow mb-4">
+          <CardHeader className="pb-1 pt-3">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-emerald-500 rounded-md p-3 mr-4">
-                <Clock className="h-6 w-6 text-white" />
+              <div className="flex-shrink-0 bg-emerald-500 rounded-md p-2 mr-3">
+                <Clock className="h-4 w-4 text-white" />
               </div>
               <div>
-                <CardTitle className="text-xl">Active Shifts</CardTitle>
-                <CardDescription>Currently active</CardDescription>
+                <CardTitle className="text-base">Active Shifts</CardTitle>
+                <CardDescription className="text-xs">Currently active</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-emerald-600">
+          <CardContent className="pt-2">
+            <div className="text-2xl font-bold text-emerald-600">
               {loading ? "..." : currentlyActiveCount}
             </div>
-            <div className="mt-4 space-y-2">
-              <p className="font-medium">Morning: {activeShifts[0]?.staff_count || 0} staff</p>
-              <p className="font-medium">Afternoon: {activeShifts[1]?.staff_count || 0} staff</p>
-              <p className="font-medium">Evening: {activeShifts[2]?.staff_count || 0} staff</p>
-            </div>
+            {activeShifts.length > 0 ? (
+              <div className="mt-2 space-y-1 text-sm">
+                {/* Group shifts by time period */}
+                {[...new Set(activeShifts.map(shift => {
+                  const hour = new Date(shift.from_time).getHours();
+                  if (hour < 12) return 'Morning';
+                  if (hour < 17) return 'Afternoon';
+                  return 'Evening';
+                }))].map(period => (
+                  <p key={period} className="font-medium text-xs">
+                    {period}: {activeShifts.filter(shift => {
+                      const hour = new Date(shift.from_time).getHours();
+                      if (period === 'Morning' && hour < 12) return true;
+                      if (period === 'Afternoon' && hour >= 12 && hour < 17) return true;
+                      if (period === 'Evening' && hour >= 17) return true;
+                      return false;
+                    }).length} staff
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-500 mt-2">No active shifts today</p>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {activeShifts.map(shift => (
-        <Card key={shift.id} className="mb-4 hover:shadow-md transition-shadow">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>{shift.name}</CardTitle>
-                <CardDescription className="flex items-center mt-1">
-                  <Clock className="h-4 w-4 mr-2" />
-                  {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
-                </CardDescription>
+      {activeShifts.length > 0 ? (
+        activeShifts.map(shift => (
+          <Card key={shift.shift_id} className="mb-3 hover:shadow-sm transition-shadow">
+            <CardHeader className="py-2 px-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm">
+                    {shift.name || `Shift ${shift.shift_id}`}
+                  </p>
+                  <div className="flex items-center mt-0.5 text-xs text-gray-500">
+                    <Clock className="h-3 w-3 mr-1" />
+                    {formatTime(shift.from_time)} - {formatTime(shift.to_time)}
+                  </div>
+                </div>
+                <Badge className="text-xs px-1.5 py-0.5">ID: {shift.eid}</Badge>
               </div>
-              <Badge className="text-sm">{shift.staff_count} staff</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center text-sm text-gray-500">
-              <Users className="h-4 w-4 mr-2" />
-              <span>{shift.group}</span>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardHeader>
+          </Card>
+        ))
+      ) : (
+        <div className="text-center py-6">
+          <p className="text-sm text-gray-500">No shifts scheduled for today</p>
+          <p className="text-xs text-gray-400 mt-1">Add shifts using the button above</p>
+        </div>
+      )}
 
-      <div className="flex justify-center mt-6">
-        <Button variant="outline" className="text-blue-600">
-          <Calendar className="h-4 w-4 mr-2" />
-          Manage Roster
+      <div className="flex justify-center mt-4">
+        <Button variant="outline" size="sm" className="text-blue-600 text-xs">
+          <Calendar className="h-3 w-3 mr-1" />
+          View Schedule
         </Button>
       </div>
     </div>

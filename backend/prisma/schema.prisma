@@ -511,6 +511,7 @@ model expense {
   amount       Float
   receipt_url  String?
   dentist_id   String?
+  status        String?
   dentists      dentists? @relation(fields: [dentist_id], references: [dentist_id])
 }
 
