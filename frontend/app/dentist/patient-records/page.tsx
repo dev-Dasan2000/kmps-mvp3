@@ -501,7 +501,7 @@ const ViewConsentFormDialog = React.memo(({
                 'Alternative treatment options presented',
                 'Patient questions addressed and answered',
                 'Post-procedure care instructions explained',
-                'Emergency contact information provided',
+                
                 'Follow-up appointment schedule discussed'
               ].map((requirement, index) => (
                 <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
@@ -1693,7 +1693,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
         </div>
       </div>
       
-      {/* Consent Template */}
+      {/* Consent Template 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -1721,6 +1721,135 @@ export default function DentistDashboard({ params }: DashboardProps) {
               <div className="text-center py-8">
                 <ClipboardCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-500">No consent template available</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>*/}
+
+      {/* Medical Reports 
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Medical Reports
+          </h3>
+          <Button
+            className='bg-emerald-500 hover:bg-emerald-600'
+            size="sm"
+            onClick={() => setIsUploadReportDialogOpen(true)}
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            Upload Report
+          </Button>
+        </div>
+        <div className="grid gap-4">
+          {selectedPatient && medicalReport.map((report) => (
+            <Card key={report.report_id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <FileText className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">{report.record_name}</h4>
+                      <p className="text-xs text-gray-500">
+                        {new URL(`${backendURL}${report.record_url}`).pathname.split('/').pop()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-red-500 hover:bg-red-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteReport(report.report_id);
+                      }}
+                      disabled={deletingReportId === report.report_id}
+                    >
+                      {deletingReportId === report.report_id ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent"></div>
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button 
+                      className='hover:bg-emerald-100' 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFileDownload(report.record_url);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {selectedPatient && medicalReport.length === 0 && (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">No medical reports available</p>
+                <Button
+                  className='bg-emerald-500 hover:bg-emerald-600'
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsUploadReportDialogOpen(true)}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Upload First Report
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>*/}
+
+      {/* Consent Forms Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <FileSignature className="h-5 w-5" />
+            Consent Forms
+          </CardTitle>
+          <Button
+            className='bg-emerald-500 hover:bg-emerald-600'
+            size="sm"
+            onClick={openCreateForm}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Consent Form
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {selectedPatient && consentForms.length > 0 ? (
+              <ConsentFormsList
+                consentForms={consentForms}
+                onSign={handleSignClick}
+                onView={handleViewForm}
+                onDelete={handleDeleteForm}
+              />
+            ) : (
+              <div className="text-center py-6">
+                <FileSignature className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">No consent forms available</p>
+                <Button
+                  className='bg-emerald-500 hover:bg-emerald-600'
+                  size="sm"
+                  onClick={openCreateForm}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create First Consent Form
+                </Button>
               </div>
             )}
           </div>

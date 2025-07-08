@@ -191,7 +191,8 @@ const LabOrderModule = () => {
 
   useEffect(() => {
     if (selectedOrder) {
-      setStages(getStagesForOrder(selectedOrder.order_id));
+      const updatedStages = getStagesForOrder(selectedOrder.order_id);
+      setStages(updatedStages);
     }
   }, [selectedOrder, fetchedStages, stageAssigns]);
 
@@ -321,44 +322,86 @@ const LabOrderModule = () => {
     </div>
   );
 
-  // Add a function to handle stage completion toggle
   const handleStageToggle = async (stageId: number, orderId: number, isCompleted: boolean) => {
     setUpdatingStage(stageId);
     try {
-      const response = await axios.put(
-        `${backendURL}/stage-assign/toggle`,
+      const response = await axios.post(
+        `${backendURL}/stage-assign/`,
         {
           stage_id: stageId,
           order_id: orderId,
-          completed: !isCompleted
+          completed: true,
+          date: new Date().toISOString()
         }
       );
-      
-      if (response.status === 200) {
-        // Update local state to reflect the change
-        setStages(prevStages => 
-          prevStages.map(stage => 
-            stage.stage_id === stageId 
-              ? { ...stage, completed: !isCompleted, date: !isCompleted ? new Date().toISOString() : null } 
-              : stage
-          )
+
+      let newStatus = ""
+      if(stageId !== 5){
+        newStatus = "in-progress"
+      }
+      else{
+        newStatus = "completed"
+      }
+
+      const res2 = await axios.put(
+        `${backendURL}/orders/${orderId}`,
+        {
+          status:newStatus
+        },
+        {
+          withCredentials: true,
+          headers:{
+            "content-type": "application/json"
+          }
+        }
+      );
+
+      if(response.status != 201 || res2.status != 202){
+        throw new Error("Error Updating Order");
+      }
+
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.order_id === orderId
+            ? { ...order, status: newStatus }
+            : order
+        )
+      );
+  
+      if (selectedOrder?.order_id === orderId) {
+        setSelectedOrder(prev => prev ? { ...prev, status: newStatus } : null);
+      }
+
+      setStageAssigns(prevAssigns => {
+        const existingAssign = prevAssigns.find(
+          sa => sa.stage_id === stageId && sa.order_id === orderId
         );
-        
-        // Also update the stageAssigns state
-        setStageAssigns(prevAssigns => 
-          prevAssigns.map(assign => 
+  
+        if (existingAssign) {
+          return prevAssigns.map(assign => 
             (assign.stage_id === stageId && assign.order_id === orderId)
               ? { ...assign, completed: !isCompleted, date: !isCompleted ? new Date().toISOString() : null }
               : assign
-          )
-        );
-        
-        setToast({
-          show: true,
-          message: `Stage ${!isCompleted ? 'completed' : 'marked as pending'}`,
-          type: 'success'
-        });
-      }
+          );
+        } else {
+          return [
+            ...prevAssigns,
+            {
+              stage_assign_id: Date.now(),
+              stage_id: stageId,
+              order_id: orderId,
+              completed: !isCompleted,
+              date: !isCompleted ? new Date().toISOString() : null
+            }
+          ];
+        }
+      });
+    
+      setToast({
+        show: true,
+        message: `Stage ${!isCompleted ? 'completed' : 'marked as pending'}`,
+        type: 'success'
+      });
     } catch (err: any) {
       setToast({
         show: true,
@@ -429,13 +472,13 @@ const LabOrderModule = () => {
                       <Clock className="h-4 w-4 text-gray-400" />
                     )}
                     <div className="relative">
-                      <input
+                      {!stage.completed && (<input
                         type="checkbox"
                         checked={stage.completed}
                         onChange={() => handleStageToggle(stage.stage_id, order.order_id, stage.completed)}
                         disabled={updatingStage === stage.stage_id}
                         className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
-                      />
+                      />)}
                       {updatingStage === stage.stage_id && (
                         <Loader className="h-4 w-4 animate-spin text-blue-600 absolute top-0.5 left-0.5" />
                       )}
