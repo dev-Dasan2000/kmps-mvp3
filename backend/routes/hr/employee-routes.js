@@ -42,6 +42,7 @@ router.get('/employees/:id', async (req, res) => {
 });
 
 router.post('/employees', async (req, res) => {
+  console.debug("employe post route called");
   try {
     const {
       name, dob, gender, email, phone, address, city, state, province,
