@@ -387,8 +387,8 @@ export default function ExpenseManagement() {
   }
 
   return (
-    <div className="flex-1 p-6 overflow-auto">
-      <div className="space-y-6">
+    <div className="flex-1 min-h-screen bg-gray-50 p-6 overflow-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
           <div>
@@ -454,48 +454,52 @@ export default function ExpenseManagement() {
                       {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-end gap-2 ">
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEditExpense(expense)}
-                      className="p-1 h-8 w-8"
-                      title="Edit Expense"
-                    >
-                      <Edit size={16} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteExpense(expense.expence_id)}
-                      className="p-1 h-8 w-8 hover:text-red-600"
-                      title="Delete Expense"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                    {expense.receipt_url && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="p-1 h-8 w-8 hover:text-blue-600"
-                        title="Download Receipt"
-                      >
-                        <Download size={16} />
-                      </Button>
-                    )}
-                    {expense.status === 'pending' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => acceptExpense(expense.expence_id)}
-                        className="p-1 h-8 w-8 hover:text-green-600"
-                        title="Accept Expense"
-                      >
-                        <Check size={16} />
-                      </Button>
-                    )}
-                  </div>
+                 {/* Desktop Table View - Action Column Section */}
+<div className="flex items-center justify-end gap-1 min-w-[120px]">
+  
+  {/* Receipt Download Button - Shows when receipt exists, invisible placeholder when not */}
+  {expense.receipt_url ? (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="p-1 h-8 w-8 hover:text-blue-600"
+      title="Download Receipt"
+    >
+      <Download size={16} />
+    </Button>
+  ) : (
+    <div className="p-1 h-8 w-8"></div>
+  )}
+  {/* Edit Button - Always present */}
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={() => handleEditExpense(expense)}
+    className="p-1 h-8 w-8"
+    title="Edit Expense"
+  >
+    <Edit size={16} />
+  </Button>
+  
+  
+  
+  {/* Accept Button - Shows for pending, invisible placeholder for others */}
+  {expense.status === 'pending' ? (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => acceptExpense(expense.expence_id)}
+      className="p-1 h-8 w-8 hover:text-green-600"
+      title="Accept Expense"
+    >
+      <Check size={16} />
+    </Button>
+  ) : (
+    <div className="p-1 h-8 w-8"></div>
+  )}
+  
+ 
+</div>
                 </div>
               </div>
             ))}
