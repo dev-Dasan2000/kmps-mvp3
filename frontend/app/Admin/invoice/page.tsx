@@ -476,7 +476,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Calendar size={16} />
+                  <CalendarIcon size={16} />
                   <span>{formatDate(invoice.date)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
