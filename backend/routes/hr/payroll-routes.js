@@ -4,6 +4,31 @@ import { PrismaClient } from '@prisma/client';
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// Get all payroll records with employee and bank info for the payroll page
+router.get('/payroll-details', async (req, res) => {
+  try {
+    const payrolls = await prisma.payroll.findMany({
+      include: {
+        employee: {
+          select: {
+            eid: true,
+            name: true,
+            email: true,
+            job_title: true,
+            employment_status: true,
+            salary: true,
+            bank_info: true
+          }
+        }
+      }
+    });
+    res.json(payrolls);
+  } catch (error) {
+    console.error('Error fetching detailed payroll records:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get all payroll records
 router.get('/payroll', async (req, res) => {
   try {
@@ -91,7 +116,7 @@ router.get('/employees/:eid/payroll', async (req, res) => {
 });
 
 // Create a new payroll record
-router.post('/payroll', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { eid, net_salary, epf, etf, status } = req.body;
     
@@ -128,7 +153,7 @@ router.post('/payroll', async (req, res) => {
 });
 
 // Update a payroll record
-router.put('/payroll/:id', async (req, res) => {
+router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { net_salary, epf, etf, status } = req.body;
@@ -161,7 +186,7 @@ router.put('/payroll/:id', async (req, res) => {
 });
 
 // Delete a payroll record
-router.delete('/payroll/:id', async (req, res) => {
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
