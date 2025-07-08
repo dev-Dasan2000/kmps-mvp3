@@ -41,6 +41,8 @@ interface WeeklyAttendance {
       attendance: { clock_in: string; clock_out: string }[];
       leave: boolean;
       date: string;
+      formatted_day: string;  // Pre-formatted day name
+      formatted_date: string; // Pre-formatted date
     };
   };
   total_days_present: number;
@@ -49,6 +51,8 @@ interface WeeklyAttendance {
   week_range: {
     start: string;
     end: string;
+    formatted_start: string; // Pre-formatted start date
+    formatted_end: string;   // Pre-formatted end date
   };
 }
 
@@ -68,7 +72,23 @@ export default function HRMDashboardPage() {
   const [weeklyAttendance, setWeeklyAttendance] = useState<WeeklyAttendance[]>([]);
   const [dailyAttendanceCounts, setDailyAttendanceCounts] = useState<{date: string, present: number, leave: number}[]>([]);
 
-  // Load data on component mount
+  // Sort days to ensure they start from Monday
+  const sortDaysByDate = (days: string[], weeklyAttendance: any) => {
+    return days.sort((a, b) => {
+      const dateA = new Date(weeklyAttendance[a].date);
+      const dateB = new Date(weeklyAttendance[b].date);
+      return dateA.getTime() - dateB.getTime();
+    });
+  };
+
+  // Helper function to get status badge color
+  const getAttendanceStatusColor = (rate: number) => {
+    if (rate >= 90) return 'bg-green-100 text-green-800';
+    if (rate >= 75) return 'bg-blue-100 text-blue-800';
+    if (rate >= 60) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (!isLoggedIn || !backendURL) {
@@ -95,10 +115,10 @@ export default function HRMDashboardPage() {
         }).length || 0;
         setOnLeaveToday(todayLeaveCount);
         
-        // Calculate attendance rate
+        // Calculate attendance rate and process daily attendance data
         if (weeklyAttendanceResponse.data && weeklyAttendanceResponse.data.length > 0) {
           const totalEmployees = employeesResponse.data?.length || 0;
-          const totalWorkdays = weeklyAttendanceResponse.data.length * 5; // Assuming 5 workdays per employee
+          const totalWorkdays = weeklyAttendanceResponse.data.length * 5;
           const totalPresent = weeklyAttendanceResponse.data.reduce(
             (sum: number, employee: WeeklyAttendance) => sum + employee.total_days_present + employee.total_days_on_leave, 0
           );
@@ -114,7 +134,6 @@ export default function HRMDashboardPage() {
               return dayData.date;
             }).sort();
             
-            // Calculate daily counts
             const dailyCounts = days.map(date => {
               let presentCount = 0;
               let leaveCount = 0;
@@ -155,42 +174,6 @@ export default function HRMDashboardPage() {
     fetchData();
   }, [backendURL, isLoggedIn]);
 
-  // Helper function to get status badge color
-  const getAttendanceStatusColor = (rate: number) => {
-    if (rate >= 90) return 'bg-green-100 text-green-800';
-    if (rate >= 75) return 'bg-blue-100 text-blue-800';
-    if (rate >= 60) return 'bg-yellow-100 text-yellow-800';
-    return 'bg-red-100 text-red-800';
-  };
-
-  // Format day name from ISO date
-  const formatDayName = (dateString: string) => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      // Check if date is valid
-      if (isNaN(date.getTime())) return 'Invalid';
-      return date.toLocaleDateString('en-US', { weekday: 'short' });
-    } catch (error) {
-      console.error('Date parsing error:', error);
-      return 'Invalid';
-    }
-  };
-
-  // Format date (for chart labels and table headers)
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      // Check if date is valid
-      if (isNaN(date.getTime())) return '';
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    } catch (error) {
-      console.error('Date formatting error:', error);
-      return '';
-    }
-  };
-
   useEffect(() => {
     if (loading || dailyAttendanceCounts.length === 0 || !weeklyChartRef.current) return;
     
@@ -203,7 +186,7 @@ export default function HRMDashboardPage() {
     if (!ctx) return;
     
     // Format dates for labels with both day names and dates
-    const labels = dailyAttendanceCounts.map(day => `${formatDayName(day.date)}\n${formatDate(day.date)}`);
+    const labels = dailyAttendanceCounts.map(day => `${day.date}`);
     const presentData = dailyAttendanceCounts.map(day => day.present);
     const leaveData = dailyAttendanceCounts.map(day => day.leave);
     
@@ -360,7 +343,7 @@ export default function HRMDashboardPage() {
           <CardTitle className="text-xl">Weekly Attendance Overview</CardTitle>
           <CardDescription>
             {weeklyAttendance.length > 0 && !loading
-              ? `${weeklyAttendance[0].week_range.start} to ${weeklyAttendance[0].week_range.end}`
+              ? `${weeklyAttendance[0].week_range.formatted_start} to ${weeklyAttendance[0].week_range.formatted_end}`
               : 'Loading attendance data...'}
           </CardDescription>
         </CardHeader>
@@ -381,7 +364,7 @@ export default function HRMDashboardPage() {
           <CardTitle className="text-xl">Weekly Attendance Details</CardTitle>
           <CardDescription>
             {weeklyAttendance.length > 0 && !loading
-              ? `${weeklyAttendance[0].week_range.start} to ${weeklyAttendance[0].week_range.end}`
+              ? `${weeklyAttendance[0].week_range.formatted_start} to ${weeklyAttendance[0].week_range.formatted_end}`
               : 'Loading attendance data...'}
           </CardDescription>
         </CardHeader>
@@ -389,68 +372,118 @@ export default function HRMDashboardPage() {
           {loading ? (
             <div className="text-center py-4">Loading attendance data...</div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableCaption>Weekly attendance record for all employees</TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[150px]">Employee</TableHead>
-                    {weeklyAttendance.length > 0 && 
-                      Object.keys(weeklyAttendance[0].weekly_attendance).map((day) => {
-                        const date = weeklyAttendance[0].weekly_attendance[day].date;
-                        const dayName = formatDayName(date);
-                        const formattedDate = formatDate(date);
-                        
-                        return (
-                          <TableHead key={day} className="text-center">
-                            <div className="flex flex-col items-center">
-                              <span>{dayName}</span>
-                              <span className="text-xs text-muted-foreground">{formattedDate}</span>
-                            </div>
-                          </TableHead>
-                        );
-                      })
-                    }
-                    <TableHead className="text-right">Attendance %</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {weeklyAttendance.map((employee) => (
-                    <TableRow key={employee.eid}>
-                      <TableCell className="font-medium">{employee.name}</TableCell>
-                      {Object.keys(employee.weekly_attendance).map((day) => {
-                        const dayData = employee.weekly_attendance[day];
-                        const hasAttendance = dayData.attendance.length > 0;
-                        const isOnLeave = dayData.leave;
-                        
-                        return (
-                          <TableCell key={day} className="text-center">
-                            {isOnLeave ? (
-                              <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-                                Leave
-                              </Badge>
-                            ) : hasAttendance ? (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-                                Present
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
-                                -
-                              </Badge>
-                            )}
-                          </TableCell>
-                        );
-                      })}
-                      <TableCell className="text-right">
-                        <Badge className={getAttendanceStatusColor(Math.round((employee.effective_attendance / 5) * 100))}>
-                          {Math.round((employee.effective_attendance / 5) * 100)}%
-                        </Badge>
-                      </TableCell>
+            <>
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableCaption>Weekly attendance record for all employees</TableCaption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[150px]">Employee</TableHead>
+                      {weeklyAttendance.length > 0 && 
+                        sortDaysByDate(Object.keys(weeklyAttendance[0].weekly_attendance), weeklyAttendance[0].weekly_attendance).map((day) => {
+                          const dayData = weeklyAttendance[0].weekly_attendance[day];
+                          return (
+                            <TableHead key={day} className="text-center">
+                              <div className="flex flex-col items-center">
+                                <span>{dayData.formatted_day}</span>
+                                <span className="text-xs text-muted-foreground">{dayData.formatted_date}</span>
+                              </div>
+                            </TableHead>
+                          );
+                        })
+                      }
+                      <TableHead className="text-right">Attendance %</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {weeklyAttendance.map((employee) => (
+                      <TableRow key={employee.eid}>
+                        <TableCell className="font-medium">{employee.name}</TableCell>
+                        {sortDaysByDate(Object.keys(employee.weekly_attendance), employee.weekly_attendance).map((day) => {
+                          const dayData = employee.weekly_attendance[day];
+                          const hasAttendance = dayData.attendance.length > 0;
+                          const isOnLeave = dayData.leave;
+                          
+                          return (
+                            <TableCell key={day} className="text-center">
+                              {isOnLeave ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                                  Leave
+                                </Badge>
+                              ) : hasAttendance ? (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+                                  Present
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+                                  -
+                                </Badge>
+                              )}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell className="text-right">
+                          <Badge className={getAttendanceStatusColor(Math.round((employee.effective_attendance / 5) * 100))}>
+                            {Math.round((employee.effective_attendance / 5) * 100)}%
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile View */}
+              <div className="md:hidden space-y-6">
+                {weeklyAttendance.map((employee) => (
+                  <Card key={employee.eid} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-lg">{employee.name}</CardTitle>
+                          <CardDescription>
+                            <Badge className={getAttendanceStatusColor(Math.round((employee.effective_attendance / 5) * 100))}>
+                              Attendance: {Math.round((employee.effective_attendance / 5) * 100)}%
+                            </Badge>
+                          </CardDescription>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        {sortDaysByDate(Object.keys(employee.weekly_attendance), employee.weekly_attendance).map((day) => {
+                          const dayData = employee.weekly_attendance[day];
+                          const hasAttendance = dayData.attendance.length > 0;
+                          const isOnLeave = dayData.leave;
+
+                          return (
+                            <div key={day} className="p-2 bg-gray-50 rounded-lg">
+                              <div className="text-sm font-medium mb-1">
+                                {dayData.formatted_day} <span className="text-xs text-gray-500">({dayData.formatted_date})</span>
+                              </div>
+                              {isOnLeave ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                                  Leave
+                                </Badge>
+                              ) : hasAttendance ? (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+                                  Present
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
+                                  -
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

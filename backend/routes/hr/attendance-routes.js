@@ -24,6 +24,33 @@ function formatDateOnly(dateTime) {
   return date.toISOString().split('T')[0];
 }
 
+// Helper function to format day name
+function formatDayName(date) {
+  return new Intl.DateTimeFormat('en-US', { 
+    weekday: 'short',
+    timeZone: 'UTC'
+  }).format(date);
+}
+
+// Helper function to format date (month and day)
+function formatDate(date) {
+  return new Intl.DateTimeFormat('en-US', { 
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC'
+  }).format(date);
+}
+
+// Helper function to format full date (with year)
+function formatFullDate(date) {
+  return new Intl.DateTimeFormat('en-US', { 
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC'
+  }).format(date);
+}
+
 // Get today's attendance for all employees
 router.get('/today', async (req, res) => {
   try {
@@ -249,11 +276,12 @@ router.get('/with-leaves/:eid', async (req, res) => {
 // Get weekly attendance for all employees
 router.get('/weekly/all', async (req, res) => {
   try {
-    // Calculate date range for the current week (Sunday to Saturday)
+    // Calculate date range for the current week (Monday to Sunday)
     const currentDate = new Date();
     const currentDay = currentDate.getDay(); // 0 is Sunday, 6 is Saturday
+    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay;
     const firstDayOfWeek = new Date(currentDate);
-    firstDayOfWeek.setDate(currentDate.getDate() - currentDay);
+    firstDayOfWeek.setDate(currentDate.getDate() + mondayOffset);
     firstDayOfWeek.setHours(0, 0, 0, 0);
     
     const lastDayOfWeek = new Date(firstDayOfWeek);
@@ -301,55 +329,53 @@ router.get('/weekly/all', async (req, res) => {
 
     // Format the weekly attendance data
     const weeklyAttendance = employees.map(employee => {
-      // Group attendance by days
+      // Initialize attendance for each day of the week
       const attendanceByDay = {};
       
-      // Initialize days of week
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      days.forEach(day => {
-        attendanceByDay[day] = {
-          attendance: [],
-          leave: false,
-          leave_type: null
-        };
-      });
-
-      // Populate attendance for each day
-      employee.attendance.forEach(record => {
-        const recordDate = new Date(record.clock_in);
-        const dayOfWeek = days[recordDate.getDay()];
-        
-        attendanceByDay[dayOfWeek].attendance.push({
-          clock_in: formatTimeOnly(record.clock_in),
-          clock_out: formatTimeOnly(record.clock_out)
-        });
-      });
-      
-      // Process leave information for each day of the week
-      const weekDates = [];
+      // Create dates for each day of the week
       for (let i = 0; i < 7; i++) {
         const date = new Date(firstDayOfWeek);
         date.setDate(firstDayOfWeek.getDate() + i);
-        weekDates.push(date);
+        const isoDate = formatDateOnly(date);
+        
+        attendanceByDay[isoDate] = {
+          attendance: [],
+          leave: false,
+          leave_type: null,
+          date: isoDate,
+          formatted_day: formatDayName(date),
+          formatted_date: formatDate(date)
+        };
       }
+
+      // Populate attendance for each day
+      employee.attendance.forEach(record => {
+        const recordDate = formatDateOnly(record.clock_in);
+        if (attendanceByDay[recordDate]) {
+          attendanceByDay[recordDate].attendance.push({
+            clock_in: formatTimeOnly(record.clock_in),
+            clock_out: formatTimeOnly(record.clock_out)
+          });
+        }
+      });
       
       // Mark days with approved leaves
       employee.leaves.forEach(leave => {
         const leaveStart = new Date(leave.from_date);
         const leaveEnd = new Date(leave.to_date);
         
-        weekDates.forEach((date, index) => {
+        Object.keys(attendanceByDay).forEach(dateStr => {
+          const date = new Date(dateStr);
           if (date >= leaveStart && date <= leaveEnd) {
-            const dayOfWeek = days[index];
-            attendanceByDay[dayOfWeek].leave = true;
-            attendanceByDay[dayOfWeek].leave_type = leave.type;
+            attendanceByDay[dateStr].leave = true;
+            attendanceByDay[dateStr].leave_type = leave.type;
           }
         });
       });
       
       // Count effective days present (including leave days)
-      const daysPresent = days.filter(day => attendanceByDay[day].attendance.length > 0).length;
-      const daysOnLeave = days.filter(day => attendanceByDay[day].leave && attendanceByDay[day].attendance.length === 0).length;
+      const daysPresent = Object.values(attendanceByDay).filter(day => day.attendance.length > 0).length;
+      const daysOnLeave = Object.values(attendanceByDay).filter(day => day.leave && day.attendance.length === 0).length;
       
       return {
         eid: employee.eid,
@@ -360,7 +386,9 @@ router.get('/weekly/all', async (req, res) => {
         effective_attendance: daysPresent + daysOnLeave,
         week_range: {
           start: formatDateOnly(firstDayOfWeek),
-          end: formatDateOnly(lastDayOfWeek)
+          end: formatDateOnly(lastDayOfWeek),
+          formatted_start: formatFullDate(firstDayOfWeek),
+          formatted_end: formatFullDate(lastDayOfWeek)
         }
       };
     });
