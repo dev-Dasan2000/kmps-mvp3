@@ -99,6 +99,63 @@ function calculateLeaveDuration(fromDate, toDate) {
   return diffDays;
 }
 
+// Get today's leaves for all employees
+router.get('/today/all', async (req, res) => {
+  try {
+    // Get current date
+    const today = new Date();
+    const formattedToday = formatDateOnly(today);
+    
+    // Find all approved leaves that include today's date
+    const leaves = await prisma.leaves.findMany({
+      where: {
+        status: 'Approved',
+        AND: [
+          { from_date: { lte: today } },
+          { to_date: { gte: today } }
+        ]
+      },
+      include: {
+        employee: true
+      }
+    });
+    
+    // Format the response
+    const formattedLeaves = leaves.map(leave => ({
+      eid: leave.eid,
+      employee_name: leave.employee.name,
+      from_date: formatDateOnly(leave.from_date),
+      to_date: formatDateOnly(leave.to_date),
+      type: leave.type,
+      status: leave.status,
+      duration: calculateLeaveDuration(leave.from_date, leave.to_date)
+    }));
+    
+    // Calculate stats
+    const stats = {
+      on_leave: leaves.length,
+      by_type: {}
+    };
+    
+    // Count by leave type
+    leaves.forEach(leave => {
+      if (!stats.by_type[leave.type]) {
+        stats.by_type[leave.type] = 0;
+      }
+      stats.by_type[leave.type]++;
+    });
+    
+    res.json({
+      date: formattedToday,
+      records: formattedLeaves,
+      stats
+    });
+  } catch (error) {
+    console.error('Error fetching today\'s leaves:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Apply for leave
 router.post('/', async (req, res) => {
   try {

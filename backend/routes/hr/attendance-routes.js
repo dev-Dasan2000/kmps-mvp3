@@ -24,6 +24,65 @@ function formatDateOnly(dateTime) {
   return date.toISOString().split('T')[0];
 }
 
+// Get today's attendance for all employees
+router.get('/today', async (req, res) => {
+  try {
+    // Get current date boundaries
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+    const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    
+    // Get all employees
+    const employees = await prisma.employees.findMany();
+    
+    // Get today's attendance records
+    const attendance = await prisma.employee_atd.findMany({
+      where: {
+        clock_in: {
+          gte: startOfToday,
+          lte: endOfToday
+        }
+      }
+    });
+    
+    // Process attendance data
+    const attendanceByEmployee = {};
+    attendance.forEach(record => {
+      attendanceByEmployee[record.eid] = record;
+    });
+    
+    // Format response
+    const todayAttendance = employees.map(employee => {
+      const record = attendanceByEmployee[employee.eid];
+      
+      return {
+        eid: employee.eid,
+        name: employee.name,
+        clock_in: record ? formatTimeOnly(record.clock_in) : null,
+        clock_out: record?.clock_out ? formatTimeOnly(record.clock_out) : null,
+        date: formatDateOnly(today),
+        present: !!record
+      };
+    });
+    
+    // Calculate stats
+    const stats = {
+      present: todayAttendance.filter(e => e.present).length,
+      absent: todayAttendance.filter(e => !e.present).length,
+      total: todayAttendance.length
+    };
+    
+    res.json({
+      date: formatDateOnly(today),
+      records: todayAttendance,
+      stats
+    });
+  } catch (error) {
+    console.error('Error fetching today\'s attendance:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get employee attendance for current month
 router.get('/:eid', async (req, res) => {
   try {
@@ -437,5 +496,6 @@ router.post('/clock-out', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
 
 export default router;
