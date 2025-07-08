@@ -495,8 +495,8 @@ model payroll {
 model shifts {
   shift_id  Int       @id @default(autoincrement())
   eid       Int
-  from_time DateTime
-  to_time   DateTime
+  from_time String?
+  to_time   String?
 
   employee  employees @relation(fields: [eid], references: [eid], onDelete: Cascade)
 

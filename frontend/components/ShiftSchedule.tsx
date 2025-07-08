@@ -1,315 +1,209 @@
 "use client";
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Users, Plus, X } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Calendar, Clock, Plus } from 'lucide-react';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import axios from 'axios';
 import { toast } from 'sonner';
-import { AuthContext } from '@/context/auth-context';
+import axios from 'axios';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
 
 // Shift schedule interface
 interface Shift {
   shift_id: number;
   eid: number;
-  from_time: string;
-  to_time: string;
-  name?: string;
-  staff_count?: number;
-  group?: string;
+  from_time: string; // ISO
+  to_time: string;   // ISO
+  employee?: { name: string };
 }
 
-// Employee interface
 interface Employee {
   eid: number;
   name: string;
-  email: string;
-  job_title: string;
-  employment_type: string;
 }
+
 
 interface ShiftScheduleProps {
   shifts?: Shift[];
   loading?: boolean;
-  onUpdate?: () => void;
+  partTimeEmployees?: Employee[];
+  onShiftAdded?: () => void;
 }
 
-export default function ShiftSchedule({ shifts, loading = false, onUpdate }: ShiftScheduleProps) {
+export default function ShiftSchedule({ shifts = [], loading = false, partTimeEmployees = [], onShiftAdded }: ShiftScheduleProps) {
+  // Local component state
+  const [activeShifts, setActiveShifts] = useState<Shift[]>(shifts);
+  const [addOpen, setAddOpen] = useState(false);
+  const [selectedEid, setSelectedEid] = useState<number | null>(null);
+  const [fromTime, setFromTime] = useState('');
+  const [toTime, setToTime] = useState('');
+  const [saving, setSaving] = useState(false);
+
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { accessToken } = useContext(AuthContext);
 
-  const [activeShifts, setActiveShifts] = useState<Shift[]>([]);
-  const [partTimeEmployees, setPartTimeEmployees] = useState<Employee[]>([]);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  
-  // Form state
-  const [selectedEmployee, setSelectedEmployee] = useState<string>('');
-  const [startTime, setStartTime] = useState<string>('');
-  const [endTime, setEndTime] = useState<string>('');
-  const [formLoading, setFormLoading] = useState(false);
-  const today = new Date().toISOString().split('T')[0];
-
-  // Fetch today's shifts and part-time employees
+  // Sync when prop changes
   useEffect(() => {
-    const fetchShiftsAndEmployees = async () => {
-      if (!backendURL) return;
-      
-      try {
-        // Get today's date in YYYY-MM-DD format
-        
-        // Fetch today's shifts
-        const shiftsResponse = await axios.get(`${backendURL}/hr/shifts`);
-        
-        // Filter for today's shifts only
-        const todayShifts = shiftsResponse.data.filter((shift: Shift) => {
-          const shiftDate = new Date(shift.from_time).toISOString().split('T')[0];
-          return shiftDate === today;
-        });
-        
-        setActiveShifts(todayShifts);
-        
-        // Fetch part-time employees
-        const employeesResponse = await axios.get(`${backendURL}/hr/employees`);
-        
-        setPartTimeEmployees(employeesResponse.data.filter((emp: Employee) => 
-          emp.employment_type === 'part-time'
-        ));
-        
-      } catch (error) {
-        console.error('Error fetching shifts or employees:', error);
-        toast.error('Failed to load shifts or employees');
-      }
-    };
-    
-    if (!loading) {
-      fetchShiftsAndEmployees();
-    }
-  }, [backendURL, accessToken, loading]);
+    setActiveShifts(shifts);
+  }, [shifts]);
+
+
+
+
+
+
+
 
   // Format time in 12-hour format
-  const formatTime = (timeStr: string) => {
-    if (!timeStr) return '';
-    
-    let date;
-    if (timeStr.includes('T')) {
-      // Handle ISO format
-      date = new Date(timeStr);
-    } else {
-      // Handle HH:MM format
-      const [hours, minutes] = timeStr.split(':');
-      date = new Date();
-      date.setHours(parseInt(hours, 10), parseInt(minutes, 10), 0);
-    }
-    
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+  const formatTime = (time24: string) => {
+    const [hours, minutes] = time24.split(':');
+    const hour = parseInt(hours, 10);
+    const meridiem = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${meridiem}`;
   };
 
-  // Count active shifts
+  // Count active shifts (current time-based logic would be more complex in production)
   const currentlyActiveCount = activeShifts.length;
-
-  // Handle form submission
-  const handleAddShift = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEmployee || !startTime || !endTime) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-    
-    setFormLoading(true);
-    try {
-      // Format times to ISO format
-      const fromTime = `${today}T${startTime}:00`;
-      const toTime = `${today}T${endTime}:00`;
-      
-      await axios.post(`${backendURL}/hr/shifts`, {
-        eid: parseInt(selectedEmployee),
-        from_time: fromTime,
-        to_time: toTime
-      });
-      
-      toast.success('Shift added successfully');
-      setIsAddDialogOpen(false);
-      
-      // Reset form fields
-      setSelectedEmployee('');
-      setStartTime('');
-      setEndTime('');
-      
-      // Refetch shifts
-      const shiftsResponse = await axios.get(`${backendURL}/hr/shifts`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      
-      // Filter for today's shifts only
-      const todayShifts = shiftsResponse.data.filter((shift: Shift) => {
-        const shiftDate = new Date(shift.from_time).toISOString().split('T')[0];
-        return shiftDate === today;
-      });
-      
-      setActiveShifts(todayShifts);
-      if (onUpdate) onUpdate();
-      
-    } catch (error) {
-      console.error('Error adding shift:', error);
-      toast.error('Failed to add shift');
-    } finally {
-      setFormLoading(false);
-    }
-  };
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Shift Schedule</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" variant="outline" className="text-xs">
-              <Plus className="h-3 w-3 mr-1" /> Add Shift
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Shift</DialogTitle>
-              <DialogDescription>Schedule a shift for a part-time employee</DialogDescription>
-            </DialogHeader>
-            
-            <form onSubmit={handleAddShift}>
-              <div className="space-y-3 py-2">
-                <div className="space-y-1">
-                  <Label htmlFor="employee">Select Employee</Label>
-                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select employee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {partTimeEmployees.map((employee) => (
-                        <SelectItem key={employee.eid} value={employee.eid.toString()}>
-                          {employee.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="start-time">Start Time</Label>
-                    <Input 
-                      id="start-time" 
-                      type="time" 
-                      value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="end-time">End Time</Label>
-                    <Input 
-                      id="end-time" 
-                      type="time"
-                      value={endTime}
-                      onChange={(e) => setEndTime(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <DialogFooter className="mt-4">
-                <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={formLoading}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={formLoading}>
-                  {formLoading ? 'Adding...' : 'Add Shift'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" variant="outline" onClick={() => setAddOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" /> Add
+        </Button>
       </div>
 
-      <div className="mb-3">
-        <Card className="hover:shadow-sm transition-shadow mb-4">
-          <CardHeader className="pb-1 pt-3">
+      <div className="mb-6">
+        <Card className="hover:shadow-sm mb-4">
+          <CardHeader className="pb-2">
             <div className="flex items-center">
-              <div className="flex-shrink-0 bg-emerald-500 rounded-md p-2 mr-3">
-                <Clock className="h-4 w-4 text-white" />
+              <div className="flex-shrink-0 bg-emerald-500 rounded-md p-3 mr-4">
+                <Clock className="h-6 w-6 text-white" />
               </div>
               <div>
                 <CardTitle className="text-base">Active Shifts</CardTitle>
-                <CardDescription className="text-xs">Currently active</CardDescription>
+                <CardDescription>Currently active</CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="pt-2">
+          <CardContent>
             <div className="text-2xl font-bold text-emerald-600">
               {loading ? "..." : currentlyActiveCount}
             </div>
-            {activeShifts.length > 0 ? (
-              <div className="mt-2 space-y-1 text-sm">
-                {/* Group shifts by time period */}
-                {[...new Set(activeShifts.map(shift => {
-                  const hour = new Date(shift.from_time).getHours();
-                  if (hour < 12) return 'Morning';
-                  if (hour < 17) return 'Afternoon';
-                  return 'Evening';
-                }))].map(period => (
-                  <p key={period} className="font-medium text-xs">
-                    {period}: {activeShifts.filter(shift => {
-                      const hour = new Date(shift.from_time).getHours();
-                      if (period === 'Morning' && hour < 12) return true;
-                      if (period === 'Afternoon' && hour >= 12 && hour < 17) return true;
-                      if (period === 'Evening' && hour >= 17) return true;
-                      return false;
-                    }).length} staff
-                  </p>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-gray-500 mt-2">No active shifts today</p>
-            )}
+            
           </CardContent>
         </Card>
       </div>
 
-      {activeShifts.length > 0 ? (
-        activeShifts.map(shift => (
-          <Card key={shift.shift_id} className="mb-3 hover:shadow-sm transition-shadow">
-            <CardHeader className="py-2 px-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-sm">
-                    {shift.name || `Shift ${shift.shift_id}`}
-                  </p>
-                  <div className="flex items-center mt-0.5 text-xs text-gray-500">
-                    <Clock className="h-3 w-3 mr-1" />
-                    {formatTime(shift.from_time)} - {formatTime(shift.to_time)}
-                  </div>
-                </div>
-                <Badge className="text-xs px-1.5 py-0.5">ID: {shift.eid}</Badge>
+      {activeShifts.map(shift => (
+        <Card key={shift.shift_id} className="mb-3 hover:shadow-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-medium">{shift.employee?.name || `Employee ${shift.eid}`}</CardTitle>
+                <CardDescription className="flex items-center mt-1">
+                  <Clock className="h-4 w-4 mr-2" />
+                  {formatTime(shift.from_time.split('T')[1].slice(0,5))} - {formatTime(shift.to_time.split('T')[1].slice(0,5))}
+                </CardDescription>
               </div>
-            </CardHeader>
-          </Card>
-        ))
-      ) : (
-        <div className="text-center py-6">
-          <p className="text-sm text-gray-500">No shifts scheduled for today</p>
-          <p className="text-xs text-gray-400 mt-1">Add shifts using the button above</p>
-        </div>
-      )}
+              
+            </div>
+          </CardHeader>
+          <CardContent>
+          </CardContent>
+        </Card>
+      ))}
 
-      <div className="flex justify-center mt-4">
-        <Button variant="outline" size="sm" className="text-blue-600 text-xs">
-          <Calendar className="h-3 w-3 mr-1" />
-          View Schedule
+      <div className="flex justify-center mt-6">
+        <Button size="sm" variant="outline" className="text-blue-600">
+          <Calendar className="h-4 w-4 mr-2" />
+          Manage Roster
         </Button>
       </div>
+
+      {/* Add Shift Dialog */}
+      <Dialog open={addOpen} onOpenChange={(v) => setAddOpen(v)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-xl">Add Shift</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Part-Time Employee</label>
+              <Select value={selectedEid ? String(selectedEid) : undefined} onValueChange={(val) => setSelectedEid(parseInt(val))}>
+                <SelectTrigger className="w-full mt-1">
+                  <SelectValue placeholder="Choose employee" />
+                </SelectTrigger>
+                <SelectContent>
+                  {partTimeEmployees.map(emp => (
+                    <SelectItem key={emp.eid} value={String(emp.eid)}>{emp.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">From</label>
+                <Input type="datetime-local" value={fromTime} onChange={e => setFromTime(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">To</label>
+                <Input type="datetime-local" value={toTime} onChange={e => setToTime(e.target.value)} />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setAddOpen(false)} disabled={saving}>Cancel</Button>
+            <Button onClick={async () => {
+              if (!backendURL) return;
+              if (!selectedEid || !fromTime || !toTime) {
+                toast.error('Please fill all fields');
+                return;
+              }
+              setSaving(true);
+              try {
+                await axios.post(`${backendURL}/hr/shifts`, {
+                  eid: selectedEid,
+                  from_time: new Date(fromTime).toISOString(),
+                  to_time: new Date(toTime).toISOString()
+                });
+                toast.success('Shift added');
+                setAddOpen(false);
+                setSelectedEid(null);
+                setFromTime('');
+                setToTime('');
+                onShiftAdded && onShiftAdded();
+              } catch (err: any) {
+                console.error(err);
+                toast.error(err.response?.data?.message || 'Error adding shift');
+              } finally {
+                setSaving(false);
+              }
+            }} disabled={saving}>
+              {saving ? 'Saving...' : 'Add'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
