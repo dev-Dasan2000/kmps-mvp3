@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useContext } from 'react'
-import { Search, User, FileText, Calendar, Phone, Mail, Download, Upload, AlertCircle, Activity, X, ArrowLeft, Plus, ClipboardCheck, Eye } from 'lucide-react'
+import React, { useState, useEffect, useRef, useContext, useCallback, useMemo } from 'react'
+import { Search, User, FileText, Calendar, Phone, Mail, Download, Upload, AlertCircle, Activity, X, ArrowLeft, Plus, ClipboardCheck, Eye, FileSignature, CheckCircle, Trash2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +15,9 @@ import { AuthContext } from '@/context/auth-context'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner';
 import MedicalHistoryForm from '@/Components/medicalhistoryform'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { format } from 'date-fns';
 
 interface Patient {
   patient_id: string
@@ -70,51 +73,618 @@ interface DashboardProps {
   }
 }
 
-// Dialog Component
-const Dialog = ({ open, onOpenChange, children }: { open: boolean, onOpenChange: (open: boolean) => void, children: React.ReactNode }) => {
-  if (!open) return null;
+interface ConsentForm {
+  form_id: number;
+  patient_id: string;
+  dentist_id: string;
+  procedure_details: string;
+  explanation_given: string;
+  sign: string;
+  status: string;
+  created_date: string;
+  signed_date: string;
+}
+
+// ConsentFormContent component to prevent unnecessary re-renders
+const ConsentFormContent = React.memo(({
+  selectedPatient,
+  user,
+  onSubmit,
+  onClose,
+  submitting
+}: {
+  selectedPatient: Patient | null,
+  user: any,
+  onSubmit: (procedureDetails: string, explanationGiven: string) => void,
+  onClose: () => void,
+  submitting: boolean
+}) => {
+  const [procedureDetails, setProcedureDetails] = useState('');
+  const [explanationGiven, setExplanationGiven] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(procedureDetails, explanationGiven);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
-      <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-        {children}
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Progress Steps */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between max-w-2xl mx-auto">
+          <div className="flex flex-col items-center">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              true ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'
+            }`}>
+              <User className="w-5 h-5" />
       </div>
+            <span className="text-xs mt-2 text-gray-600">Details</span>
+    </div>
+          <div className="flex-1 h-0.5 mx-4 bg-gray-200" />
+          <div className="flex flex-col items-center">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              procedureDetails ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'
+            }`}>
+              <FileText className="w-5 h-5" />
+            </div>
+            <span className="text-xs mt-2 text-gray-600">Procedure</span>
+          </div>
+          <div className="flex-1 h-0.5 mx-4 bg-gray-200" />
+          <div className="flex flex-col items-center">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              explanationGiven ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-400'
+            }`}>
+              <AlertCircle className="w-5 h-5" />
+            </div>
+            <span className="text-xs mt-2 text-gray-600">Risks & Explanation</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        {/* Left side - Form */}
+        <div className="space-y-5">
+          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <User className="w-5 h-5 text-gray-500" />
+              Patient & Doctor Information
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-gray-700">Patient Name</Label>
+                <Input 
+                  value={selectedPatient?.name || ''} 
+                  disabled 
+                  className="mt-1.5 bg-gray-50"
+                />
+  </div>
+              <div>
+                <Label className="text-gray-700">Doctor Name</Label>
+                <Input 
+                  value={user?.name || ''} 
+                  disabled 
+                  className="mt-1.5 bg-gray-50"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-gray-500" />
+              Procedure Details
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-gray-700">
+                  Procedure Description
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <Textarea
+                  value={procedureDetails}
+                  onChange={(e) => setProcedureDetails(e.target.value)}
+                  placeholder="Describe the dental procedure in detail..."
+                  className="mt-1.5 h-28 resize-none"
+                />
+                <p className="text-sm text-gray-500 mt-1.5">
+                  Include specific details about the procedure, techniques, and materials to be used.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-gray-500" />
+              Patient Explanation
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-gray-700">
+                  Explanation Given to Patient
+                  <span className="text-red-500 ml-1">*</span>
+                </Label>
+                <Textarea
+                  value={explanationGiven}
+                  onChange={(e) => setExplanationGiven(e.target.value)}
+                  placeholder="Document the explanation provided to the patient..."
+                  className="mt-1.5 h-28 resize-none"
+                />
+                <p className="text-sm text-gray-500 mt-1.5">
+                  Detail the information shared with the patient about benefits, risks, and alternatives.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right side - Consent Information */}
+        <div className="space-y-5">
+          <div className="bg-blue-50 p-5 rounded-lg border border-blue-100">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FileText className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-medium text-blue-900 mb-2">Consent Context</h4>
+                <p className="text-sm text-blue-700 leading-relaxed">
+                  This consent form documents the patient's agreement to undergo the specified dental procedure
+                  after being fully informed of the risks, benefits, and alternatives.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-lg border border-gray-100">
+            <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              Risk Factors
+            </h4>
+            <div className="space-y-3">
+              {[
+                'Potential complications during or after the procedure',
+                'Possible side effects from anesthesia or medications',
+                'Recovery time and post-procedure care requirements',
+                'Alternative treatment options'
+              ].map((risk, index) => (
+                <div key={index} className="flex items-start gap-2.5 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="mt-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  </div>
+                  <p className="text-sm text-gray-700">{risk}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-lg border border-gray-100">
+            <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-emerald-500" />
+              Requirements Checklist
+            </h4>
+            <div className="space-y-3">
+              {[
+                'Clear explanation of the procedure',
+                'Documentation of patient understanding',
+                'Signature from both patient and doctor',
+                'Date of consent'
+              ].map((requirement, index) => (
+                <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                  <Checkbox 
+                    id={`req-${index}`}
+                    checked={!!procedureDetails && !!explanationGiven}
+                    disabled
+                  />
+                  <label 
+                    htmlFor={`req-${index}`}
+                    className="text-sm text-gray-700 cursor-pointer select-none"
+                  >
+                    {requirement}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-4 mt-6 pt-4 border-t">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          className="px-4"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={submitting || !procedureDetails || !explanationGiven}
+          className="bg-emerald-500 hover:bg-emerald-600 px-4"
+        >
+          {submitting ? 'Submitting...' : 'Submit Consent Form'}
+        </Button>
+      </div>
+    </form>
+  );
+});
+
+ConsentFormContent.displayName = 'ConsentFormContent';
+
+// SignConsentDialog component
+const SignConsentDialog = React.memo(({ 
+  isOpen, 
+  onClose, 
+  onSign, 
+  submitting 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  onSign: (doctorName: string) => void,
+  submitting: boolean
+}) => {
+  const [doctorName, setDoctorName] = useState('');
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle>Sign Consent Form</DialogTitle>
+          <DialogDescription>
+            Please enter your name to sign this consent form.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Doctor's Name</Label>
+            <Input
+              placeholder="Enter your full name"
+              value={doctorName}
+              onChange={(e) => setDoctorName(e.target.value)}
+            />
+  </div>
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => onSign(doctorName)}
+            disabled={!doctorName || submitting}
+          >
+            {submitting ? 'Signing...' : 'Sign Form'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+});
+
+SignConsentDialog.displayName = 'SignConsentDialog';
+
+// ViewConsentFormDialog component
+const ViewConsentFormDialog = React.memo(({ 
+  isOpen, 
+  onClose, 
+  form 
+}: { 
+  isOpen: boolean, 
+  onClose: () => void, 
+  form: any 
+}) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[800px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-semibold text-gray-900">
+            Consent Form - {form?.patient?.name}
+          </DialogTitle>
+          <DialogDescription className="text-gray-500 mt-1.5">
+            Patient ID: {form?.patient_id}
+          </DialogDescription>
+          <div className="flex items-center gap-2 mt-2">
+            {form?.status === 'signed' ? (
+              <Badge className="bg-emerald-100 text-emerald-700">
+                Signed on {formatDate(form?.signed_date)}
+              </Badge>
+            ) : (
+              <Badge className="bg-yellow-100 text-yellow-700">
+                Not Signed
+              </Badge>
+            )}
+          </div>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Patient and Doctor Information */}
+          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <User className="w-5 h-5 text-gray-500" />
+              Patient & Doctor Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="font-medium text-gray-700">Patient Name</h4>
+                <p className="text-gray-600 mt-1">{form?.patient?.name}</p>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-700">Doctor Name</h4>
+                <p className="text-gray-600 mt-1">{form?.dentist?.name}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Consent Context */}
+          <div className="bg-blue-50 p-5 rounded-lg border border-blue-100">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <FileText className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-medium text-blue-900 mb-2">Consent Context</h4>
+                <p className="text-sm text-blue-700 leading-relaxed">
+                  This consent form documents the patient's agreement to undergo the specified dental procedure
+                  after being fully informed of the risks, benefits, and alternatives. The patient acknowledges
+                  understanding of the procedure and its implications.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Procedure Details */}
+          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-gray-500" />
+              Procedure Details
+            </h3>
+            <p className="text-gray-600 whitespace-pre-wrap">{form?.procedure_details}</p>
+          </div>
+
+          {/* Risk Areas */}
+          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              Risk Areas
+            </h3>
+            <div className="space-y-3">
+              {[
+                'Potential complications during or after the procedure',
+                'Possible side effects from anesthesia or medications',
+                'Recovery time and post-procedure care requirements',
+                'Alternative treatment options',
+                'Infection risks and preventive measures',
+                'Potential impact on existing conditions',
+                'Post-procedure limitations and restrictions'
+              ].map((risk, index) => (
+                <div key={index} className="flex items-start gap-2.5 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                  <div className="mt-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  </div>
+                  <p className="text-sm text-gray-700">{risk}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Explanation Given */}
+          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-gray-500" />
+              Explanation Given
+            </h3>
+            <p className="text-gray-600 whitespace-pre-wrap">{form?.explanation_given}</p>
+          </div>
+
+          {/* Requirements Checklist */}
+          <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-emerald-500" />
+              Requirements Checklist
+            </h3>
+            <div className="space-y-3">
+              {[
+                'Clear explanation of the procedure provided',
+                'All risks and complications discussed',
+                'Alternative treatment options presented',
+                'Patient questions addressed and answered',
+                'Post-procedure care instructions explained',
+                'Emergency contact information provided',
+                'Follow-up appointment schedule discussed'
+              ].map((requirement, index) => (
+                <div key={index} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                  <Checkbox 
+                    id={`req-${index}`}
+                    checked={true}
+                    disabled
+                  />
+                  <label 
+                    htmlFor={`req-${index}`}
+                    className="text-sm text-gray-700 cursor-pointer select-none"
+                  >
+                    {requirement}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Signature Information */}
+          {form?.status === 'signed' && (
+            <div className="bg-white p-5 rounded-lg border border-gray-100 shadow-sm">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                Signature Information
+              </h3>
+              <div className="space-y-2">
+                <div>
+                  <h4 className="font-medium text-gray-700">Signed By</h4>
+                  <p className="text-gray-600 mt-1">{form?.sign}</p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-700">Signed Date</h4>
+                  <p className="text-gray-600 mt-1">{formatDate(form?.signed_date)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Form Metadata */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between text-sm text-gray-500">
+              <div>Created: {formatDate(form?.created_date)}</div>
+              <div>Form ID: {form?.form_id}</div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+});
+
+ViewConsentFormDialog.displayName = 'ViewConsentFormDialog';
+
+// ConsentFormsList component
+const ConsentFormsList = React.memo(({ 
+  consentForms, 
+  onSign,
+  onView,
+  onDelete 
+}: { 
+  consentForms: any[], 
+  onSign: (formId: string) => void,
+  onView: (form: any) => void,
+  onDelete: (formId: string) => void
+}) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return '';
+    try {
+      return format(new Date(dateString), 'MMM dd, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
+    }
+  };
+
+  // Sort consent forms: signed forms first, then by date
+  const sortedForms = [...consentForms].sort((a, b) => {
+    // First sort by signed status
+    if (a.status === 'signed' && b.status !== 'signed') return -1;
+    if (a.status !== 'signed' && b.status === 'signed') return 1;
+    
+    // Then sort by date (newest first)
+    const dateA = new Date(a.created_date).getTime();
+    const dateB = new Date(b.created_date).getTime();
+    return dateB - dateA;
+  });
+
+  return (
+    <div className="space-y-4">
+      {sortedForms.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No consent forms available
+        </div>
+      ) : (
+        sortedForms.map((form) => (
+          <div
+            key={form.form_id}
+            className={`bg-white rounded-lg border ${
+              form.status === 'signed' ? 'border-emerald-200' : 'border-gray-200'
+            } p-6 space-y-4`}
+          >
+            <div className="flex justify-between items-start">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Consent Form
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Created on {formatDate(form.created_date)}
+                </p>
+                {form.status === 'signed' && (
+                  <p className="text-sm text-emerald-600 mt-1">
+                    Signed by: {form.sign}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {form.status === 'signed' ? (
+                  <Badge className="bg-emerald-100 text-emerald-700">
+                    Signed on {formatDate(form.signed_date)}
+                  </Badge>
+                ) : (
+                  <Badge className="bg-yellow-100 text-yellow-700">
+                    Not Signed
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-medium text-gray-700 mb-2">Procedure Details</h4>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-3">
+                  {form.procedure_details}
+                </p>
+              </div>
+              <div>
+                <h4 className="font-medium text-gray-700 mb-2">Explanation Given</h4>
+                <p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-3">
+                  {form.explanation_given}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onView(form)}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  View
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onDelete(form.form_id)}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              </div>
+              {form.status !== 'signed' && (
+                <Button
+                  size="sm"
+                  onClick={() => onSign(form.form_id)}
+                  className="bg-emerald-500 hover:bg-emerald-600"
+                >
+                  Sign Form
+                </Button>
+              )}
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
-};
+});
 
-const DialogContent = ({ children }: { children: React.ReactNode }) => (
-  <div className="p-6">
-    {children}
-  </div>
-);
-
-const DialogHeader = ({ children }: { children: React.ReactNode }) => (
-  <div className="mb-4">
-    {children}
-  </div>
-);
-
-const DialogTitle = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="text-lg font-semibold text-gray-900">
-    {children}
-  </h2>
-);
-
-// Mock data - replace with actual API calls
-const mockDentist: Dentist = {
-  dentist_id: "D001",
-  name: "Dr. Sarah Johnson",
-  email: "sarah.johnson@dental.com",
-  phone_number: "+1-555-0123",
-  service_types: "General Dentistry, Orthodontics",
-  work_days_from: "Monday",
-  work_days_to: "Friday",
-  work_time_from: "09:00",
-  work_time_to: "17:00",
-  appointment_fee: 150.00
-}
+ConsentFormsList.displayName = 'ConsentFormsList';
 
 export default function DentistDashboard({ params }: DashboardProps) {
 
@@ -147,6 +717,172 @@ export default function DentistDashboard({ params }: DashboardProps) {
   const [editingNote, setEditingNote] = useState<SOAPNote | null>(null);
   const [deletingNoteId, setDeletingNoteId] = useState<number | null>(null);
   const [deletingReportId, setDeletingReportId] = useState<number | null>(null);
+  const [consentForms, setConsentForms] = useState<ConsentForm[]>([]);
+  const [view, setView] = useState<'list' | 'create' | null>(null);
+  const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
+  const [isSignDialogOpen, setIsSignDialogOpen] = useState(false);
+  const [signingForm, setSigningForm] = useState(false);
+  const [submittingConsentForm, setSubmittingConsentForm] = useState(false);
+  const [selectedForm, setSelectedForm] = useState<any>(null);
+  const [isViewFormOpen, setIsViewFormOpen] = useState(false);
+  const [isDeletingForm, setIsDeletingForm] = useState(false);
+  
+  // Open create form
+  const openCreateForm = useCallback(() => {
+    setView('create');
+  }, []);
+
+  // Close dialog
+  const closeDialog = useCallback(() => {
+    setView(null);
+  }, []);
+
+  // Fetch consent forms
+  const fetchConsentForms = useCallback(async (patientId: string) => {
+    try {
+      const response = await axios.get(`${backendURL}/consent-forms/patient/${patientId}`);
+      if (response.status === 200) {
+        setConsentForms(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching consent forms:', error);
+      toast.error('Failed to fetch consent forms');
+    }
+  }, [backendURL]);
+
+  // Handle consent form submit
+  const handleConsentFormSubmit = useCallback(async (procedureDetails: string, explanationGiven: string) => {
+    if (!selectedPatient || !user?.id) return;
+
+    setSubmittingConsentForm(true);
+    try {
+      const response = await axios.post(`${backendURL}/consent-forms`, {
+        patient_id: selectedPatient.patient_id,
+        dentist_id: user.id,
+        procedure_details: procedureDetails,
+        explanation_given: explanationGiven,
+        status: 'pending'
+      });
+
+      if (response.status === 201) {
+        toast.success('Consent form submitted successfully');
+        await fetchConsentForms(selectedPatient.patient_id);
+        closeDialog();
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to submit consent form');
+    } finally {
+      setSubmittingConsentForm(false);
+    }
+  }, [selectedPatient, user, backendURL, fetchConsentForms, closeDialog]);
+
+  // Handle form signing
+  const handleSignForm = useCallback(async (doctorName: string) => {
+    if (!selectedFormId) return;
+
+    setSigningForm(true);
+    try {
+      const response = await axios.put(`${backendURL}/consent-forms/${selectedFormId}`, {
+        status: 'signed',
+        sign: doctorName,
+        signed_date: new Date().toISOString().split('T')[0]
+      });
+
+      if (response.status === 200) {
+        toast.success('Consent form signed successfully');
+        if (selectedPatient) {
+          await fetchConsentForms(selectedPatient.patient_id);
+        }
+        setIsSignDialogOpen(false);
+      }
+    } catch (error) {
+      console.error('Error signing consent form:', error);
+      toast.error('Failed to sign consent form');
+    } finally {
+      setSigningForm(false);
+      setSelectedFormId(null);
+    }
+  }, [selectedFormId, backendURL, selectedPatient, fetchConsentForms]);
+
+  // Handle sign button click
+  const handleSignClick = useCallback((formId: string) => {
+    setSelectedFormId(formId);
+    setIsSignDialogOpen(true);
+  }, []);
+
+  // Handle view form
+  const handleViewForm = useCallback(async (form: any) => {
+    try {
+      // Fetch complete consent form data including patient details
+      const response = await axios.get(`${backendURL}/consent-forms/${form.form_id}`);
+      if (response.status === 200) {
+        setSelectedForm(response.data);
+        setIsViewFormOpen(true);
+      }
+    } catch (error) {
+      console.error('Error fetching consent form details:', error);
+      toast.error('Failed to fetch consent form details');
+      setIsViewFormOpen(false);
+    }
+  }, [backendURL]);
+
+  // Handle delete form
+  const handleDeleteForm = useCallback(async (formId: string) => {
+    if (!confirm('Are you sure you want to delete this consent form?')) return;
+
+    setIsDeletingForm(true);
+    try {
+      const response = await axios.delete(`${backendURL}/consent-forms/${formId}`);
+      if (response.status === 200) {
+        toast.success('Consent form deleted successfully');
+        if (selectedPatient) {
+          await fetchConsentForms(selectedPatient.patient_id);
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting consent form:', error);
+      toast.error('Failed to delete consent form');
+    } finally {
+      setIsDeletingForm(false);
+    }
+  }, [backendURL, selectedPatient, fetchConsentForms]);
+
+  // Form handlers
+  const handleProcedureChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // setProcedureDetails(e.target.value); // This state is removed
+  }, []);
+
+  const handleExplanationChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // setExplanationGiven(e.target.value); // This state is removed
+  }, []);
+
+  const handleSubmitConsentForm = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    // if (!procedureDetails || !explanationGiven || !selectedPatient || !user?.id) return; // This state is removed
+
+    setSubmittingConsentForm(true);
+    try {
+      const response = await axios.post(`${backendURL}/consent-forms`, {
+        patient_id: selectedPatient?.patient_id, // Use selectedPatient?.patient_id
+        dentist_id: user?.id,
+        procedure_details: newNoteText, // Use newNoteText
+        explanation_given: newNoteText, // Use newNoteText
+        status: 'pending',
+        created_date: new Date().toISOString(),
+      });
+
+      if (response.status === 201) {
+        toast.success('Consent form submitted successfully');
+        await fetchConsentForms(selectedPatient?.patient_id || ''); // Use selectedPatient?.patient_id
+        setIsAddNoteDialogOpen(false);
+        setNewNoteText('');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to submit consent form');
+    } finally {
+      setSubmittingConsentForm(false);
+    }
+  }, [newNoteText, selectedPatient, user, backendURL, fetchConsentForms]);
 
   const fetchPatients = async () => {
     setLoadingPatients(true);
@@ -409,13 +1145,14 @@ export default function DentistDashboard({ params }: DashboardProps) {
       fetchPatientMedicalHistory(selectedPatient.patient_id);
       fetchPatientMedicalReports(selectedPatient.patient_id);
       fetchPatientSOAPNotes(selectedPatient.patient_id);
-    }
-    else {
+      fetchConsentForms(selectedPatient.patient_id);
+    } else {
       setMedicalHistory([]);
       setMedicalReport([]);
       setSoapNote([]);
+      setConsentForms([]);
     }
-  }, [selectedPatient]);
+  }, [selectedPatient, fetchConsentForms]);
 
   useEffect(() => {
     if (!user) return;
@@ -425,11 +1162,12 @@ export default function DentistDashboard({ params }: DashboardProps) {
   const PatientDetailsContent = () => (
     <div className="space-y-6 p-6">
       <Tabs defaultValue="details" className="w-full" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="medical-history">Medical History</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="soap-notes">SOAP Notes</TabsTrigger>
+          <TabsTrigger value="consent-forms">Consent Forms</TabsTrigger>
           </TabsList>
 
         <TabsContent value="details">
@@ -626,6 +1364,27 @@ export default function DentistDashboard({ params }: DashboardProps) {
                     </CardContent>
                   </Card>
                 )}
+              </div>
+            </TabsContent>
+
+        <TabsContent value="consent-forms" className="mt-6">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-900">Consent Forms</h2>
+              <Button
+                onClick={openCreateForm}
+                className="bg-emerald-500 hover:bg-emerald-600"
+              >
+                New Consent Form
+              </Button>
+            </div>
+            
+            <ConsentFormsList
+              consentForms={consentForms}
+              onSign={handleSignClick}
+              onView={handleViewForm}
+              onDelete={handleDeleteForm}
+            />
               </div>
             </TabsContent>
         </Tabs>
@@ -993,8 +1752,61 @@ export default function DentistDashboard({ params }: DashboardProps) {
     </div>
   );
 
+  // Memoize the ConsentFormDialog component
+  const ConsentFormDialog = useMemo(() => {
+    if (!view) return null;
+
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      <Dialog open={true} onOpenChange={closeDialog}>
+        <DialogContent className="sm:max-w-[85%] sm:w-[1100px] overflow-y-auto max-h-[85vh]">
+          {view === 'create' ? (
+            <>
+              <DialogHeader className="space-y-3">
+                <DialogTitle className="text-2xl font-semibold text-gray-900">New Consent Form</DialogTitle>
+                <p className="text-sm text-gray-500">Please fill in the details below to create a new consent form.</p>
+              </DialogHeader>
+              
+              <ConsentFormContent
+                selectedPatient={selectedPatient}
+                user={user}
+                onSubmit={handleConsentFormSubmit}
+                onClose={closeDialog}
+                submitting={submittingConsentForm}
+              />
+            </>
+          ) : (
+            <>
+              <DialogHeader className="space-y-3">
+                <DialogTitle className="text-2xl font-semibold text-gray-900">Consent Forms</DialogTitle>
+                <p className="text-sm text-gray-500">List of consent forms for {selectedPatient?.name}</p>
+              </DialogHeader>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold text-gray-900">Consent Forms</h2>
+                  <Button
+                    onClick={openCreateForm}
+                    className="bg-emerald-500 hover:bg-emerald-600"
+                  >
+                    New Consent Form
+                  </Button>
+                </div>
+                
+                <ConsentFormsList
+                  consentForms={consentForms}
+                  onSign={handleSignClick}
+                  onView={handleViewForm}
+                  onDelete={handleDeleteForm}
+                />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  }, [view, selectedPatient, user, handleConsentFormSubmit, submittingConsentForm, closeDialog, consentForms, handleSignClick, openCreateForm, handleViewForm, handleDeleteForm]);
+
+  return (
+    <div className="h-screen bg-gray-100">
       {isDetailsOverlayOpen && selectedPatient && renderDetailsOverlay()}
       <div className="flex flex-1 p-4 gap-4 overflow-hidden">
         {/* Sidebar - Patient List */}
@@ -1271,6 +2083,30 @@ export default function DentistDashboard({ params }: DashboardProps) {
           </DialogContent>
         </form>
       </Dialog>
+
+      {/* Consent Form Dialog */}
+      {ConsentFormDialog}
+      
+      {/* Sign Consent Dialog */}
+      <SignConsentDialog
+        isOpen={isSignDialogOpen}
+        onClose={() => {
+          setIsSignDialogOpen(false);
+          setSelectedFormId(null);
+        }}
+        onSign={handleSignForm}
+        submitting={signingForm}
+      />
+
+      {/* View Consent Form Dialog */}
+      <ViewConsentFormDialog
+        isOpen={isViewFormOpen}
+        onClose={() => {
+          setIsViewFormOpen(false);
+          setSelectedForm(null);
+        }}
+        form={selectedForm}
+      />
     </div>
   )
 }
