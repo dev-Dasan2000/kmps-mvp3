@@ -32,7 +32,7 @@ interface Employee {
   email: string;
   job_title?: string;
   employment_status: string;
-  salary?: number;
+  salary: number;
   bank_info: BankInfo[];
 }
 
@@ -63,11 +63,23 @@ export default function PayrollPage() {
   // New payroll form data
   const [newPayroll, setNewPayroll] = useState({
     eid: 0,
+    base_salary: 0,
+    ot_amount: 0,
+    bonus_amount: 0,
+    gross_salary: 0,
     net_salary: 0,
     epf: true,
     etf: true,
     status: 'Not Processed'
   });
+  
+  // Employee data for payroll creation
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  
+  // EPF/ETF rates (could be made configurable)
+  const EPF_RATE = 0.08; // 8%
+  const ETF_RATE = 0.03; // 3%
   
   // Load data on component mount
   useEffect(() => {
@@ -149,15 +161,109 @@ export default function PayrollPage() {
     }
   };
   
-  // Add new payroll function
+  // Fetch employee details when ID is entered
+  const fetchEmployeeDetails = async (employeeId: number) => {
+    try {
+      if (!employeeId) return;
+      
+      const response = await axios.get(`${backendURL}/hr/employees/${employeeId}`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      
+      if (response.data) {
+        setSelectedEmployee(response.data);
+        
+        // Update the newPayroll with employee's base salary
+        const baseSalary = response.data.salary || 0;
+        setNewPayroll(prev => ({
+          ...prev,
+          eid: employeeId,
+          base_salary: baseSalary,
+          gross_salary: baseSalary,
+          net_salary: calculateNetSalary(baseSalary, 0, 0, prev.epf, prev.etf)
+        }));
+        
+        toast.success(`Employee ${response.data.name} found`);
+      } else {
+        setSelectedEmployee(null);
+        toast.error('Employee not found');
+      }
+    } catch (error) {
+      console.error('Error fetching employee details:', error);
+      toast.error('Failed to fetch employee details');
+      setSelectedEmployee(null);
+    }
+  };
+  
+  // Calculate net salary after EPF/ETF deductions
+  const calculateNetSalary = (baseSalary: number, otAmount: number, bonusAmount: number, applyEpf: boolean, applyEtf: boolean) => {
+    const grossSalary = baseSalary + otAmount + bonusAmount;
+    let deductions = 0;
+    
+    if (applyEpf) {
+      deductions += grossSalary * EPF_RATE;
+    }
+    
+    if (applyEtf) {
+      deductions += grossSalary * ETF_RATE;
+    }
+    
+    return grossSalary - deductions;
+  };
+  
+  // Calculate gross salary and update net salary when values change
+  const updateSalaryCalculations = (otAmount: number, bonusAmount: number, applyEpf: boolean, applyEtf: boolean) => {
+    const baseSalary = newPayroll.base_salary;
+    const grossSalary = baseSalary + otAmount + bonusAmount;
+    const netSalary = calculateNetSalary(baseSalary, otAmount, bonusAmount, applyEpf, applyEtf);
+    
+    setNewPayroll(prev => ({
+      ...prev,
+      ot_amount: otAmount,
+      bonus_amount: bonusAmount,
+      gross_salary: grossSalary,
+      net_salary: netSalary,
+      epf: applyEpf,
+      etf: applyEtf
+    }));
+  };
+  
+  // Prepare payroll data for confirmation
+  const preparePayrollConfirmation = () => {
+    if (!selectedEmployee) {
+      toast.error('Please select an employee first');
+      return;
+    }
+    
+    // Recalculate values to ensure accuracy
+    updateSalaryCalculations(
+      newPayroll.ot_amount,
+      newPayroll.bonus_amount,
+      newPayroll.epf,
+      newPayroll.etf
+    );
+    
+    setConfirmationOpen(true);
+  };
+  
+  // Add new payroll function - final submission after confirmation
   const addNewPayroll = async () => {
     try {
-      if (!newPayroll.eid || newPayroll.net_salary <= 0) {
-        toast.error('Please provide all required information');
+      if (!selectedEmployee || !newPayroll.eid) {
+        toast.error('Please provide employee information');
         return;
       }
       
-      await axios.post(`${backendURL}/hr/payroll`, newPayroll, {
+      // Create the payroll with calculated values
+      const payrollData = {
+        eid: newPayroll.eid,
+        net_salary: newPayroll.net_salary,
+        epf: newPayroll.epf,
+        etf: newPayroll.etf,
+        status: 'Not Processed'
+      };
+      
+      await axios.post(`${backendURL}/hr/payroll`, payrollData, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
       
@@ -169,14 +275,20 @@ export default function PayrollPage() {
       setPayrolls(payrollResponse.data || []);
       setFilteredPayrolls(payrollResponse.data || []);
       
-      // Reset form and close dialog
+      // Reset form and close dialogs
       setNewPayroll({
         eid: 0,
+        base_salary: 0,
+        ot_amount: 0,
+        bonus_amount: 0,
+        gross_salary: 0,
         net_salary: 0,
         epf: true,
         etf: true,
         status: 'Not Processed'
       });
+      setSelectedEmployee(null);
+      setConfirmationOpen(false);
       setAddDialogOpen(false);
       
       toast.success('Payroll record added successfully');
@@ -387,69 +499,175 @@ export default function PayrollPage() {
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Payroll Record</DialogTitle>
+            <DialogTitle>Add New Payroll</DialogTitle>
             <DialogDescription>
-              Enter the payroll details for the employee.
+              Create a new payroll record for an employee.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="eid" className="text-right">
-                Employee ID
-              </Label>
-              <Input
-                id="eid"
-                type="number"
-                value={newPayroll.eid || ''}
-                onChange={(e) => setNewPayroll({...newPayroll, eid: parseInt(e.target.value)})}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="net_salary" className="text-right">
-                Net Salary
-              </Label>
-              <Input
-                id="net_salary"
-                type="number"
-                value={newPayroll.net_salary || ''}
-                onChange={(e) => setNewPayroll({...newPayroll, net_salary: parseFloat(e.target.value)})}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">EPF</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="epf"
-                  checked={newPayroll.epf}
-                  onCheckedChange={(checked) => 
-                    setNewPayroll({...newPayroll, epf: checked === true})
-                  }
+              <Label htmlFor="eid" className="text-right">Employee ID</Label>
+              <div className="col-span-3 flex gap-2">
+                <Input
+                  id="eid"
+                  type="number"
+                  value={newPayroll.eid || ''}
+                  onChange={(e) => setNewPayroll({...newPayroll, eid: parseInt(e.target.value)})}
+                  className="flex-1"
                 />
-                <label htmlFor="epf" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Availability
-                </label>
+                <Button onClick={() => fetchEmployeeDetails(newPayroll.eid)} type="button" size="sm">
+                  Find
+                </Button>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">ETF</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="etf"
-                  checked={newPayroll.etf}
-                  onCheckedChange={(checked) => 
-                    setNewPayroll({...newPayroll, etf: checked === true})
-                  }
-                />
-                <label htmlFor="etf" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Availability
-                </label>
-              </div>
-            </div>
+            
+            {selectedEmployee && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Employee</Label>
+                  <div className="col-span-3 text-sm">
+                    <p className="font-medium">{selectedEmployee.name}</p>
+                    <p className="text-muted-foreground">{selectedEmployee.email}</p>
+                    <p className="text-muted-foreground">Base Salary: LKR {selectedEmployee.salary?.toLocaleString()}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="ot_amount" className="text-right">OT Amount</Label>
+                  <Input
+                    id="ot_amount"
+                    type="number"
+                    placeholder="0"
+                    value={newPayroll.ot_amount || ''}
+                    onChange={(e) => updateSalaryCalculations(
+                      parseFloat(e.target.value) || 0,
+                      newPayroll.bonus_amount,
+                      newPayroll.epf,
+                      newPayroll.etf
+                    )}
+                    className="col-span-3"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="bonus_amount" className="text-right">Bonus Amount</Label>
+                  <Input
+                    id="bonus_amount"
+                    type="number"
+                    placeholder="0"
+                    value={newPayroll.bonus_amount || ''}
+                    onChange={(e) => updateSalaryCalculations(
+                      newPayroll.ot_amount,
+                      parseFloat(e.target.value) || 0,
+                      newPayroll.epf,
+                      newPayroll.etf
+                    )}
+                    className="col-span-3"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">EPF</Label>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="epf"
+                      checked={newPayroll.epf}
+                      onCheckedChange={(checked) => updateSalaryCalculations(
+                        newPayroll.ot_amount,
+                        newPayroll.bonus_amount,
+                        checked === true,
+                        newPayroll.etf
+                      )}
+                    />
+                    <label htmlFor="epf" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Availability
+                    </label>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">ETF</Label>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="etf"
+                      checked={newPayroll.etf}
+                      onCheckedChange={(checked) => updateSalaryCalculations(
+                        newPayroll.ot_amount,
+                        newPayroll.bonus_amount,
+                        newPayroll.epf,
+                        checked === true
+                      )}
+                    />
+                    <label htmlFor="etf" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Availability
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
-            <Button onClick={addNewPayroll}>Add Payroll</Button>
+            <Button onClick={preparePayrollConfirmation} disabled={!selectedEmployee}>Calculate & Preview</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Payroll Confirmation Dialog */}
+      <Dialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Payroll Details</DialogTitle>
+            <DialogDescription>
+              Please review the salary calculations before adding this payroll record.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedEmployee && (
+            <div className="space-y-4">
+              <div className="border rounded-md p-4 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Employee:</span>
+                  <span>{selectedEmployee.name}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Base Salary:</span>
+                  <span>LKR {newPayroll.base_salary.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>OT Amount:</span>
+                  <span>LKR {newPayroll.ot_amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Bonus Amount:</span>
+                  <span>LKR {newPayroll.bonus_amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center font-medium">
+                  <span>Gross Salary:</span>
+                  <span>LKR {newPayroll.gross_salary.toLocaleString()}</span>
+                </div>
+                <hr className="my-2" />
+                {newPayroll.epf && (
+                  <div className="flex justify-between items-center text-red-500">
+                    <span>EPF Deduction ({(EPF_RATE * 100).toFixed(0)}%):</span>
+                    <span>- LKR {(newPayroll.gross_salary * EPF_RATE).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                {newPayroll.etf && (
+                  <div className="flex justify-between items-center text-red-500">
+                    <span>ETF Deduction ({(ETF_RATE * 100).toFixed(0)}%):</span>
+                    <span>- LKR {(newPayroll.gross_salary * ETF_RATE).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  </div>
+                )}
+                <hr className="my-2" />
+                <div className="flex justify-between items-center font-bold text-lg">
+                  <span>Net Salary:</span>
+                  <span>LKR {newPayroll.net_salary.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setConfirmationOpen(false)}>Edit</Button>
+            <Button onClick={addNewPayroll}>Confirm & Add Payroll</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

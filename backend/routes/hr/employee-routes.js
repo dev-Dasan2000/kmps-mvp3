@@ -19,7 +19,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/employees/:id', async (req, res) => {
+// Get employee by ID (used by payroll page)
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const employee = await prisma.employees.findUnique({
