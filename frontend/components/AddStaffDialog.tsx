@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import axios from 'axios';
 
 //backend url
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -101,22 +102,17 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
     setLoading(true);
 
     try {
-      const response = await fetch(`${backendUrl}/hr/employees`, {
-        method: 'POST',
+      await axios.post(`${backendUrl}/hr/employees`, {
+        ...formData,
+        salary: Number(formData.salary)
+      }, {
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          ...formData,
-          salary: Number(formData.salary)
-        })
+        // Ensure we only accept JSON to avoid DOCTYPE errors
+        responseType: 'json'
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create employee');
-      }
-
+      
       toast.success('Employee added successfully');
       onSuccess();
       onOpenChange(false);
@@ -151,7 +147,15 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
         }]
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create employee');
+      console.error('Error submitting form:', error);
+      // Check if the error response contains HTML with DOCTYPE
+      if (axios.isAxiosError(error) && 
+          typeof error.response?.data === 'string' && 
+          (error.response.data.includes('<!DOCTYPE') || error.response.data.includes('<html'))) {
+        toast.error('Server returned an HTML response. Please check your network connection.');
+      } else {
+        toast.error(error instanceof Error ? error.message : 'Failed to create employee');
+      }
     } finally {
       setLoading(false);
     }
@@ -161,13 +165,13 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add New Staff Member</DialogTitle>
+          <DialogTitle className="text-xl font-bold">Add New Staff Member</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Personal Information */}
             <div className="space-y-2">
-              <Label htmlFor="name">Name *</Label>
+              <Label className="font-medium" htmlFor="name">Name *</Label>
               <Input
                 id="name"
                 name="name"
@@ -177,7 +181,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dob">Date of Birth *</Label>
+              <Label className="font-medium" htmlFor="dob">Date of Birth *</Label>
               <Input
                 id="dob"
                 name="dob"
@@ -188,7 +192,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="gender">Gender *</Label>
+              <Label className="font-medium" htmlFor="gender">Gender *</Label>
               <Select
                 value={formData.gender}
                 onValueChange={(value) => handleSelectChange('gender', value)}
@@ -204,7 +208,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
+              <Label className="font-medium" htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 name="email"
@@ -215,7 +219,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone *</Label>
+              <Label className="font-medium" htmlFor="phone">Phone *</Label>
               <Input
                 id="phone"
                 name="phone"
@@ -225,7 +229,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label className="font-medium" htmlFor="address">Address</Label>
               <Input
                 id="address"
                 name="address"
@@ -234,7 +238,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
+              <Label className="font-medium" htmlFor="city">City</Label>
               <Input
                 id="city"
                 name="city"
@@ -243,7 +247,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
+              <Label className="font-medium" htmlFor="state">State</Label>
               <Input
                 id="state"
                 name="state"
@@ -252,7 +256,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="province">Province</Label>
+              <Label className="font-medium" htmlFor="province">Province</Label>
               <Input
                 id="province"
                 name="province"
@@ -261,7 +265,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="zip_code">ZIP Code</Label>
+              <Label className="font-medium" htmlFor="zip_code">ZIP Code</Label>
               <Input
                 id="zip_code"
                 name="zip_code"
@@ -272,7 +276,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
 
             {/* Employment Information */}
             <div className="space-y-2">
-              <Label htmlFor="job_title">Job Title</Label>
+              <Label className="font-medium" htmlFor="job_title">Job Title</Label>
               <Input
                 id="job_title"
                 name="job_title"
@@ -281,7 +285,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="employment_status">Employment Status *</Label>
+              <Label className="font-medium" htmlFor="employment_status">Employment Status *</Label>
               <Select
                 value={formData.employment_status}
                 onValueChange={(value) => handleSelectChange('employment_status', value)}
@@ -297,7 +301,7 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="salary">Salary</Label>
+              <Label className="font-medium" htmlFor="salary">Salary</Label>
               <Input
                 id="salary"
                 name="salary"
@@ -309,10 +313,10 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
           </div>
 
           {/* Bank Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Bank Information</h3>
+          <div className="space-y-4 mt-6">
+            <h3 className="text-lg font-semibold border-b pb-2">Bank Information</h3>
             {formData.bank_info.map((info, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
+              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-gray-50">
                 <div className="space-y-2">
                   <Label>Account Holder</Label>
                   <Input
@@ -353,10 +357,10 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
           </div>
 
           {/* Emergency Contact */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Emergency Contact</h3>
+          <div className="space-y-4 mt-6">
+            <h3 className="text-lg font-semibold border-b pb-2">Emergency Contact</h3>
             {formData.emergency_contact.map((contact, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg">
+              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-gray-50">
                 <div className="space-y-2">
                   <Label>Name</Label>
                   <Input
@@ -390,11 +394,20 @@ export function AddStaffDialog({ open, onOpenChange, onSuccess }: AddStaffDialog
             ))}
           </div>
 
-          <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex justify-end gap-4 mt-6">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              className="font-medium"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className="bg-emerald-600 hover:bg-emerald-700 font-medium"
+            >
               {loading ? 'Adding...' : 'Add Staff Member'}
             </Button>
           </div>

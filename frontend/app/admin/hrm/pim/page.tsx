@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuickActions } from '../components/QuickActions';
 import { StaffDirectory } from '../components/StaffDirectort';
 import { useEffect, useState, useCallback } from 'react';
+import axios from 'axios';
 
 //backend url
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -63,13 +64,9 @@ export default function PIMPage() {
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${backendUrl}/hr/employees`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch employees');
-      }
-      const data = await response.json();
-      setEmployees(data);
-      setStaffStats(calculateStats(data));
+      const response = await axios.get(`${backendUrl}/hr/employees`);
+      setEmployees(response.data);
+      setStaffStats(calculateStats(response.data));
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
