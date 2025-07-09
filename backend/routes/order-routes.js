@@ -86,11 +86,46 @@ router.get('/fordentist/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const data = req.body;
-    const order = await prisma.orders.create({ data });
+    
+    // Validate required fields
+    if (!data.dentist_id) {
+      return res.status(400).json({ error: 'Dentist ID is required' });
+    }
+
+    // Ensure numeric fields are properly formatted
+    const orderData = {
+      ...data,
+      work_type_id: data.work_type_id ? parseInt(data.work_type_id) : null,
+      shade_type_id: data.shade_type_id ? parseInt(data.shade_type_id) : null,
+      material_id: data.material_id ? parseInt(data.material_id) : null,
+      due_date: data.due_date ? new Date(data.due_date) : null,
+    };
+
+    console.log('Creating order with data:', orderData); // Debug log
+
+    const order = await prisma.orders.create({ 
+      data: orderData,
+      include: {
+        lab: true,
+        patient: true,
+        dentist: true,
+        work_type: true,
+        shade_type: true,
+        material_type: true,
+      }
+    });
+
+    console.log('Order created:', order); // Debug log
     res.status(201).json(order.order_id);
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ error: 'Failed to create order' });
+    console.error('Error creating order:', err);
+    if (err.code === 'P2002') {
+      res.status(400).json({ error: 'Unique constraint violation' });
+    } else if (err.code === 'P2003') {
+      res.status(400).json({ error: 'Foreign key constraint violation. Please check all IDs are valid.' });
+    } else {
+      res.status(500).json({ error: 'Failed to create order: ' + err.message });
+    }
   }
 });
 
