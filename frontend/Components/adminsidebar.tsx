@@ -87,7 +87,7 @@ const items = [
   },
   {
     title: "Inventory Management",
-    url: "http://localhost:8080",
+    url: "#",
     icon: Archive
   },
 ];
