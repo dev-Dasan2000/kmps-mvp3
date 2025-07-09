@@ -15,6 +15,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { Plus, Edit, Trash2, Download, Eye, Search, DollarSign, FileText, Users, Calendar as CalendarIcon, Phone, Mail, MapPin, X } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Types based on your database schema
 interface Patient {
@@ -101,6 +103,72 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     services: []
   });
 
+  const handleDownload = async (invoice_id: number) => {
+    try {
+      // First, get the invoice
+      const invoice = invoices.find((inv) => inv.invoice_id === invoice_id);
+      if (!invoice) return;
+
+      // Fetch the services directly from the API to ensure we have the latest data
+      const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice_id}`);
+
+      const servicesWithDetails = response.data.map(item => ({
+        ...item,
+        // Access the service property which contains the service details
+        service: item.service
+      }));
+
+      const doc = new jsPDF();
+
+      // Header
+      doc.setFontSize(18);
+      doc.text('Invoice', 14, 20);
+
+      doc.setFontSize(12);
+      doc.text(`Invoice ID: ${invoice.invoice_id}`, 14, 30);
+      doc.text(`Date: ${new Date(invoice.date).toLocaleDateString()}`, 14, 36);
+      doc.text(`Patient: ${invoice.patients.name}`, 14, 42);
+      doc.text(`Dentist: ${invoice.dentists?.name || 'N/A'}`, 14, 48);
+      doc.text(`Payment Type: ${invoice.payment_type}`, 14, 54);
+      doc.text(`Tax Rate: ${invoice.tax_rate}%`, 14, 60);
+      doc.text(`Lab Cost: Rs. ${invoice.lab_cost.toFixed(2)}`, 14, 66);
+      doc.text(`Discount: Rs. ${invoice.discount.toFixed(2)}`, 14, 72);
+      doc.text(`Note: ${invoice.note || '-'}`, 14, 78);
+
+      // Services Table
+      const serviceRows = servicesWithDetails.map((item, i) => {
+        // Access the service details through the service property
+        const service = item.service;
+        const serviceName = service?.service_name || 'Unknown Service';
+        const description = service?.description || '-';
+        let amount = 'Rs. 0.00';
+
+        // Safely handle amount if it exists and is a number
+        if (service?.amount !== undefined && service?.amount !== null) {
+          amount = `Rs. ${service.amount.toFixed(2)}`;
+        }
+
+        return [i + 1, serviceName, description, amount];
+      });
+
+      autoTable(doc, {
+        head: [['#', 'Service', 'Description', 'Amount']],
+        body: serviceRows,
+        startY: 90,
+      });
+
+      // Total Section
+      const finalY = (doc as any).lastAutoTable.finalY || 100;
+      doc.setFontSize(12);
+      doc.text(`Total Amount: Rs. ${invoice.total_amount.toFixed(2)}`, 14, finalY + 10);
+
+      // Save the PDF
+      doc.save(`Invoice_${invoice.invoice_id}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
+  };
+
 
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -114,19 +182,19 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         // Fetch all invoices with patient and dentist details
         const invoicesRes = await axios.get(`${backendUrl}/invoices`);
         const invoicesData = invoicesRes.data;
-        
+
         // Fetch all services
         const servicesRes = await axios.get(`${backendUrl}/invoice-services`);
         const servicesData = servicesRes.data;
-        
+
         // Fetch all patients
         const patientsRes = await axios.get(`${backendUrl}/patients`);
         const patientsData = patientsRes.data;
-        
+
         // Fetch all dentists
         const dentistsRes = await axios.get(`${backendUrl}/dentists`);
         const dentistsData = dentistsRes.data;
-        
+
         setInvoices(invoicesData);
         setAvailableServices(servicesData);
         setPatients(patientsData);
@@ -137,7 +205,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         setIsLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
@@ -162,31 +230,31 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     const selectedServices = availableServices.filter(service => formData.services.includes(service.service_id));
     return selectedServices.reduce((total, service) => total + service.amount, 0);
   };
-  
+
   // Helper function to safely get service data from the nested structure
   const getServiceData = (serviceAssign: InvoiceServiceAssign): InvoiceService | null => {
     if (!serviceAssign) return null;
     return serviceAssign.services || null;
   };
-  
+
   // Helper function to calculate subtotal for an invoice
   const calculateInvoiceSubtotal = (invoice: Invoice): number => {
     if (!invoice || !invoice.services || invoice.services.length === 0) {
       return 0;
     }
-    
+
     return invoice.services.reduce((sum, serviceAssign) => {
       const service = getServiceData(serviceAssign);
       return sum + (service && typeof service.amount === 'number' ? service.amount : 0);
     }, 0);
   };
-  
+
   // Helper function to calculate tax amount for invoice view
   const calculateTaxAmount = (invoice: Invoice): string => {
     if (!invoice || typeof invoice.total_amount !== 'number' || typeof invoice.tax_rate !== 'number') {
       return '0.00';
     }
-    
+
     // Calculate tax either from total or from subtotal based on available data
     if (invoice.total_amount) {
       // Back-calculate the tax from total amount
@@ -218,7 +286,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       // First create the invoice
       const invoiceData = {
@@ -232,10 +300,10 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         total_amount: calculateTotal(),
         note: formData.note
       };
-      
+
       const invoiceResponse = await axios.post(`${backendUrl}/invoices`, invoiceData);
       const newInvoice = invoiceResponse.data;
-      
+
       // Then assign services to the invoice
       const serviceAssignPromises = formData.services.map(serviceId => {
         return axios.post(`${backendUrl}/invoice-service-assign`, {
@@ -243,15 +311,15 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
           service_id: serviceId
         });
       });
-      
+
       await Promise.all(serviceAssignPromises);
-      
+
       // Refresh invoices data to include the new invoice
       const invoicesRes = await axios.get(`${backendUrl}/invoices`);
       setInvoices(invoicesRes.data);
-      
+
       setIsCreatingInvoice(false);
-      
+
       // Reset form
       setFormData({
         patient_id: '',
@@ -274,10 +342,10 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const handleViewInvoice = async (invoice: Invoice) => {
     try {
       setIsLoading(true);
-      
+
       // Fetch the services directly from the invoice-service-assign endpoint
       const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice.invoice_id}`);
-      
+
       // Create a copy of the invoice with updated services
       const invoiceWithServices = {
         ...invoice,
@@ -287,10 +355,10 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
           services: item.service // Map the service property to services to match our interface
         }))
       };
-      
+
       console.log('Fetched invoice services:', response.data);
       console.log('Updated invoice with services:', invoiceWithServices);
-      
+
       setSelectedInvoice(invoiceWithServices);
       setViewInvoiceDialogOpen(true);
     } catch (error) {
@@ -306,15 +374,15 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const handleEditInvoice = async (invoice: Invoice) => {
     try {
       setIsLoading(true);
-      
+
       // Fetch the services directly from the invoice-service-assign endpoint
       const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice.invoice_id}`);
       console.log('Fetched service assignments for edit:', response.data);
-      
+
       // Extract service IDs from the response
       const services = response.data.map(item => item.service_id);
       console.log('Extracted service IDs for edit:', services);
-      
+
       // Create a copy of the invoice with updated services
       const invoiceWithServices = {
         ...invoice,
@@ -323,7 +391,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
           services: item.service // Map the service property to services to match our interface
         }))
       };
-      
+
       setFormData({
         patient_id: invoice.patient_id,
         dentist_id: invoice.dentist_id,
@@ -335,14 +403,14 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         note: invoice.note || '',
         services
       });
-      
+
       setSelectedInvoice(invoiceWithServices);
       setIsEditingInvoice(true);
     } catch (error) {
       console.error('Error fetching invoice services for edit:', error);
       // Still show the edit form even if there's an error fetching services
       const services = invoice.services?.map(serviceAssign => serviceAssign.service_id) || [];
-      
+
       setFormData({
         patient_id: invoice.patient_id,
         dentist_id: invoice.dentist_id,
@@ -354,7 +422,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         note: invoice.note || '',
         services
       });
-      
+
       setSelectedInvoice(invoice);
       setIsEditingInvoice(true);
     } finally {
@@ -365,9 +433,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const handleUpdateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedInvoice) return;
-    
+
     setIsLoading(true);
-    
+
     try {
       // Update the invoice
       const invoiceData = {
@@ -381,9 +449,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         total_amount: calculateTotal(),
         note: formData.note
       };
-      
+
       await axios.put(`${backendUrl}/invoices/${selectedInvoice.invoice_id}`, invoiceData);
-      
+
       // First delete all existing service assignments
       // We need to manually keep track of existing services since they might be removed
       for (const existingService of selectedInvoice.services) {
@@ -394,7 +462,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
           }
         });
       }
-      
+
       // Then re-assign services to the invoice
       const serviceAssignPromises = formData.services.map(serviceId => {
         return axios.post(`${backendUrl}/invoice-service-assign`, {
@@ -402,15 +470,15 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
           service_id: serviceId
         });
       });
-      
+
       await Promise.all(serviceAssignPromises);
-      
+
       // Refresh invoices data to include the updated invoice
       const invoicesRes = await axios.get(`${backendUrl}/invoices`);
       setInvoices(invoicesRes.data);
-      
+
       setIsEditingInvoice(false);
-      
+
       // Reset form
       setFormData({
         patient_id: '',
@@ -423,7 +491,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         note: '',
         services: []
       });
-      
+
       setSelectedInvoice(null);
     } catch (error) {
       console.error('Error updating invoice:', error);
@@ -435,10 +503,10 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const handleDeleteInvoice = async (invoiceId: number) => {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       setIsLoading(true);
-      
+
       try {
         await axios.delete(`${backendUrl}/invoices/${invoiceId}`);
-        
+
         // Remove the deleted invoice from the state
         setInvoices(invoices.filter(invoice => invoice.invoice_id !== invoiceId));
       } catch (error) {
@@ -499,8 +567,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
               className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               <Plus size={20} />
-                  Create Invoice
-                </Button>
+              Create Invoice
+            </Button>
           )}
         </div>
 
@@ -578,6 +646,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       </Button>
                     )}
                     <Button
+                      onClick={() => { handleDownload(invoice.invoice_id) }}
                       variant="ghost"
                       size="sm"
                       className="p-1 h-8 w-8"
@@ -688,9 +757,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         {/* Invoice Form Dialog */}
         <Dialog open={isCreatingInvoice} onOpenChange={setIsCreatingInvoice}>
           <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
+            <DialogHeader>
               <DialogTitle className="text-xl sm:text-2xl font-bold text-emerald-700">Create New Invoice</DialogTitle>
-                </DialogHeader>
+            </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6 pt-4">
               {/* Client Information Section */}
               <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
@@ -733,8 +802,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       </Select>
                     </div>
                   </div>
-                    </div>
-                  </div>
+                </div>
+              </div>
 
               {/* Services Section */}
               <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
@@ -746,29 +815,29 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 </div>
                 <div className="p-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto border rounded-lg p-4">
-                      {availableServices.map((service) => (
+                    {availableServices.map((service) => (
                       <div key={service.service_id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-md">
-                          <input
-                            type="checkbox"
-                            id={`service-${service.service_id}`}
-                            checked={formData.services.includes(service.service_id)}
-                            onChange={() => handleServiceToggle(service.service_id)}
+                        <input
+                          type="checkbox"
+                          id={`service-${service.service_id}`}
+                          checked={formData.services.includes(service.service_id)}
+                          onChange={() => handleServiceToggle(service.service_id)}
                           className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 h-4 w-4"
-                          />
+                        />
                         <label htmlFor={`service-${service.service_id}`} className="text-sm flex-1 cursor-pointer">
                           <div className="font-medium">{service.service_name}</div>
                           <div className="text-emerald-600 text-xs">Rs.{service.amount.toFixed(2)}</div>
-                          </label>
-                        </div>
-                      ))}
+                        </label>
+                      </div>
+                    ))}
                     {availableServices.length === 0 && (
                       <div className="col-span-2 text-center py-4 text-gray-500">
                         No services available
                       </div>
                     )}
                   </div>
-                    </div>
-                  </div>
+                </div>
+              </div>
 
               {/* Financial Details Section */}
               <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
@@ -784,14 +853,14 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       <Label htmlFor="lab_cost" className="font-medium">Lab Cost</Label>
                       <div className="relative">
                         <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                      <Input
-                        id="lab_cost"
-                        type="number"
-                        step="0.01"
-                        value={formData.lab_cost}
-                        onChange={(e) => setFormData(prev => ({ ...prev, lab_cost: parseFloat(e.target.value) || 0 }))}
+                        <Input
+                          id="lab_cost"
+                          type="number"
+                          step="0.01"
+                          value={formData.lab_cost}
+                          onChange={(e) => setFormData(prev => ({ ...prev, lab_cost: parseFloat(e.target.value) || 0 }))}
                           className="pl-8"
-                      />
+                        />
                       </div>
                     </div>
                     {canApplyDiscounts && (
@@ -799,14 +868,14 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         <Label htmlFor="discount" className="font-medium">Discount</Label>
                         <div className="relative">
                           <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                        <Input
-                          id="discount"
-                          type="number"
-                          step="0.01"
-                          value={formData.discount}
-                          onChange={(e) => setFormData(prev => ({ ...prev, discount: parseFloat(e.target.value) || 0 }))}
+                          <Input
+                            id="discount"
+                            type="number"
+                            step="0.01"
+                            value={formData.discount}
+                            onChange={(e) => setFormData(prev => ({ ...prev, discount: parseFloat(e.target.value) || 0 }))}
                             className="pl-8"
-                        />
+                          />
                         </div>
                       </div>
                     )}
@@ -820,62 +889,62 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         onChange={(e) => setFormData(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))}
                       />
                     </div>
-                  <div className="grid grid-cols-2 md:grid-cols-2 gap-60 ">
-                    <div className="space-y-2">
-                      <Label htmlFor="payment_type" className="font-medium">Payment Type</Label>
-                      <Select onValueChange={(value) => setFormData(prev => ({ ...prev, payment_type: value }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select payment type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {paymentTypes.map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type.replace('_', ' ').toUpperCase()}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2 mt-1">
-                      <Label htmlFor="date" className="font-medium">Date</Label>
-                      <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className=" mt-2.5 justify-start text-left font-normal"
-                            onClick={() => setCalendarOpen(true)}
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-60 ">
+                      <div className="space-y-2">
+                        <Label htmlFor="payment_type" className="font-medium">Payment Type</Label>
+                        <Select onValueChange={(value) => setFormData(prev => ({ ...prev, payment_type: value }))}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {paymentTypes.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type.replace('_', ' ').toUpperCase()}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2 mt-1">
+                        <Label htmlFor="date" className="font-medium">Date</Label>
+                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className=" mt-2.5 justify-start text-left font-normal"
+                              onClick={() => setCalendarOpen(true)}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {date ? format(date, 'PPP') : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            className="w-[280px] p-0"
+                            align="start"
+                            side="bottom"
+                            sideOffset={4}
                           >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date ? format(date, 'PPP') : <span>Pick a date</span>}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent 
-                          className="w-[280px] p-0" 
-                          align="start"
-                          side="bottom"
-                          sideOffset={4}
-                        >
-                          <Calendar
-                            mode="single"
-                            selected={date}
-                            onSelect={(newDate) => {
-                              setDate(newDate);
-                              setFormData(prev => ({
-                                ...prev,
-                                date: newDate ? newDate.toISOString().split('T')[0] : prev.date
-                              }));
-                              setCalendarOpen(false);
-                            }}
-                            initialFocus
-                            className="rounded-md border"
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                            <Calendar
+                              mode="single"
+                              selected={date}
+                              onSelect={(newDate) => {
+                                setDate(newDate);
+                                setFormData(prev => ({
+                                  ...prev,
+                                  date: newDate ? newDate.toISOString().split('T')[0] : prev.date
+                                }));
+                                setCalendarOpen(false);
+                              }}
+                              initialFocus
+                              className="rounded-md border"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     </div>
                   </div>
-                    </div>
-                  </div>
+                </div>
+              </div>
 
               {/* Notes Section */}
               <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
@@ -886,11 +955,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   </h4>
                 </div>
                 <div className="p-5">
-                    <Textarea
-                      id="note"
-                      value={formData.note}
-                      onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
-                      rows={3}
+                  <Textarea
+                    id="note"
+                    value={formData.note}
+                    onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
+                    rows={3}
                     placeholder="Add any additional notes or comments here..."
                     className="resize-none"
                   />
@@ -909,11 +978,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     <span className="text-gray-600">Lab Cost:</span>
                     <span className="font-medium">Rs.{formData.lab_cost.toFixed(2)}</span>
                   </div>
-                      <div className="flex justify-between">
+                  <div className="flex justify-between">
                     <span className="text-gray-600">Discount:</span>
                     <span className="font-medium text-red-600">- Rs.{formData.discount.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between">
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-gray-600">Tax ({formData.tax_rate}%):</span>
                     <span className="font-medium">Rs.{(((calculateSubtotal() + formData.lab_cost - formData.discount) * formData.tax_rate) / 100).toFixed(2)}</span>
                   </div>
@@ -950,14 +1019,14 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-emerald-700">Edit Invoice #{selectedInvoice?.invoice_id}</DialogTitle>
             </DialogHeader>
-            
+
             <form onSubmit={handleUpdateInvoice} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-5">
                   <div className="space-y-2">
                     <Label htmlFor="patient_id" className="font-medium">Patient</Label>
-                    <Select 
-                      value={formData.patient_id} 
+                    <Select
+                      value={formData.patient_id}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, patient_id: value }))}
                       disabled={isLoading}
                     >
@@ -973,7 +1042,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="dentist_id" className="font-medium">Dentist</Label>
                     <Select
@@ -994,7 +1063,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="edit_services" className="font-medium">Services</Label>
                     <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
@@ -1078,8 +1147,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
                   <div className="space-y-2">
                     <Label htmlFor="edit_payment_type" className="font-medium">Payment Type</Label>
-                    <Select 
-                      value={formData.payment_type} 
+                    <Select
+                      value={formData.payment_type}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, payment_type: value }))}
                       disabled={isLoading}
                     >
@@ -1169,10 +1238,10 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 <DialogTitle className="text-xl sm:text-2xl font-bold text-emerald-700">
                   Invoice #{selectedInvoice?.invoice_id}
                 </DialogTitle>
-               
+
               </div>
             </DialogHeader>
-            
+
             {selectedInvoice && (
               <div className="space-y-8 py-4">
                 {/* Invoice Header */}
@@ -1245,7 +1314,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       <p className="text-sm text-gray-500">No dentist assigned</p>
                     )}
                   </div>
-        </div>
+                </div>
 
                 {/* Services */}
                 <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
@@ -1254,8 +1323,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       <FileText size={18} className="text-emerald-600" />
                       Services
                     </h4>
-            </div>
-            <div className="overflow-x-auto">
+                  </div>
+                  <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
@@ -1265,8 +1334,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                           <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Amount
                           </th>
-                  </tr>
-                </thead>
+                        </tr>
+                      </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {selectedInvoice.services && selectedInvoice.services.length > 0 ? (
                           selectedInvoice.services.map((serviceAssign, index) => {
@@ -1287,9 +1356,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                             <td colSpan={2} className="px-6 py-4 text-sm text-gray-500 text-center">No services found</td>
                           </tr>
                         )}
-                </tbody>
-              </table>
-            </div>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 {/* Invoice Summary */}
@@ -1304,9 +1373,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Subtotal:</span>
-                          <span className="font-medium">
-                            Rs.{calculateInvoiceSubtotal(selectedInvoice).toFixed(2)}
-                          </span>
+                        <span className="font-medium">
+                          Rs.{calculateInvoiceSubtotal(selectedInvoice).toFixed(2)}
+                        </span>
                       </div>
                       {selectedInvoice.lab_cost > 0 && (
                         <div className="flex justify-between items-center">

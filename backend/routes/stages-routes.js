@@ -8,7 +8,11 @@ const router = express.Router();
 // Get all stages
 router.get('/', /* authenticateToken, */ async (req, res) => {
   try {
-    const stages = await prisma.stages.findMany();
+    const stages = await prisma.stages.findMany({
+      orderBy: {
+        stage_id: 'asc'
+      }
+    });
     res.json(stages);
   } catch (err) {
     console.error(err);
