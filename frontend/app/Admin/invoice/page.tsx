@@ -848,6 +848,223 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
           </DialogContent>
         </Dialog>
 
+        {/* Edit Invoice Dialog */}
+        <Dialog open={isEditingInvoice} onOpenChange={setIsEditingInvoice}>
+          <DialogContent className="w-[95vw] max-w-5xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-emerald-700">Edit Invoice #{selectedInvoice?.invoice_id}</DialogTitle>
+            </DialogHeader>
+            
+            <form onSubmit={handleUpdateInvoice} className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="patient_id" className="font-medium">Patient</Label>
+                    <Select 
+                      value={formData.patient_id} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, patient_id: value }))}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select patient" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {patients.map((patient) => (
+                          <SelectItem key={patient.patient_id} value={patient.patient_id}>
+                            {patient.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="dentist_id" className="font-medium">Dentist</Label>
+                    <Select
+                      value={formData.dentist_id || ''}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, dentist_id: value || null }))}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select dentist" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        {dentists.map((dentist) => (
+                          <SelectItem key={dentist.dentist_id} value={dentist.dentist_id}>
+                            {dentist.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_services" className="font-medium">Services</Label>
+                    <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
+                      {availableServices.map((service) => (
+                        <div key={service.service_id} className="flex items-center justify-between border-b pb-2">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id={`service-${service.service_id}`}
+                              checked={formData.services.includes(service.service_id)}
+                              onChange={() => handleServiceToggle(service.service_id)}
+                              className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                              disabled={isLoading}
+                            />
+                            <label htmlFor={`service-${service.service_id}`} className="text-sm">
+                              {service.service_name}
+                            </label>
+                          </div>
+                          <span className="text-sm font-medium">${service.amount.toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_note" className="font-medium">Note</Label>
+                    <Textarea
+                      id="edit_note"
+                      value={formData.note}
+                      onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
+                      rows={3}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_lab_cost" className="font-medium">Lab Cost</Label>
+                    <div className="relative">
+                      <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                      <Input
+                        id="edit_lab_cost"
+                        type="number"
+                        step="0.01"
+                        value={formData.lab_cost}
+                        onChange={(e) => setFormData(prev => ({ ...prev, lab_cost: parseFloat(e.target.value) || 0 }))}
+                        className="pl-8"
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_discount" className="font-medium">Discount</Label>
+                    <div className="relative">
+                      <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                      <Input
+                        id="edit_discount"
+                        type="number"
+                        step="0.01"
+                        value={formData.discount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, discount: parseFloat(e.target.value) || 0 }))}
+                        className="pl-8"
+                        disabled={isLoading}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_tax_rate" className="font-medium">Tax Rate (%)</Label>
+                    <Input
+                      id="edit_tax_rate"
+                      type="number"
+                      step="0.01"
+                      value={formData.tax_rate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))}
+                      disabled={isLoading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_payment_type" className="font-medium">Payment Type</Label>
+                    <Select 
+                      value={formData.payment_type} 
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, payment_type: value }))}
+                      disabled={isLoading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paymentTypes.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type.replace('_', ' ').toUpperCase()}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit_date" className="font-medium">Date</Label>
+                    <Input
+                      id="edit_date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoice Summary */}
+              <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-5">
+                <h4 className="font-semibold mb-3 text-gray-900">Invoice Summary</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="font-medium">${calculateSubtotal().toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Lab Cost:</span>
+                    <span className="font-medium">${formData.lab_cost.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Discount:</span>
+                    <span className="font-medium text-red-600">-${formData.discount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tax ({formData.tax_rate}%):</span>
+                    <span className="font-medium">${(((calculateSubtotal() + formData.lab_cost - formData.discount) * formData.tax_rate) / 100).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-emerald-200 mt-2">
+                    <span className="font-semibold text-lg">Total Amount:</span>
+                    <span className="font-bold text-lg text-emerald-600">${calculateTotal().toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditingInvoice(false);
+                    setSelectedInvoice(null);
+                  }}
+                  className="w-full sm:w-auto px-6"
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto px-6"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Updating...' : 'Update Invoice'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
         {/* Invoice Detail View Dialog */}
         <Dialog open={viewInvoiceDialogOpen} onOpenChange={setViewInvoiceDialogOpen}>
           <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -955,13 +1172,18 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   </tr>
                 </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {selectedInvoice.services.map((serviceAssign) => (
-                          <tr key={serviceAssign.service_id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-sm text-gray-900">{serviceAssign.service.service_name}</td>
-                            <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">${serviceAssign.service.amount.toFixed(2)}</td>
-                    </tr>
-                  ))}
-                        {selectedInvoice.services.length === 0 && (
+                        {selectedInvoice.services && selectedInvoice.services.length > 0 ? (
+                          selectedInvoice.services.map((serviceAssign) => (
+                            <tr key={serviceAssign.service_id} className="hover:bg-gray-50">
+                              <td className="px-6 py-4 text-sm text-gray-900">
+                                {serviceAssign.service ? serviceAssign.service.service_name : 'N/A'}
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">
+                                {serviceAssign.service ? `$${serviceAssign.service.amount.toFixed(2)}` : 'N/A'}
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
                           <tr>
                             <td colSpan={2} className="px-6 py-4 text-sm text-gray-500 text-center">No services found</td>
                           </tr>
@@ -984,7 +1206,10 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Subtotal:</span>
                         <span className="font-medium">
-                          ${selectedInvoice.services.reduce((sum, serviceAssign) => sum + serviceAssign.service.amount, 0).toFixed(2)}
+                          ${(selectedInvoice.services && selectedInvoice.services.length > 0) ? 
+                            selectedInvoice.services.reduce((sum, serviceAssign) => {
+                              return sum + (serviceAssign.service ? serviceAssign.service.amount : 0);
+                            }, 0).toFixed(2) : '0.00'}
                         </span>
                       </div>
                       {selectedInvoice.lab_cost > 0 && (
@@ -1003,13 +1228,15 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Tax ({selectedInvoice.tax_rate}%):</span>
                           <span className="font-medium">
-                            ${((selectedInvoice.total_amount * selectedInvoice.tax_rate) / (100 + selectedInvoice.tax_rate)).toFixed(2)}
+                            ${selectedInvoice.total_amount ? ((selectedInvoice.total_amount * selectedInvoice.tax_rate) / (100 + selectedInvoice.tax_rate)).toFixed(2) : '0.00'}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between items-center pt-3 border-t border-gray-200 mt-3">
                         <span className="font-semibold text-lg">Total Amount:</span>
-                        <span className="font-bold text-lg text-emerald-600">${selectedInvoice.total_amount.toFixed(2)}</span>
+                        <span className="font-bold text-lg text-emerald-600">
+                          ${selectedInvoice.total_amount ? selectedInvoice.total_amount.toFixed(2) : '0.00'}
+                        </span>
                       </div>
                     </div>
                   </div>
