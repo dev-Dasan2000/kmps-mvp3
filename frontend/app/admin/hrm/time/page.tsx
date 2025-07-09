@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { User, Calendar, Clock, CheckCircle, UserCog } from 'lucide-react';
+import { User, Clock, Calendar, CheckCircle, UserCog, LogIn, LogOut } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import ShiftSchedule from '@/components/ShiftSchedule';
 import axios from 'axios';
@@ -93,6 +93,8 @@ export default function TimeManagementPage() {
     absent: 0,
     on_leave: 0
   });
+  const [clockingInEid, setClockingInEid] = useState<number | null>(null);
+  const [clockingOutEid, setClockingOutEid] = useState<number | null>(null);
   
   // Fetch data helper wrapped in useCallback so it can be reused (e.g. after adding a shift)
   const fetchData = useCallback(async () => {
@@ -191,6 +193,40 @@ export default function TimeManagementPage() {
     fetchData();
   }, [fetchData]);
 
+  // Handle clock in for an employee
+  const handleClockIn = async (eid: number) => {
+    setClockingInEid(eid);
+    try {
+      const response = await axios.post(`${backendURL}/hr/attendance/clock-in`, { eid });
+      toast.success('Clock in successful');
+      // Refresh data to update UI
+      await fetchData();
+    } catch (error: any) {
+      console.error('Error clocking in:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to clock in';
+      toast.error(errorMessage);
+    } finally {
+      setClockingInEid(null);
+    }
+  };
+
+  // Handle clock out for an employee
+  const handleClockOut = async (eid: number) => {
+    setClockingOutEid(eid);
+    try {
+      const response = await axios.post(`${backendURL}/hr/attendance/clock-out`, { eid });
+      toast.success('Clock out successful');
+      // Refresh data to update UI
+      await fetchData();
+    } catch (error: any) {
+      console.error('Error clocking out:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to clock out';
+      toast.error(errorMessage);
+    } finally {
+      setClockingOutEid(null);
+    }
+  };
+
   // Helper function to determine status badge color
   const getStatusBadgeColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -271,7 +307,7 @@ export default function TimeManagementPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center">
                 <div className="flex-shrink-0 bg-green-500 rounded-md p-3 mr-4">
-                  <CheckCircle className="h-6 w-6 text-white" />
+                  <User className="h-6 w-6 text-white" />
                 </div>
                 <div>
                   <CardTitle className="text-xl">Present</CardTitle>
@@ -359,6 +395,7 @@ export default function TimeManagementPage() {
                           <TableHead>Clock Out</TableHead>
                           <TableHead>Hours</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -372,6 +409,41 @@ export default function TimeManagementPage() {
                               <Badge variant="outline" className={getStatusBadgeColor(record.status)}>
                                 {record.status || "Unknown"}
                               </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                {!record.clock_in ? (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="text-green-600 hover:text-green-800"
+                                    onClick={() => handleClockIn(record.eid)}
+                                    disabled={clockingInEid === record.eid}
+                                  >
+                                    {clockingInEid === record.eid ? (
+                                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent"></div>
+                                    ) : (
+                                      <LogIn className="h-4 w-4 mr-1" />
+                                    )}
+                                    Clock In
+                                  </Button>
+                                ) : !record.clock_out ? (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    className="text-red-600 hover:text-red-800"
+                                    onClick={() => handleClockOut(record.eid)}
+                                    disabled={clockingOutEid === record.eid}
+                                  >
+                                    {clockingOutEid === record.eid ? (
+                                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-600 border-t-transparent"></div>
+                                    ) : (
+                                      <LogOut className="h-4 w-4 mr-1" />
+                                    )}
+                                    Clock Out
+                                  </Button>
+                                ) : null}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
