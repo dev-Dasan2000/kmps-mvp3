@@ -264,7 +264,7 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
     labels: ['Last Month', 'This Month',],
     datasets: [
       {
-        label: 'Earnings ($)',
+        label: 'Earnings (LKR)',
         data: [
           earningsData?.earningsLastMonth || 0,
           earningsData?.earningsThisMonth || 0,
@@ -308,8 +308,8 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
         },
         callbacks: {
           label: function(context: any) {
-            if (context.dataset.label === 'Earnings ($)') {
-              return `${context.dataset.label}: $${context.parsed.y.toLocaleString()}`;
+            if (context.dataset.label === 'Earnings (LKR)') {
+              return `${context.dataset.label}: LKR${context.parsed.y.toLocaleString()}`;
             }
             return `${context.label}: ${context.parsed}`;
           }
@@ -324,7 +324,7 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
             size: 11
           },
           callback: function(value: any) {
-            return '$' + value.toLocaleString();
+            return 'LKR' + value.toLocaleString();
           }
         }
       },
@@ -443,28 +443,28 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
             <MetricCard
               icon={<DollarSign className="w-8 h-8" />}
               title="This Month"
-              value={`$${earningsData?.earningsThisMonth?.toLocaleString() || 0}`}
+              value={`LKR${earningsData?.earningsThisMonth?.toLocaleString() || 0}`}
               subtitle="Earnings"
               color="text-blue-600"
             />
             <MetricCard
               icon={<DollarSign className="w-8 h-8" />}
               title="Last Month"
-              value={`$${earningsData?.earningsLastMonth?.toLocaleString() || 0}`}
+              value={`LKR${earningsData?.earningsLastMonth?.toLocaleString() || 0}`}
               subtitle="Earnings"
               color="text-green-600"
             />
             <MetricCard
               icon={<DollarSign className="w-8 h-8" />}
               title="This Year"
-              value={`$${earningsData?.totalEarningsThisYear?.toLocaleString() || 0}`}
+              value={`LKR${earningsData?.totalEarningsThisYear?.toLocaleString() || 0}`}
               subtitle="Total earnings"
               color="text-purple-600"
             />
             <MetricCard
               icon={<DollarSign className="w-8 h-8" />}
               title="All Time"
-              value={`$${earningsData?.totalEarningsAllTime?.toLocaleString() || 0}`}
+              value={`LKR${earningsData?.totalEarningsAllTime?.toLocaleString() || 0}`}
               subtitle="Total earnings"
               color="text-indigo-600"
             />

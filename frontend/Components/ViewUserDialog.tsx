@@ -230,7 +230,7 @@ export default function ViewUserDialog({ user, onClose }: Props) {
                   {isDentist && user.appointment_fee !== undefined && user.appointment_fee !== null && renderInfoItem(
                     <DollarSign className="w-4 h-4" />, 
                     "Consultation Fee", 
-                    `$${Number(user.appointment_fee).toFixed(2)}`
+                    `LKR${Number(user.appointment_fee).toFixed(2)}`
                   )}
                 </div>
               </CardContent>
