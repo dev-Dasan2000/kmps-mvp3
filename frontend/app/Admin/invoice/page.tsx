@@ -23,33 +23,24 @@ interface Patient {
   password: string;
   name: string;
   profile_picture: string;
-  email: string;
-  phone_number: string;
-  address: string;
-  nic: string;
-  blood_group: string;
-  date_of_birth: string;
-  gender: string;
 }
 
 interface Dentist {
   dentist_id: string;
   name: string;
-  email: string;
-  phone_number: string;
-  specialization: string;
 }
 
 interface InvoiceService {
   service_id: number;
   service_name: string;
   amount: number;
+  description?: string;
 }
 
 interface InvoiceServiceAssign {
   invoice_id: number;
   service_id: number;
-  service: InvoiceService;
+  services: InvoiceService; // This property name needs to match what the backend returns
 }
 
 interface Invoice {
@@ -171,6 +162,42 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     const selectedServices = availableServices.filter(service => formData.services.includes(service.service_id));
     return selectedServices.reduce((total, service) => total + service.amount, 0);
   };
+  
+  // Helper function to safely get service data from the nested structure
+  const getServiceData = (serviceAssign: InvoiceServiceAssign): InvoiceService | null => {
+    if (!serviceAssign) return null;
+    return serviceAssign.services || null;
+  };
+  
+  // Helper function to calculate subtotal for an invoice
+  const calculateInvoiceSubtotal = (invoice: Invoice): number => {
+    if (!invoice || !invoice.services || invoice.services.length === 0) {
+      return 0;
+    }
+    
+    return invoice.services.reduce((sum, serviceAssign) => {
+      const service = getServiceData(serviceAssign);
+      return sum + (service && typeof service.amount === 'number' ? service.amount : 0);
+    }, 0);
+  };
+  
+  // Helper function to calculate tax amount for invoice view
+  const calculateTaxAmount = (invoice: Invoice): string => {
+    if (!invoice || typeof invoice.total_amount !== 'number' || typeof invoice.tax_rate !== 'number') {
+      return '0.00';
+    }
+    
+    // Calculate tax either from total or from subtotal based on available data
+    if (invoice.total_amount) {
+      // Back-calculate the tax from total amount
+      const taxAmount = (invoice.total_amount * invoice.tax_rate) / (100 + invoice.tax_rate);
+      return taxAmount.toFixed(2);
+    } else {
+      // Calculate from services if available
+      const subtotal = calculateInvoiceSubtotal(invoice);
+      return ((subtotal - invoice.discount + invoice.lab_cost) * invoice.tax_rate / 100).toFixed(2);
+    }
+  };
 
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
@@ -245,24 +272,41 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   };
 
   const handleViewInvoice = (invoice: Invoice) => {
+    // Debug logs for understanding service structure
+    console.log('Viewing invoice:', invoice);
+    if (invoice.services && invoice.services.length > 0) {
+      console.log('First service assignment:', invoice.services[0]);
+      console.log('First service data:', getServiceData(invoice.services[0]));
+    }
     setSelectedInvoice(invoice);
     setViewInvoiceDialogOpen(true);
   };
 
   const handleEditInvoice = (invoice: Invoice) => {
-    setSelectedInvoice(invoice);
-    // Pre-populate the form with the invoice data
+    // Add console logging to understand the structure
+    console.log('Editing invoice with services:', invoice.services);
+    
+    // Extract service IDs from the nested structure
+    const services = invoice.services?.map(serviceAssign => {
+      console.log('Service assignment:', serviceAssign);
+      return serviceAssign.service_id;
+    }) || [];
+    
+    console.log('Extracted service IDs:', services);
+    
     setFormData({
       patient_id: invoice.patient_id,
       dentist_id: invoice.dentist_id,
-      payment_type: invoice.payment_type || '',
+      payment_type: invoice.payment_type,
       tax_rate: invoice.tax_rate,
       lab_cost: invoice.lab_cost,
       discount: invoice.discount,
-      date: invoice.date ? new Date(invoice.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      date: invoice.date.toString().split('T')[0],
       note: invoice.note || '',
-      services: invoice.services.map(serviceAssign => serviceAssign.service_id)
+      services
     });
+    
+    setSelectedInvoice(invoice);
     setIsEditingInvoice(true);
   };
 
@@ -902,22 +946,22 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="space-y-2">
                     <Label htmlFor="edit_services" className="font-medium">Services</Label>
                     <div className="border rounded-md p-3 space-y-2 max-h-60 overflow-y-auto">
-                      {availableServices.map((service) => (
-                        <div key={service.service_id} className="flex items-center justify-between border-b pb-2">
+                      {availableServices.map((services) => (
+                        <div key={services.service_id} className="flex items-center justify-between border-b pb-2">
                           <div className="flex items-center space-x-2">
                             <input
                               type="checkbox"
-                              id={`service-${service.service_id}`}
-                              checked={formData.services.includes(service.service_id)}
-                              onChange={() => handleServiceToggle(service.service_id)}
+                              id={`service-${services.service_id}`}
+                              checked={formData.services.includes(services.service_id)}
+                              onChange={() => handleServiceToggle(services.service_id)}
                               className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                               disabled={isLoading}
                             />
-                            <label htmlFor={`service-${service.service_id}`} className="text-sm">
-                              {service.service_name}
+                            <label htmlFor={`service-${services.service_id}`} className="text-sm">
+                              {services.service_name}
                             </label>
                           </div>
-                          <span className="text-sm font-medium">${service.amount.toFixed(2)}</span>
+                          <span className="text-sm font-medium">${services.amount.toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -1173,16 +1217,19 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {selectedInvoice.services && selectedInvoice.services.length > 0 ? (
-                          selectedInvoice.services.map((serviceAssign) => (
-                            <tr key={serviceAssign.service_id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 text-sm text-gray-900">
-                                {serviceAssign.service ? serviceAssign.service.service_name : 'N/A'}
-                              </td>
-                              <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">
-                                {serviceAssign.service ? `$${serviceAssign.service.amount.toFixed(2)}` : 'N/A'}
-                              </td>
-                            </tr>
-                          ))
+                          selectedInvoice.services.map((serviceAssign, index) => {
+                            const serviceData = getServiceData(serviceAssign);
+                            return (
+                              <tr key={index} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 text-sm text-gray-900">
+                                  {serviceData?.service_name || 'N/A'}
+                                </td>
+                                <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">
+                                  {serviceData?.amount ? `$${serviceData.amount.toFixed(2)}` : 'N/A'}
+                                </td>
+                              </tr>
+                            );
+                          })
                         ) : (
                           <tr>
                             <td colSpan={2} className="px-6 py-4 text-sm text-gray-500 text-center">No services found</td>
@@ -1205,12 +1252,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Subtotal:</span>
-                        <span className="font-medium">
-                          ${(selectedInvoice.services && selectedInvoice.services.length > 0) ? 
-                            selectedInvoice.services.reduce((sum, serviceAssign) => {
-                              return sum + (serviceAssign.service ? serviceAssign.service.amount : 0);
-                            }, 0).toFixed(2) : '0.00'}
-                        </span>
+                          <span className="font-medium">
+                            ${calculateInvoiceSubtotal(selectedInvoice).toFixed(2)}
+                          </span>
                       </div>
                       {selectedInvoice.lab_cost > 0 && (
                         <div className="flex justify-between items-center">
@@ -1228,7 +1272,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Tax ({selectedInvoice.tax_rate}%):</span>
                           <span className="font-medium">
-                            ${selectedInvoice.total_amount ? ((selectedInvoice.total_amount * selectedInvoice.tax_rate) / (100 + selectedInvoice.tax_rate)).toFixed(2) : '0.00'}
+                            ${calculateTaxAmount(selectedInvoice)}
                           </span>
                         </div>
                       )}
