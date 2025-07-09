@@ -881,15 +881,15 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="space-y-2">
                     <Label htmlFor="dentist_id" className="font-medium">Dentist</Label>
                     <Select
-                      value={formData.dentist_id || ''}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, dentist_id: value || null }))}
+                      value={formData.dentist_id || 'none'}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, dentist_id: value === 'none' ? null : value }))}
                       disabled={isLoading}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select dentist" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {dentists.map((dentist) => (
                           <SelectItem key={dentist.dentist_id} value={dentist.dentist_id}>
                             {dentist.name}
