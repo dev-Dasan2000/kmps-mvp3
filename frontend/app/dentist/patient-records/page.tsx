@@ -340,7 +340,7 @@ const SignConsentDialog = React.memo(({
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Doctor's Name</Label>
+            <Label>Patient's Name</Label>
             <Input
               placeholder="Enter your full name"
               value={doctorName}
