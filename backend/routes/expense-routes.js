@@ -70,14 +70,21 @@ router.post('/', async (req, res) => {
 // Update expense
 router.put('/:expence_id', async (req, res) => {
   try {
-    const data = req.body;
+    const { expence_id } = req.params;
+    const data = { ...req.body };
+
+    // Prevent primary key from being updated
+    delete data.expence_id;
+
     if (data.date) data.date = new Date(data.date);
+
     const updatedExpense = await prisma.expense.update({
-      where: { expence_id: Number(req.params.expence_id) },
+      where: { expence_id: Number(expence_id) },
       data,
     });
+
     res.status(202).json(updatedExpense);
-  } catch(err) {
+  } catch (err) {
     console.log(err);
     res.status(500).json({ error: 'Failed to update expense' });
   }

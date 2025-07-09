@@ -678,8 +678,7 @@ const DentistSignUp: React.FC = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="fee" className="flex items-center">
-                        <DollarSign className="w-4 h-4 mr-2" />
-                        Appointment Fee
+                        Appointment Fee (Rs.)
                       </Label>
                       <Input
                         id="fee"

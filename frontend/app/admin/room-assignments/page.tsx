@@ -22,6 +22,8 @@ const page = () => {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   const handleAddRoom = async (e: React.FormEvent) => {
@@ -37,13 +39,12 @@ const page = () => {
         room_id: roomId.trim(),
         description: description.trim() || undefined
       });
-      
+
       toast.success("Room added successfully");
       setRoomId("");
       setDescription("");
       setIsAddDialogOpen(false);
-      // Refresh the page to show the new room
-      router.refresh();
+      setRefreshKey((prev) => prev + 1);
     } catch (err: any) {
       toast.error(err.response?.data?.error || "Failed to add room");
     } finally {
@@ -59,13 +60,13 @@ const page = () => {
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl mt-7 md:mt-0 font-bold text-gray-900">
-                Room Assignments 
+                Room Assignments
               </h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">
                 View and manage room assignments.
               </p>
             </div>
-            <Button 
+            <Button
               onClick={() => setIsAddDialogOpen(true)}
               className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2 w-full sm:w-auto"
             >
@@ -75,7 +76,7 @@ const page = () => {
           </div>
         </div>
       </div>
-      <RoomAssignment />
+      <RoomAssignment refreshKey={refreshKey} />
 
       {/* Add Room Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -123,7 +124,7 @@ const page = () => {
         </DialogContent>
       </Dialog>
     </main>
- 
+
   )
 }
 

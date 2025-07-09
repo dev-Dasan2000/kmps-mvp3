@@ -53,7 +53,7 @@ router.get('/getworkinfo/:dentist_id', /* authenticateToken, */ async (req, res)
     });
     if (!dentist) return res.status(404).json({ error: 'Not found' });
     res.json(dentist);
-  } catch(err) {
+  } catch (err) {
     console.log(err)
     res.status(500).json({ error: 'Failed to fetch dentist' });
   }
@@ -78,10 +78,23 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
     if (existing) {
       return res.status(409).json({ error: 'Dentist already exists' });
     }
-    
-    const count = await prisma.dentists.count();
-    let new_dentist_id = `knrsdent${(count + 1).toString().padStart(3, '0')}`;
 
+    let dentistIdSuffix = 1;
+    let new_dentist_id;
+    let exists = true;
+
+    while (exists) {
+      new_dentist_id = `knrsdent${dentistIdSuffix.toString().padStart(3, '0')}`;
+      const existing = await prisma.dentists.findUnique({
+        where: { dentist_id: new_dentist_id }
+      });
+      if (!existing) {
+        exists = false;
+      } else {
+        dentistIdSuffix++;
+      }
+    }
+    
     console.log('Creating dentist with data:', {
       dentist_id: new_dentist_id,
       email,
@@ -90,20 +103,20 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     const newDentist = await prisma.dentists.create({
-      data: { 
-        dentist_id: new_dentist_id, 
-        password: hashedPassword, 
+      data: {
+        dentist_id: new_dentist_id,
+        password: hashedPassword,
         email,
-        ...rest 
+        ...rest
       },
     });
-    
+
     console.log('Dentist created successfully:', newDentist);
     sendAccountCreationNotice(email, new_dentist_id);
     res.status(201).json(newDentist);
   } catch (error) {
     console.error('Error creating dentist:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to create dentist',
       details: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined

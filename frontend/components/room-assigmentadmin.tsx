@@ -33,7 +33,7 @@ interface ExtendedRoomAssignment extends RoomAssignment {
   room_description?: string
 }
 
-export function RoomAssignment() {
+export function RoomAssignment({refreshKey}:{refreshKey: number}) {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL
   const [assignments, setAssignments] = useState<ExtendedRoomAssignment[]>([])
   const [filteredAssignments, setFilteredAssignments] = useState<ExtendedRoomAssignment[]>([])
@@ -131,7 +131,11 @@ export function RoomAssignment() {
   useEffect(() => {
     fetchDentists()
     fetchRooms()
-  }, [])
+  }, []);
+
+  useEffect(()=>{
+    fetchRooms();
+  },[refreshKey])
 
   // Fetch assignments after dentists and rooms are loaded
   useEffect(() => {

@@ -134,13 +134,6 @@ const DentalLabModule = () => {
   const [acceptingOrder, setAcceptingOrder] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
 
-  // Save scroll position when form elements change
-  const saveScrollPosition = () => {
-    if (formScrollRef.current) {
-      formScrollPosition.current = formScrollRef.current.scrollTop;
-    }
-  };
-
   // Restore scroll position after render
   useEffect(() => {
     if (formScrollRef.current && showNewOrder) {
@@ -587,8 +580,8 @@ const DentalLabModule = () => {
     event.target.value = ''; // allow re-selecting same file
   };
 
-
   const handleRequestAcceptance = async (order_id: number) => {
+    if(!order_id) return;
     setAcceptingOrder(true);
     try {
       const res = await axios.put(
@@ -661,9 +654,8 @@ const DentalLabModule = () => {
     }
   };
 
-  // Add Trash2 to the lucide-react imports at the top
-  // Add deleteOrder function in the DentalLabModule component
   const deleteOrder = async (orderId: number) => {
+    if(!orderId) return;
     if (!window.confirm('Are you sure you want to delete this order?')) {
       return;
     }

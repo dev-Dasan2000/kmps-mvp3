@@ -28,49 +28,49 @@ export default function AppointmentBooking() {
   const [calendarView, setCalendarView] = useState<"week" | "room" | "list">("week")
   const [searchQuery, setSearchQuery] = useState("")
   const [calendarOpen, setCalendarOpen] = useState(false)
-  const [selectedWeekDate, setSelectedWeekDate] = useState(getCurrentDateString()) // For week navigation
+  const [selectedWeekDate, setSelectedWeekDate] = useState(getCurrentDateString())
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [dentists, setDentists] = useState<Dentist[]>([]);
 
   const [loadingDentists, setLoadingDentists] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext); 
+
+  const { isLoadingAuth, isLoggedIn, user } = useContext(AuthContext);
 
   const router = useRouter();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  const fetchDentists = async() => {
+  const fetchDentists = async () => {
     setLoadingDentists(true);
-    try{
+    try {
       const response = await axios.get(
         `${backendURL}/dentists`
       );
-      if(response.status == 500){
+      if (response.status == 500) {
         throw new Error("Error Fetching Dentists");
       }
       setDentists(response.data);
     }
-    catch(err: any){
+    catch (err: any) {
       window.alert(err.message);
     }
-    finally{
+    finally {
       setLoadingDentists(false);
     }
   }
 
-  useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn){
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
       window.alert("Please Log in");
       router.push("/");
     }
-    else if(user.role != "receptionist" && user.role != "admin"){
+    else if (user.role != "receptionist" && user.role != "admin") {
       window.alert("Access Denied");
       router.push("/");
     }
     fetchDentists();
-  },[isLoadingAuth]);
+  }, [isLoadingAuth]);
 
 
   const filteredDentists = dentists.filter(
@@ -96,7 +96,6 @@ export default function AppointmentBooking() {
       }
     })
   }
-  
 
   const weekDays = generateWeekDays(selectedWeekDate)
 
@@ -132,15 +131,11 @@ export default function AppointmentBooking() {
   }
 
   const handleAppointmentCreated = () => {
-    // Close the dialog
     setIsDialogOpen(false);
-    
-    // Show success message
     toast.success("Appointment created successfully!");
-    
-    // Increment the refresh key to force re-render of all DoctorScheduleColumn components
-    // This will make each column refetch its appointments
+    router.refresh();
     setRefreshKey(prev => prev + 1);
+    
   };
 
   const handleWeekNavigation = (direction: "prev" | "next") => {
@@ -173,14 +168,14 @@ export default function AppointmentBooking() {
               />
             </div>
             <div className="flex gap-2 ">
-             
-             <Button 
-            className="bg-emerald-500 hover:bg-emerald-600 text-white w-full"
-            onClick={() => setIsDialogOpen(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Appointment
-          </Button>
+
+              <Button
+                className="bg-emerald-500 hover:bg-emerald-600 text-white w-full"
+                onClick={() => setIsDialogOpen(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Appointment
+              </Button>
             </div>
           </div>
         </div>
@@ -210,21 +205,19 @@ export default function AppointmentBooking() {
               {/* View Mode Toggle */}
               <div className="flex rounded-lg p-1 ">
                 <Button
-                 // variant={viewMode === "day" ? "default" : "ghost"}
+                  // variant={viewMode === "day" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("day")}
-                    className={`flex items-center text-sm ${
-    viewMode === "day" ? 'bg-green-500 text-white hover:bg-green-600' :'bg-white text-black border hover:bg-green-100 '
-  }`}
+                  className={`flex items-center text-sm ${viewMode === "day" ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-white text-black border hover:bg-green-100 '
+                    }`}
                 >
                   By day
                 </Button>
                 <Button
-                 // variant={viewMode === "week" ? "default" : "ghost"}
+                  // variant={viewMode === "week" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("week")}
-                  className={`flex items-center  text-sm ${
-    viewMode === "week" ?  'bg-green-500 text-white hover:bg-green-600' :'bg-white text-black border hover:bg-green-100' }`}
+                  className={`flex items-center  text-sm ${viewMode === "week" ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-white text-black border hover:bg-green-100'}`}
                 >
                   By Week
                 </Button>
@@ -278,13 +271,12 @@ export default function AppointmentBooking() {
                     <button
                       key={index}
                       onClick={() => handleDaySelect(day.date)}
-                      className={`p-2 sm:p-3 rounded-lg text-center transition-colors ${
-                        isSelected
+                      className={`p-2 sm:p-3 rounded-lg text-center transition-colors ${isSelected
                           ? "bg-blue-500 text-white"
                           : isToday
                             ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
                             : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       <div className="text-xs sm:text-sm font-medium">{day.name}</div>
                       <div className="text-xs sm:text-sm mt-1">{new Date(day.date).getDate()}</div>
@@ -339,11 +331,11 @@ export default function AppointmentBooking() {
           </div>
         )}
         {/* Appointment Dialog */}
-                <AppointmentDialog
-                  open={isDialogOpen}
-                  onOpenChange={setIsDialogOpen}
-                  onAppointmentCreated={handleAppointmentCreated}
-                />
+        <AppointmentDialog
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onAppointmentCreated={handleAppointmentCreated}
+        />
       </div>
     </div>
   )

@@ -61,25 +61,31 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
       passwordGenerated = true;
     }
 
-    const latest = await prisma.patients.findFirst({
-      orderBy: {
-        patient_id: 'desc'
-      }
-    });
-    
-    let newPatient_id = 'P001';
-    if (latest) {
-      const latestNum = parseInt(latest.patient_id.replace('P', '')) || 0;
-      newPatient_id = 'P' + String(latestNum + 1).padStart(3, '0');
-    }
-    
-
+    // Check for existing email
     const existingByEmail = await prisma.patients.findUnique({ where: { email } });
     if (existingByEmail) return res.status(409).json({ error: 'Email already exists' });
 
+    // Check for existing NIC
     if (nic) {
       const existingByNic = await prisma.patients.findUnique({ where: { nic } });
       if (existingByNic) return res.status(409).json({ error: 'NIC already exists' });
+    }
+
+    // Safe unique patient_id generation
+    let suffix = 1;
+    let newPatient_id;
+    let isUnique = false;
+
+    while (!isUnique) {
+      newPatient_id = `P${String(suffix).padStart(3, '0')}`;
+      const exists = await prisma.patients.findUnique({
+        where: { patient_id: newPatient_id }
+      });
+      if (!exists) {
+        isUnique = true;
+      } else {
+        suffix++;
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
@@ -100,20 +106,21 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
       },
     });
 
-    if(!passwordGenerated){
+    if (!passwordGenerated) {
       console.log("sending email with ID");
       sendAccountCreationNotice(email, newPatient_id);
-    }
-    else{
+    } else {
       console.log("sending email with ID and password");
       sendAccountCreationNoticeWithPassword(email, newPatient_id, password);
     }
+
     res.status(201).json(created);
-  } catch(err) {
+  } catch (err) {
     console.log(err);
     res.status(500).json({ error: 'Failed to create patient' });
   }
 });
+
 
 router.put('/:patient_id', /* authenticateToken, */ async (req, res) => {
   try {

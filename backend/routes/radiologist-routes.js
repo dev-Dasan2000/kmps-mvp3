@@ -66,9 +66,24 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
       return res.status(409).json({ error: 'Email already in use' });
     }
 
+    // Generate unique radiologist_id: knrsradio001, knrsradio002, ...
+    let suffix = 1;
+    let new_radiologist_id;
+    let isUnique = false;
+
+    while (!isUnique) {
+      new_radiologist_id = `knrsradio${suffix.toString().padStart(3, '0')}`;
+      const existingId = await prisma.radiologists.findUnique({
+        where: { radiologist_id: new_radiologist_id }
+      });
+      if (!existingId) {
+        isUnique = true;
+      } else {
+        suffix++;
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-    const count = await prisma.radiologists.count();
-    let new_radiologist_id = `knrsradio${(count + 1).toString().padStart(3, '0')}`;
 
     const newRadiologist = await prisma.radiologists.create({
       data: {
@@ -95,6 +110,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
     res.status(500).json({ error: 'Failed to create radiologist' });
   }
 });
+
 
 // Update radiologist
 router.put('/:radiologist_id', /* authenticateToken, */ async (req, res) => {

@@ -338,7 +338,7 @@ model material_types {
 model orders {
   order_id             Int              @id @default(autoincrement())
   patient_id           String?
-  dentist_id           String
+  dentist_id           String?
   lab_id               String?
   work_type_id         Int?
   due_date             DateTime?
@@ -354,7 +354,7 @@ model orders {
   shade_type    shades?         @relation(fields: [shade_type_id], references: [shade_type_id])
   material_type material_types? @relation(fields: [material_id], references: [material_id])
   patient       patients?       @relation(fields: [patient_id], references: [patient_id])
-  dentist       dentists        @relation(fields: [dentist_id], references: [dentist_id])
+  dentist       dentists?        @relation(fields: [dentist_id], references: [dentist_id])
 
   order_files   order_files[]
   stage_assign stage_assign[]

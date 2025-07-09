@@ -739,7 +739,6 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 )}
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
-                    <DollarSign size={16} />
                     <span>Rs. {invoice.total_amount.toFixed(2)}</span>
                   </div>
                   <Button
@@ -859,7 +858,6 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     <div className="space-y-2">
                       <Label htmlFor="lab_cost" className="font-medium">Lab Cost</Label>
                       <div className="relative">
-                        <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                         <Input
                           id="lab_cost"
                           type="number"
@@ -874,7 +872,6 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       <div className="space-y-2">
                         <Label htmlFor="discount" className="font-medium">Discount</Label>
                         <div className="relative">
-                          <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                           <Input
                             id="discount"
                             type="number"
@@ -1111,7 +1108,6 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="space-y-2">
                     <Label htmlFor="edit_lab_cost" className="font-medium">Lab Cost</Label>
                     <div className="relative">
-                      <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                       <Input
                         id="edit_lab_cost"
                         type="number"
@@ -1127,7 +1123,6 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="space-y-2">
                     <Label htmlFor="edit_discount" className="font-medium">Discount</Label>
                     <div className="relative">
-                      <DollarSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
                       <Input
                         id="edit_discount"
                         type="number"

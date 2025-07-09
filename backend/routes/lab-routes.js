@@ -49,33 +49,52 @@ router.get('/profile/:lab_id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { password, ...rest } = req.body;
+    const { password, email, ...rest } = req.body;
 
-    const existingLab = await prisma.lab.findMany({where: {email: req.body.email}});
+    const existingLab = await prisma.lab.findUnique({
+      where: { email },
+    });
 
-    if (existingLab.length > 0) {
+    if (existingLab) {
       return res.status(409).json({ message: "Email Already Exists" });
     }
 
-    const count = await prisma.lab.count();
-    const lab_id = generateLabId(count);
+    // Generate unique lab_id like: knrslab001, knrslab002, ...
+    let labSuffix = 1;
+    let lab_id;
+    let isUnique = false;
+
+    while (!isUnique) {
+      lab_id = `knrslab${labSuffix.toString().padStart(3, '0')}`;
+      const existing = await prisma.lab.findUnique({
+        where: { lab_id },
+      });
+      if (!existing) {
+        isUnique = true;
+      } else {
+        labSuffix++;
+      }
+    }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
     const newLab = await prisma.lab.create({
       data: {
         lab_id,
+        email,
         password: hashedPassword,
         ...rest,
       },
     });
-    sendAccountCreationNotice(rest.email, lab_id);
+
+    sendAccountCreationNotice(email, lab_id);
     res.status(201).json(newLab);
   } catch (err) {
     console.log(err);
     res.status(500).json({ error: 'Failed to create lab' });
   }
 });
+
 
 router.put('/:lab_id', async (req, res) => {
   try {
