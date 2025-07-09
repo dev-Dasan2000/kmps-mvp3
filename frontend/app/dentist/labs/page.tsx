@@ -5,7 +5,11 @@ import { Loader, Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, 
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { LabOrderForm } from '../../../Components/LabOrderForm';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { DentistLabOrderForm } from '@/components/DentistLabOrderForm';
+
 // ======================== TYPES ========================
 
 type Lab = {
@@ -86,6 +90,34 @@ type Order = {
   status: string;
   order_files: OrderFile[];
 };
+
+// Add this type definition
+type FormInputs = {
+  patient_id: string;
+  dentist_id: string;
+  lab_id: string;
+  work_type_id: number;
+  due_date: string;
+  shade_type_id?: number;
+  material_id?: number;
+  priority: string;
+  special_instructions: string;
+  files: FileList;
+};
+
+// Add validation schema
+const orderSchema = z.object({
+  patient_id: z.string().min(1, 'Patient is required'),
+  dentist_id: z.string().min(1, 'Dentist is required'),
+  lab_id: z.string().min(1, 'Lab is required'),
+  work_type_id: z.number().min(1, 'Work type is required'),
+  due_date: z.string().min(1, 'Due date is required'),
+  shade_type_id: z.number().optional(),
+  material_id: z.number().optional(),
+  priority: z.string().min(1, 'Priority is required'),
+  special_instructions: z.string().optional(),
+  files: z.any().optional()
+});
 
 
 // ======================== COMPONENT ========================
@@ -399,37 +431,21 @@ const DentalLabModule = () => {
     fetchMaterials();
   }, [isLoadingAuth])
 
-  const [newOrder, setNewOrder] = useState({
-    patient_id: '',
-    dentist_id: '',
-    lab_id: '',
-    work_type_id: 0,
-    due_date: '',
-    file_types: '',
-    shade_type_id: 0,
-    material_id: 0,
-    priority: 'Normal',
-    special_instructions: '',
-    status: ''
-
-  });
-
   const [submissionChecklist, setSubmissionChecklist] = useState({
     digitalFiles: {
-      intraOralScans: false,
-      stlFiles: false,
-      cbctScans: false,
-      photographs: false
+      scanFiles: false,
+      designFiles: false,
+      photos: false
     },
     physicalItems: {
       impressions: false,
-      biteRegistration: false,
       models: false,
-      faceBow: false
+      articulators: false
     },
     documentation: {
-      prescription: false,
-      clinicalNotes: false
+      prescriptionForm: false,
+      shadeGuide: false,
+      notes: false
     }
   });
 
@@ -473,331 +489,6 @@ const DentalLabModule = () => {
       default: return 'text-gray-600';
     }
   };
-
-  const handleCreateOrder = async () => {
-    setCreatingOrder(true);
-    try {
-      const res = await axios.post(
-        `${backendURL}/orders`,
-        {
-          patient_id: newOrder.patient_id,
-          dentist_id: newOrder.dentist_id,
-          lab_id: newOrder.lab_id,
-          work_type_id: newOrder.work_type_id,
-          due_date: new Date(newOrder.due_date),
-          file_types: getSelectedFileTypes(submissionChecklist),
-          shade_type_id: newOrder.shade_type_id,
-          material_id: newOrder.material_id,
-          priority: newOrder.priority,
-          special_instructions: newOrder.special_instructions,
-          status: "request"
-        },
-        {
-          withCredentials: true,
-          headers: {
-            "content-type": "application/json"
-          }
-        }
-      );
-      if (res.status != 201) {
-        throw new Error("Error Creating an Order");
-      }
-      for (const file of selectedFiles) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await axios.post(`${backendURL}/files`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          },
-          withCredentials: true
-        });
-
-        const uploadedFile = {
-          id: Date.now() + Math.random(),
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          url: response.data.url,
-          category: 'uncategorized'
-        };
-
-        const res2 = await axios.post(
-          `${backendURL}/order-files`,
-          {
-            url: response.data.url,
-            order_id: res.data
-          },
-          {
-            withCredentials: true,
-            headers: {
-              "content-type": "application/json",
-            }
-          }
-        );
-
-        if (res2.status !== 201) {
-          throw new Error("Error creating order file entry");
-        }
-        setUploadedFiles(prev => [...prev, uploadedFile]);
-      }
-
-      setToast({
-        message: "Order created successfully.",
-        type: "success",
-        show: true
-      });
-      setShowNewOrder(false);
-      fetchOrders();
-    }
-    catch (err: any) {
-      setToast({
-        message: err.message,
-        type: "error",
-        show: true
-      })
-    }
-    finally {
-      setCreatingOrder(false);
-    }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const fileList = event.target.files;
-    if (!fileList) return;
-
-    const filesArray = Array.from(fileList);
-    setSelectedFiles(prev => [...prev, ...filesArray]);
-
-    event.target.value = ''; // allow re-selecting same file
-  };
-
-  const removeFile = (fileName: string) => {
-    setSelectedFiles(selectedFiles.filter(file => file.name !== fileName));
-  };
-
-  // ======================== SUBCOMPONENTS ========================
-
-  const OrdersList = () => (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Lab Orders</h2>
-        </div>
-
-        <div className="flex gap-4 mb-4">
-          <div className="flex-1 relative">
-            <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search orders..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
-          </button>
-        </div>
-      </div>
-
-      {/* Desktop Table View */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {orders.filter(or => or.status != "request").map((order) => (
-              <tr key={order.order_id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{order.patient?.patient_id || 'N/A'}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.work_type?.work_type || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab?.name || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date?.split("T")[0]}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
-                    {order.priority}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
-                  <button
-                    onClick={() => setSelectedOrder(order)}
-                    className="text-blue-600 hover:text-blue-900 inline-flex items-center justify-center"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile Card View */}
-      <div className="md:hidden">
-        <div className="divide-y divide-gray-200">
-          {orders.filter(or => or.status != "request").map((order) => (
-            <div key={order.order_id} className="p-4 hover:bg-gray-50">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <div className="text-sm font-medium text-gray-900">Order #{order.order_id}</div>
-                  <div className="text-xs text-gray-500">{order.due_date?.split("T")[0]}</div>
-                </div>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                  {order.status}
-                </span>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                <div>
-                  <div className="text-xs font-medium text-gray-500">Patient</div>
-                  <div className="text-sm text-gray-900">{order.patient?.name || 'N/A'}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-gray-500">Work Type</div>
-                  <div className="text-sm text-gray-900">{order.work_type?.work_type || 'N/A'}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-gray-500">Lab</div>
-                  <div className="text-sm text-gray-900">{order.lab?.name || 'N/A'}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-gray-500">Priority</div>
-                  <div className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
-                    {order.priority}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-center pt-2 border-t border-gray-100">
-                <button
-                  onClick={() => setSelectedOrder(order)}
-                  className="flex items-center text-blue-600 hover:text-blue-900 text-sm"
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  View
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  const OrderDetails = ({ order, onClose }: { order: Order; onClose: () => void }) => (
-    <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">Order Details - {order.order_id}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Patient Information</h3>
-              <div className="space-y-2">
-                <p><span className="font-medium">Name:</span> {order.patient?.name || 'N/A'}</p>
-                <p><span className="font-medium">Patient ID:</span> {order.patient?.patient_id || 'N/A'}</p>
-                <p><span className="font-medium">Dentist:</span> Dr. {order.dentist?.name}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900">Order Information</h3>
-              <div className="space-y-2">
-                <p><span className="font-medium">Work Type:</span> {order.work_type?.work_type || 'N/A'}</p>
-                <p><span className="font-medium">Lab:</span> {order.lab?.name || 'N/A'}</p>
-                <p><span className="font-medium">Order Date:</span> {order.due_date?.split("T")[0]}</p>
-                <p><span className="font-medium">Due Date:</span> {order.due_date?.split("T")[0]}</p>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Progress Tracking</h3>
-            <div className="space-y-3">
-              {stages?.map((stage, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className={`w-4 h-4 rounded-full ${stage.completed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                  <span className={`flex-1 ${stage.completed ? 'text-gray-900' : 'text-gray-500'}`}>
-                    {stage.name}
-                  </span>
-                  {stage.completed && stage.date?.split("T")[0] && (
-                    <span className="text-sm text-gray-500">{stage.date.split("T")[0]}</span>
-                  )}
-                  {stage.completed ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Clock className="h-4 w-4 text-gray-400" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {order.order_files && order.order_files.length > 0 && (
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Files</h3>
-              <div className="space-y-2">
-                {order.order_files.map((file) => (
-                  <div key={file.file_id} className="flex items-center justify-between bg-gray-50 p-3 rounded border">
-                    <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{file.url.split('/').pop()}</p>
-                      </div>
-                    </div>
-                    <a
-                      href={file.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 text-sm"
-                    >
-                      View
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {order.special_instructions && (
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Special Instructions</h3>
-              <p className="text-gray-700 bg-gray-50 p-3 rounded">{order.special_instructions}</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   const Dashboard = () => {
     const stats = [
@@ -895,12 +586,13 @@ const DentalLabModule = () => {
           <h2 className="text-xl font-semibold text-gray-900">Lab Requests</h2>
           <button
             onClick={() => setShowNewOrder(true)}
-            className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 flex items-center gap-2"
+            className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             New Request
           </button>
         </div>
+
         <div className="flex gap-4 mb-4">
           <div className="flex-1 relative">
             <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
@@ -924,7 +616,7 @@ const DentalLabModule = () => {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Work Type</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
@@ -942,14 +634,208 @@ const DentalLabModule = () => {
                     <div className="text-sm text-gray-500">{order.patient?.patient_id || 'N/A'}</div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.work_type?.work_type || 'N/A'}</td>
+                <td className="px-6 py-4">
+                  <div>
+                    <div className="text-sm text-gray-900">{order.work_type?.work_type || 'N/A'}</div>
+                    {order.special_instructions && (
+                      <div className="mt-1 text-sm text-gray-500">
+                        {order.special_instructions.split('\n').map((instruction, index) => (
+                          instruction.trim() && (
+                            <div key={index} className="flex items-start space-x-1">
+                              <span className="mt-1.5">•</span>
+                              <span className="flex-1 truncate" title={instruction.trim()}>
+                                {instruction.trim()}
+                              </span>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab?.name || 'N/A'}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
                     {order.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date?.split("T")[0]}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {order.due_date ? new Date(order.due_date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  }) : 'N/A'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
+                    {order.priority}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                  <button
+                    onClick={() => setSelectedOrder(order)}
+                    className="text-emerald-500 hover:text-emerald-600 inline-flex items-center justify-center"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden">
+        <div className="divide-y divide-gray-200">
+          {orders.filter(or => or.status === "request").map((order) => (
+            <div key={order.order_id} className="p-4 hover:bg-gray-50">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Order #{order.order_id}</div>
+                  <div className="text-xs text-gray-500">
+                    {order.due_date ? new Date(order.due_date).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    }) : 'N/A'}
+                  </div>
+                </div>
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                  {order.status}
+                </span>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Patient</div>
+                  <div className="text-sm text-gray-900">{order.patient?.name || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Work Type</div>
+                  <div className="text-sm text-gray-900">{order.work_type?.work_type || 'N/A'}</div>
+                  {order.special_instructions && (
+                    <div className="mt-1 text-sm text-gray-500">
+                      {order.special_instructions.split('\n').map((instruction, index) => (
+                        instruction.trim() && (
+                          <div key={index} className="flex items-start space-x-1">
+                            <span className="mt-1.5">•</span>
+                            <span className="flex-1 truncate" title={instruction.trim()}>
+                              {instruction.trim()}
+                            </span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Lab</div>
+                  <div className="text-sm text-gray-900">{order.lab?.name || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Priority</div>
+                  <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
+                    {order.priority}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => setSelectedOrder(order)}
+                  className="text-blue-600 hover:text-blue-900 inline-flex items-center justify-center"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const OrdersList = () => (
+    <div className="bg-white rounded-lg shadow">
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Lab Orders</h2>
+        </div>
+
+        <div className="flex gap-4 mb-4">
+          <div className="flex-1 relative">
+            <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search orders..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            Filter
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Work Type</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {orders.filter(or => or.status != "request").map((order) => (
+              <tr key={order.order_id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
+                    <div className="text-sm text-gray-500">{order.patient?.patient_id || 'N/A'}</div>
+                  </div>
+                </td>
+                <td className="px-6 py-4">
+                  <div>
+                    <div className="text-sm text-gray-900">{order.work_type?.work_type || 'N/A'}</div>
+                    {order.special_instructions && (
+                      <div className="mt-1 text-sm text-gray-500">
+                        {order.special_instructions.split('\n').map((instruction, index) => (
+                          instruction.trim() && (
+                            <div key={index} className="flex items-start space-x-1">
+                              <span className="mt-1.5">•</span>
+                              <span className="flex-1 truncate" title={instruction.trim()}>
+                                {instruction.trim()}
+                              </span>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab?.name || 'N/A'}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                    {order.status}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {order.due_date ? new Date(order.due_date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  }) : 'N/A'}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
                     {order.priority}
@@ -972,19 +858,25 @@ const DentalLabModule = () => {
       {/* Mobile Card View */}
       <div className="md:hidden">
         <div className="divide-y divide-gray-200">
-          {orders.filter(or => or.status === "request").map((order) => (
+          {orders.filter(or => or.status != "request").map((order) => (
             <div key={order.order_id} className="p-4 hover:bg-gray-50">
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <div className="text-sm font-medium text-gray-900">Request #{order.order_id}</div>
-                  <div className="text-xs text-gray-500">{order.due_date?.split("T")[0]}</div>
+                  <div className="text-sm font-medium text-gray-900">Order #{order.order_id}</div>
+                  <div className="text-xs text-gray-500">
+                    {order.due_date ? new Date(order.due_date).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    }) : 'N/A'}
+                  </div>
                 </div>
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
                   {order.status}
                 </span>
               </div>
               
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="space-y-3">
                 <div>
                   <div className="text-xs font-medium text-gray-500">Patient</div>
                   <div className="text-sm text-gray-900">{order.patient?.name || 'N/A'}</div>
@@ -992,6 +884,20 @@ const DentalLabModule = () => {
                 <div>
                   <div className="text-xs font-medium text-gray-500">Work Type</div>
                   <div className="text-sm text-gray-900">{order.work_type?.work_type || 'N/A'}</div>
+                  {order.special_instructions && (
+                    <div className="mt-1 text-sm text-gray-500">
+                      {order.special_instructions.split('\n').map((instruction, index) => (
+                        instruction.trim() && (
+                          <div key={index} className="flex items-start space-x-1">
+                            <span className="mt-1.5">•</span>
+                            <span className="flex-1 truncate" title={instruction.trim()}>
+                              {instruction.trim()}
+                            </span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <div className="text-xs font-medium text-gray-500">Lab</div>
@@ -999,19 +905,18 @@ const DentalLabModule = () => {
                 </div>
                 <div>
                   <div className="text-xs font-medium text-gray-500">Priority</div>
-                  <div className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
+                  <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
                     {order.priority}
-                  </div>
+                  </span>
                 </div>
               </div>
               
-              <div className="flex justify-center pt-2 border-t border-gray-100">
+              <div className="mt-4 flex justify-end">
                 <button
                   onClick={() => setSelectedOrder(order)}
-                  className="flex items-center text-blue-600 hover:text-blue-900 text-sm"
+                  className="text-blue-600 hover:text-blue-900 inline-flex items-center justify-center"
                 >
-                  <Eye className="h-4 w-4 mr-1" />
-                  View
+                  <Eye className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -1020,6 +925,124 @@ const DentalLabModule = () => {
       </div>
     </div>
   );
+
+  const OrderDetails = ({ order, onClose }: { order: Order; onClose: () => void }) => {
+    const orderStages = getStagesForOrder(order.order_id);
+
+    return (
+      <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
+          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-900">Order Details - {order.order_id}</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Patient Information</h3>
+                <div className="space-y-2">
+                  <p><span className="font-medium">Name:</span> {order.patient?.name || 'N/A'}</p>
+                  <p><span className="font-medium">Patient ID:</span> {order.patient?.patient_id || 'N/A'}</p>
+                  <p><span className="font-medium">Dentist:</span> Dr. {order.dentist?.name}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Order Information</h3>
+                <div className="space-y-2">
+                  <p><span className="font-medium">Work Type:</span> {order.work_type?.work_type || 'N/A'}</p>
+                  <p><span className="font-medium">Lab:</span> {order.lab?.name || 'N/A'}</p>
+                  <p><span className="font-medium">Due Date:</span> {order.due_date ? new Date(order.due_date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  }) : 'N/A'}</p>
+                  <p><span className="font-medium">Priority:</span> <span className={getPriorityColor(order.priority)}>{order.priority}</span></p>
+                  <p><span className="font-medium">Status:</span> <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>{order.status}</span></p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Progress Tracking</h3>
+              <div className="space-y-3">
+                {orderStages?.map((stage, index) => (
+                  <div key={index} className="flex items-center space-x-3">
+                    <div className={`w-4 h-4 rounded-full ${stage.completed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    <span className={`flex-1 ${stage.completed ? 'text-gray-900' : 'text-gray-500'}`}>
+                      {stage.name}
+                    </span>
+                    {stage.completed && stage.date && (
+                      <span className="text-sm text-gray-500">
+                        {new Date(stage.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    )}
+                    {stage.completed ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Clock className="h-4 w-4 text-gray-400" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {order.order_files && order.order_files.length > 0 && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Files</h3>
+                <div className="space-y-2">
+                  {order.order_files.map((file) => (
+                    <div key={file.file_id} className="flex items-center justify-between bg-gray-50 p-3 rounded border">
+                      <div className="flex items-center">
+                        <FileText className="h-5 w-5 text-gray-400 mr-3" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{file.url.split('/').pop()}</p>
+                        </div>
+                      </div>
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                      >
+                        View
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {order.special_instructions && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Special Instructions</h3>
+                <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  {order.special_instructions.split('\n').map((instruction, index) => (
+                    instruction.trim() && (
+                      <div key={index} className="flex items-start space-x-2">
+                        <span className="mt-1">•</span>
+                        <span className="text-gray-700">{instruction.trim()}</span>
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 overflow-auto">
@@ -1062,17 +1085,93 @@ const DentalLabModule = () => {
           <OrderDetails order={selectedOrder} onClose={() => setSelectedOrder(null)} />
         )}
 
-        {showNewOrder && <LabOrderForm
+        {showNewOrder && (
+          <DentistLabOrderForm
             onClose={() => setShowNewOrder(false)}
-            onSubmit={handleCreateOrder}
+            onSubmit={async (data, files) => {
+              setCreatingOrder(true);
+              try {
+                // Create order
+                const orderRes = await axios.post(
+                  `${backendURL}/orders`,
+                  {
+                    patient_id: data.patient_id,
+                    dentist_id: data.dentist_id,
+                    lab_id: data.lab_id,
+                    work_type_id: data.work_type_id,
+                    due_date: new Date(data.due_date),
+                    file_types: getSelectedFileTypes(submissionChecklist),
+                    shade_type_id: data.shade_type_id,
+                    material_id: data.material_id,
+                    priority: data.priority,
+                    special_instructions: data.special_instructions,
+                    status: "request"
+                  },
+                  {
+                    withCredentials: true,
+                    headers: {
+                      "content-type": "application/json"
+                    }
+                  }
+                );
+
+                if (orderRes.status !== 201) {
+                  throw new Error("Error creating order");
+                }
+
+                // Upload files
+                for (const file of files) {
+                  const formData = new FormData();
+                  formData.append("file", file);
+
+                  const fileRes = await axios.post(`${backendURL}/files`, formData, {
+                    headers: {
+                      "Content-Type": "multipart/form-data"
+                    },
+                    withCredentials: true
+                  });
+
+                  await axios.post(
+                    `${backendURL}/order-files`,
+                    {
+                      url: fileRes.data.url,
+                      order_id: orderRes.data
+                    },
+                    {
+                      withCredentials: true,
+                      headers: {
+                        "content-type": "application/json",
+                      }
+                    }
+                  );
+                }
+
+                setToast({
+                  message: "Order created successfully",
+                  type: "success",
+                  show: true
+                });
+                
+                fetchOrders();
+              } catch (err: any) {
+                setToast({
+                  message: err.message,
+                  type: "error",
+                  show: true
+                });
+              } finally {
+                setCreatingOrder(false);
+              }
+            }}
             patients={patients}
-            dentists={dentists}
+            dentistId={user.id} // Pass the current dentist's ID
             labs={labs}
             workTypes={workTypes}
             shades={shades}
             materials={materials}
             workTypeRequirements={workTypeRequirements}
-          />}
+          />
+        )}
 
         {/* Toast Notification */}
         {toast.show && (
