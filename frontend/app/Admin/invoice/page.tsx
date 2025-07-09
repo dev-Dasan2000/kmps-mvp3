@@ -614,7 +614,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="text-sm text-gray-900">#{invoice.invoice_id}</div>
                   <div className="text-sm font-medium text-gray-900">{invoice.patients.name}</div>
                   <div className="text-sm text-gray-600">{invoice.dentists?.name || 'N/A'}</div>
-                  <div className="text-sm font-medium text-gray-900">${invoice.total_amount.toFixed(2)}</div>
+                  <div className="text-sm font-medium text-gray-900">Rs. {invoice.total_amount.toFixed(2)}</div>
                   <div>
                     <Badge className={`${getStatusColor(invoice.payment_type)} flex items-center gap-1`}>
                       {invoice.payment_type.replace('_', ' ').toUpperCase()}
@@ -740,7 +740,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
                     <DollarSign size={16} />
-                    <span>${invoice.total_amount.toFixed(2)}</span>
+                    <span>Rs. {invoice.total_amount.toFixed(2)}</span>
                   </div>
                   <Button
                     variant="outline"
@@ -833,7 +833,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         />
                         <label htmlFor={`service-${service.service_id}`} className="text-sm flex-1 cursor-pointer">
                           <div className="font-medium">{service.service_name}</div>
-                          <div className="text-emerald-600 text-xs">${service.amount.toFixed(2)}</div>
+                          <div className="text-emerald-600 text-xs">Rs. {service.amount.toFixed(2)}</div>
                         </label>
                       </div>
                     ))}
@@ -979,23 +979,23 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal:</span>
-                    <span className="font-medium">${calculateSubtotal().toFixed(2)}</span>
+                    <span className="font-medium">Rs. {calculateSubtotal().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Lab Cost:</span>
-                    <span className="font-medium">${formData.lab_cost.toFixed(2)}</span>
+                    <span className="font-medium">Rs. {formData.lab_cost.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Discount:</span>
-                    <span className="font-medium text-red-600">-${formData.discount.toFixed(2)}</span>
+                    <span className="font-medium text-red-600">-Rs. {formData.discount.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Tax ({formData.tax_rate}%):</span>
-                    <span className="font-medium">${(((calculateSubtotal() + formData.lab_cost - formData.discount) * formData.tax_rate) / 100).toFixed(2)}</span>
+                    <span className="font-medium">Rs. {(((calculateSubtotal() + formData.lab_cost - formData.discount) * formData.tax_rate) / 100).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-emerald-200 mt-2">
                     <span className="font-semibold text-lg">Total Amount:</span>
-                    <span className="font-bold text-lg text-emerald-600">${calculateTotal().toFixed(2)}</span>
+                    <span className="font-bold text-lg text-emerald-600">Rs. {calculateTotal().toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1089,7 +1089,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                               {services.service_name}
                             </label>
                           </div>
-                          <span className="text-sm font-medium">${services.amount.toFixed(2)}</span>
+                          <span className="text-sm font-medium">Rs. {services.amount.toFixed(2)}</span>
                         </div>
                       ))}
                     </div>
@@ -1191,23 +1191,23 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Subtotal:</span>
-                    <span className="font-medium">${calculateSubtotal().toFixed(2)}</span>
+                    <span className="font-medium">Rs. {calculateSubtotal().toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Lab Cost:</span>
-                    <span className="font-medium">${formData.lab_cost.toFixed(2)}</span>
+                    <span className="font-medium">Rs. {formData.lab_cost.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Discount:</span>
-                    <span className="font-medium text-red-600">-${formData.discount.toFixed(2)}</span>
+                    <span className="font-medium text-red-600">-Rs. {formData.discount.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Tax ({formData.tax_rate}%):</span>
-                    <span className="font-medium">${(((calculateSubtotal() + formData.lab_cost - formData.discount) * formData.tax_rate) / 100).toFixed(2)}</span>
+                    <span className="font-medium">Rs. {(((calculateSubtotal() + formData.lab_cost - formData.discount) * formData.tax_rate) / 100).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-emerald-200 mt-2">
                     <span className="font-semibold text-lg">Total Amount:</span>
-                    <span className="font-bold text-lg text-emerald-600">${calculateTotal().toFixed(2)}</span>
+                    <span className="font-bold text-lg text-emerald-600">Rs. {calculateTotal().toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1353,7 +1353,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                                   {serviceData?.service_name || 'N/A'}
                                 </td>
                                 <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">
-                                  {serviceData?.amount ? `$${serviceData.amount.toFixed(2)}` : 'N/A'}
+                                  {serviceData?.amount ? `Rs. ${serviceData.amount.toFixed(2)}` : 'N/A'}
                                 </td>
                               </tr>
                             );
@@ -1381,33 +1381,33 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Subtotal:</span>
                         <span className="font-medium">
-                          ${calculateInvoiceSubtotal(selectedInvoice).toFixed(2)}
+                          Rs. {calculateInvoiceSubtotal(selectedInvoice).toFixed(2)}
                         </span>
                       </div>
                       {selectedInvoice.lab_cost > 0 && (
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Lab Cost:</span>
-                          <span className="font-medium">${selectedInvoice.lab_cost.toFixed(2)}</span>
+                          <span className="font-medium">Rs. {selectedInvoice.lab_cost.toFixed(2)}</span>
                         </div>
                       )}
                       {selectedInvoice.discount > 0 && (
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Discount:</span>
-                          <span className="font-medium text-red-600">-${selectedInvoice.discount.toFixed(2)}</span>
+                          <span className="font-medium text-red-600">-Rs. {selectedInvoice.discount.toFixed(2)}</span>
                         </div>
                       )}
                       {selectedInvoice.tax_rate > 0 && (
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Tax ({selectedInvoice.tax_rate}%):</span>
                           <span className="font-medium">
-                            ${calculateTaxAmount(selectedInvoice)}
+                            Rs. {calculateTaxAmount(selectedInvoice)}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between items-center pt-3 border-t border-gray-200 mt-3">
                         <span className="font-semibold text-lg">Total Amount:</span>
                         <span className="font-bold text-lg text-emerald-600">
-                          ${selectedInvoice.total_amount ? selectedInvoice.total_amount.toFixed(2) : '0.00'}
+                          Rs. {selectedInvoice.total_amount ? selectedInvoice.total_amount.toFixed(2) : '0.00'}
                         </span>
                       </div>
                     </div>
