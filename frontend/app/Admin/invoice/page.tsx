@@ -464,49 +464,69 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   );
 
   const handleDownload = async (invoice_id: number) => {
-    const invoice = invoices.find((inv) => inv.invoice_id === invoice_id);
-    if (!invoice) return;
+    try {
+      // First, get the invoice
+      const invoice = invoices.find((inv) => inv.invoice_id === invoice_id);
+      if (!invoice) return;
+      
+      // Fetch the services directly from the API to ensure we have the latest data
+      const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice_id}`);
+      
+      const servicesWithDetails = response.data.map(item => ({
+        ...item,
+        // Access the service property which contains the service details
+        service: item.service
+      }));
+      
+      const doc = new jsPDF();
 
-    console.log(invoice.services);
+      // Header
+      doc.setFontSize(18);
+      doc.text('Invoice', 14, 20);
 
-    const doc = new jsPDF();
+      doc.setFontSize(12);
+      doc.text(`Invoice ID: ${invoice.invoice_id}`, 14, 30);
+      doc.text(`Date: ${new Date(invoice.date).toLocaleDateString()}`, 14, 36);
+      doc.text(`Patient: ${invoice.patients.name}`, 14, 42);
+      doc.text(`Dentist: ${invoice.dentists?.name || 'N/A'}`, 14, 48);
+      doc.text(`Payment Type: ${invoice.payment_type}`, 14, 54);
+      doc.text(`Tax Rate: ${invoice.tax_rate}%`, 14, 60);
+      doc.text(`Lab Cost: Rs. ${invoice.lab_cost.toFixed(2)}`, 14, 66);
+      doc.text(`Discount: Rs. ${invoice.discount.toFixed(2)}`, 14, 72);
+      doc.text(`Note: ${invoice.note || '-'}`, 14, 78);
 
-    // Header
-    doc.setFontSize(18);
-    doc.text('Invoice', 14, 20);
+      // Services Table
+      const serviceRows = servicesWithDetails.map((item, i) => {
+        // Access the service details through the service property
+        const service = item.service;
+        const serviceName = service?.service_name || 'Unknown Service';
+        const description = service?.description || '-';
+        let amount = 'Rs. 0.00';
+        
+        // Safely handle amount if it exists and is a number
+        if (service?.amount !== undefined && service?.amount !== null) {
+          amount = `Rs. ${service.amount.toFixed(2)}`;
+        }
+        
+        return [i + 1, serviceName, description, amount];
+      });
 
-    doc.setFontSize(12);
-    doc.text(`Invoice ID: ${invoice.invoice_id}`, 14, 30);
-    doc.text(`Date: ${new Date(invoice.date).toLocaleDateString()}`, 14, 36);
-    doc.text(`Patient: ${invoice.patients.name}`, 14, 42);
-    doc.text(`Dentist: ${invoice.dentists?.name || 'N/A'}`, 14, 48);
-    doc.text(`Payment Type: ${invoice.payment_type}`, 14, 54);
-    doc.text(`Tax Rate: ${invoice.tax_rate}%`, 14, 60);
-    doc.text(`Lab Cost: Rs. ${invoice.lab_cost.toFixed(2)}`, 14, 66);
-    doc.text(`Discount: Rs. ${invoice.discount.toFixed(2)}`, 14, 72);
-    doc.text(`Note: ${invoice.note || '-'}`, 14, 78);
+      autoTable(doc, {
+        head: [['#', 'Service', 'Description', 'Amount']],
+        body: serviceRows,
+        startY: 90,
+      });
 
-    // Services Table
-    const serviceRows = invoice.services.map((s, i) => [
-      i + 1,
-      s.services?.service_name,
-      s.services?.description || '-',
-      `Rs. ${s.services?.amount.toFixed(2)}`
-    ]);
+      // Total Section
+      const finalY = (doc as any).lastAutoTable.finalY || 100;
+      doc.setFontSize(12);
+      doc.text(`Total Amount: Rs. ${invoice.total_amount.toFixed(2)}`, 14, finalY + 10);
 
-    autoTable(doc, {
-      head: [['#', 'Service', 'Description', 'Amount']],
-      body: serviceRows,
-      startY: 90,
-    });
-
-    // Total Section
-    const finalY = (doc as any).lastAutoTable.finalY || 100;
-    doc.setFontSize(12);
-    doc.text(`Total Amount: Rs. ${invoice.total_amount.toFixed(2)}`, 14, finalY + 10);
-
-    // Download PDF
-    doc.save(`invoice_${invoice.invoice_id}.pdf`);
+      // Save the PDF
+      doc.save(`Invoice_${invoice.invoice_id}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
   };
 
 
@@ -1413,13 +1433,14 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="flex flex-col sm:flex-row gap-3 w-full sm:justify-end">
                     <Button
                       variant="outline"
-                      className="flex items-center gap-2 px-5"
                       onClick={() => setViewInvoiceDialogOpen(false)}
+                      className="px-5"
                     >
                       Close
                     </Button>
                     <Button
                       className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2 px-5"
+                      onClick={() => handleDownload(selectedInvoice.invoice_id)}
                     >
                       <Download size={16} />
                       Download Invoice

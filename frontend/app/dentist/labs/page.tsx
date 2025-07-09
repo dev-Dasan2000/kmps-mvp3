@@ -5,6 +5,7 @@ import { Loader, Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, 
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { LabOrderForm } from '../../../Components/LabOrderForm';
 // ======================== TYPES ========================
 
 type Lab = {
@@ -798,330 +799,6 @@ const DentalLabModule = () => {
     </div>
   );
 
-  const NewOrderForm = () => (
-    <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto shadow-xl border border-gray-200">
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">Create New Lab Order</h2>
-          <button
-            onClick={() => setShowNewOrder(false)}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Order Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Patient ID</label>
-                <select
-                  value={newOrder.patient_id}
-                  onChange={(e) =>
-                    setNewOrder({
-                      ...newOrder,
-                      patient_id: e.target.value,
-
-                    })
-                  }
-                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500'>
-                  <option value="">Select patient</option>
-                  {patients.map((p) => (
-                    <option key={p.patient_id} value={p.patient_id}>
-                      {p.patient_id} - {p.name}
-                    </option>
-                  ))}
-                </select>
-
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dentist</label>
-                <select
-                  value={newOrder.dentist_id}
-                  onChange={(e) =>
-                    setNewOrder({
-                      ...newOrder,
-                      dentist_id: e.target.value,
-
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select Dentist</option>
-                  {dentists.map((dent) => (
-                    <option key={dent.dentist_id} value={dent.dentist_id}>
-                      {dent.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lab</label>
-                <select
-                  value={newOrder.lab_id}
-                  onChange={(e) => setNewOrder({ ...newOrder, lab_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Select Lab</option>
-                  {labs.map((lab) => (
-                    <option key={lab.lab_id} value={lab.lab_id}>{lab.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Work Type</label>
-                <select
-                  value={newOrder.work_type_id}
-                  onChange={(e) => setNewOrder({ ...newOrder, work_type_id: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="0">Select Work Type</option>
-                  {workTypes.map((workType) => (
-                    <option key={workType.work_type_id} value={workType.work_type_id}>{workType.work_type}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                <input
-                  type="date"
-                  value={newOrder.due_date?.split("T")[0]}
-                  onChange={(e) => setNewOrder({ ...newOrder, due_date: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {newOrder.work_type_id > 0 && workTypeRequirements[workTypes.find(w => w.work_type_id === newOrder.work_type_id)?.work_type || ''] && (
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Required Items for {workTypes.find(w => w.work_type_id === newOrder.work_type_id)?.work_type}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Required Items</h4>
-                  <ul className="space-y-1">
-                    {workTypeRequirements[workTypes.find(w => w.work_type_id === newOrder.work_type_id)?.work_type || ''].required.map((item, index) => (
-                      <li key={index} className="flex items-center text-sm text-gray-700">
-                        <AlertCircle className="h-4 w-4 text-red-500 mr-2" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">Optional Items</h4>
-                  <ul className="space-y-1">
-                    {workTypeRequirements[workTypes.find(w => w.work_type_id === newOrder.work_type_id)?.work_type || ''].optional.map((item, index) => (
-                      <li key={index} className="flex items-center text-sm text-gray-500">
-                        <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Digital Files & Documents</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Upload Files</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                  accept=".stl,.obj,.ply,.dcm,.dco,.jpg,.jpeg,.png,.pdf,.doc,.docx"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Package className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">
-                    Drop files here or <span className="text-blue-600 hover:text-blue-500">browse</span>
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    STL, OBJ, PLY, DICOM, Images, PDF documents
-                  </p>
-                </label>
-              </div>
-            </div>
-
-            {selectedFiles.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-medium text-gray-900">Uploaded Files</h4>
-                {selectedFiles.map((file) => (
-                  <div key={file.name} className="flex items-center justify-between bg-white p-3 rounded border">
-                    <div className="flex items-center">
-                      <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                        <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => removeFile(file.name)}
-                      className="text-red-600 hover:text-red-800 text-sm"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Submission Checklist</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Digital Files</h4>
-                <div className="space-y-2">
-                  {Object.entries(submissionChecklist.digitalFiles).map(([key, checked]) => (
-                    <label key={key} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => setSubmissionChecklist({
-                          ...submissionChecklist,
-                          digitalFiles: { ...submissionChecklist.digitalFiles, [key]: e.target.checked }
-                        })}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Physical Items</h4>
-                <div className="space-y-2">
-                  {Object.entries(submissionChecklist.physicalItems).map(([key, checked]) => (
-                    <label key={key} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => setSubmissionChecklist({
-                          ...submissionChecklist,
-                          physicalItems: { ...submissionChecklist.physicalItems, [key]: e.target.checked }
-                        })}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Documentation</h4>
-                <div className="space-y-2">
-                  {Object.entries(submissionChecklist.documentation).map(([key, checked]) => (
-                    <label key={key} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => setSubmissionChecklist({
-                          ...submissionChecklist,
-                          documentation: { ...submissionChecklist.documentation, [key]: e.target.checked }
-                        })}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Clinical Specifications</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Shade Selection</label>
-                <select
-                  value={newOrder.shade_type_id}
-                  onChange={(e) => setNewOrder({ ...newOrder, shade_type_id: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="0">Select Shade</option>
-                  {shades.map((shade) => (
-                    <option key={shade.shade_type_id} value={shade.shade_type_id}>{shade.shade}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Material Type</label>
-                <select
-                  value={newOrder.material_id}
-                  onChange={(e) => setNewOrder({ ...newOrder, material_id: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="0">Select Material</option>
-                  {materials.map((material) => (
-                    <option key={material.material_id} value={material.material_id}>{material.material}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                <select
-                  value={newOrder.priority}
-                  onChange={(e) => setNewOrder({ ...newOrder, priority: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="Low">Low</option>
-                  <option value="Normal">Normal</option>
-                  <option value="High">High</option>
-                  <option value="Rush">Rush (+50% cost)</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Special Instructions</label>
-            <textarea
-              value={newOrder.special_instructions}
-              onChange={(e) => setNewOrder({ ...newOrder, special_instructions: e.target.value })}
-              rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Include specific instructions, patient preferences, anatomical considerations, contact points, occlusal requirements, etc."
-            />
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4 border-t">
-            <button
-              onClick={() => setShowNewOrder(false)}
-              className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreateOrder}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Create Order & Send to Lab
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
   const Dashboard = () => {
     const stats = [
       { title: 'Active Orders', value: orders.filter(o => o.status === 'in-progress').length.toString(), color: 'bg-blue-500' },
@@ -1272,7 +949,7 @@ const DentalLabModule = () => {
                     {order.status}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date?.split("T")[0]}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
                     {order.priority}
@@ -1385,7 +1062,17 @@ const DentalLabModule = () => {
           <OrderDetails order={selectedOrder} onClose={() => setSelectedOrder(null)} />
         )}
 
-        {showNewOrder && <NewOrderForm />}
+        {showNewOrder && <LabOrderForm
+            onClose={() => setShowNewOrder(false)}
+            onSubmit={handleCreateOrder}
+            patients={patients}
+            dentists={dentists}
+            labs={labs}
+            workTypes={workTypes}
+            shades={shades}
+            materials={materials}
+            workTypeRequirements={workTypeRequirements}
+          />}
 
         {/* Toast Notification */}
         {toast.show && (
