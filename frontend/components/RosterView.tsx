@@ -105,16 +105,16 @@ export default function RosterView({ employees, shifts, loading = false }: Roste
           ))}
         </div>
       ) : (
-        <Card>
+        <Card className="border-2 border-gray-200">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px]">
+              <table className="w-full min-w-[800px] border-collapse border border-gray-300">
                 {/* Table Header */}
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3 bg-white border-r sticky left-0 z-10">Employee</th>
+                  <tr className="border-b border-gray-300">
+                    <th className="text-left p-3 bg-white border-r border-gray-300 sticky left-0 z-10">Employee</th>
                     {weekDays.map((day, index) => (
-                      <th key={index} className="p-2 text-center border-r min-w-[120px]">
+                      <th key={index} className="p-2 text-center border-r border-gray-300 min-w-[120px]">
                         <div className="font-medium">{format(day, 'EEE')}</div>
                         <div className="text-xs text-gray-500">Jul {format(day, 'd')}</div>
                       </th>
@@ -132,8 +132,8 @@ export default function RosterView({ employees, shifts, loading = false }: Roste
                     </tr>
                   ) : (
                     partTimeEmployees.map((employee) => (
-                      <tr key={employee.eid} className="border-b hover:bg-gray-50">
-                        <td className="p-3 border-r font-medium sticky left-0 bg-white z-10">
+                      <tr key={employee.eid} className="border-b border-gray-300 hover:bg-gray-50">
+                        <td className="p-3 border-r border-gray-300 font-medium sticky left-0 bg-white z-10">
                           <div className="font-semibold">{employee.name}</div>
                         </td>
                         
@@ -141,10 +141,12 @@ export default function RosterView({ employees, shifts, loading = false }: Roste
                           // Find shifts for this employee on this day
                           const employeeShifts = shifts.filter(
                             shift => shift.eid === employee.eid && isShiftOnDay(shift, day)
-                          );
+                          )
+                          // Sort by start time
+                          .sort((a, b) => new Date(a.from_time).getTime() - new Date(b.from_time).getTime());
                           
                           return (
-                            <td key={dayIndex} className="p-1 border-r relative min-h-[60px]">
+                            <td key={dayIndex} className="p-1 border-r border-gray-300 relative min-h-[60px]">
                               {employeeShifts.length > 0 ? (
                                 <div className="space-y-1">
                                   {employeeShifts.map(shift => {
