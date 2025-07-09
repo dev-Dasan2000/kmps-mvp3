@@ -286,7 +286,7 @@ const DentalDashboard: React.FC = () => {
     },
     {
       title: 'Monthly Revenue',
-      value: `$${dashboardData.monthlyRevenue.toLocaleString()}`,
+      value: `Rs ${dashboardData.monthlyRevenue.toLocaleString()}`,
       icon: CreditCard,
       color: 'text-green-600'
     },
@@ -389,7 +389,7 @@ const DentalDashboard: React.FC = () => {
                 cornerRadius: 8,
                 callbacks: {
                   label: function (context) {
-                    return `Revenue: $${context.parsed.y.toLocaleString()}`;
+                    return `Revenue: Rs ${context.parsed.y.toLocaleString()}`;
                   }
                 }
               }
@@ -418,7 +418,7 @@ const DentalDashboard: React.FC = () => {
                   color: '#666666',
                   font: { size: 12 },
                   callback: function (value) {
-                    return '$' + (Number(value) / 1000).toFixed(0) + 'k';
+                    return 'Rs ' + (Number(value) / 1000).toFixed(0) + 'k';
                   }
                 }
               }
@@ -474,7 +474,7 @@ const DentalDashboard: React.FC = () => {
                   afterLabel: function (context) {
                     const serviceIndex = context.dataIndex;
                     const revenue = serviceTypes[serviceIndex].revenue;
-                    return `Revenue: $${revenue.toLocaleString()}`;
+                    return `Revenue: Rs ${revenue.toLocaleString()}`;
                   }
                 }
               }

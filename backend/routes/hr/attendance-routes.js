@@ -400,6 +400,70 @@ router.get('/weekly/all', async (req, res) => {
   }
 });
 
+// Get daily attendance for a specific date
+router.get('/daily/:date', async (req, res) => {
+  try {
+    const inputDate = new Date(req.params.date);
+    if (isNaN(inputDate)) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
+
+    const startOfDay = new Date(inputDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(inputDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Get all employees with attendance and approved leaves on the given date
+    const employees = await prisma.employees.findMany({
+      include: {
+        attendance: {
+          where: {
+            clock_in: {
+              gte: startOfDay,
+              lte: endOfDay
+            }
+          }
+        },
+        leaves: {
+          where: {
+            status: 'Approved',
+            from_date: { lte: endOfDay },
+            to_date: { gte: startOfDay }
+          }
+        }
+      }
+    });
+
+    // Format daily attendance for each employee
+    const dailyData = employees.map((employee) => {
+      const attendance = employee.attendance.map((record) => ({
+        clock_in: formatTimeOnly(record.clock_in),
+        clock_out: formatTimeOnly(record.clock_out)
+      }));
+
+      const leave = employee.leaves.length > 0 ? employee.leaves[0] : null;
+
+      return {
+        eid: employee.eid,
+        name: employee.name,
+        date: formatDateOnly(inputDate),
+        formatted_date: formatFullDate(inputDate),
+        formatted_day: formatDayName(inputDate),
+        attendance,
+        leave: !!leave,
+        leave_type: leave?.type || null
+      };
+    });
+
+    res.json(dailyData);
+  } catch (error) {
+    console.error('Error fetching daily attendance:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+
 // Record clock in
 router.post('/clock-in', async (req, res) => {
   try {

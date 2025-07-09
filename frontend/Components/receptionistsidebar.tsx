@@ -87,6 +87,11 @@ const ReceptionistSidebar = () => {
     icon: KanbanSquare,
   },
   {
+      title: "Invoice",
+      url: "/receptionist/invoice",
+      icon: BarChart3,
+    },
+  {
     title: "Room Assignments",
     url: `/receptionist/rooms`,
     icon: Ticket,

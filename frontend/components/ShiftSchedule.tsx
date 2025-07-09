@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Plus } from 'lucide-react';
+import { Calendar, Plus, CalendarIcon, Clock } from 'lucide-react';
 
 import {
   Dialog,
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -21,7 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
+import RosterView from './RosterView';
+import DayRosterView from './DayRosterView';
 
 // Shift schedule interface
 interface Shift {
@@ -35,9 +37,10 @@ interface Shift {
 interface Employee {
   eid: number;
   name: string;
+  employment_status: "part time" | "full time";
 }
 
-
+// Props for the ShiftSchedule component
 interface ShiftScheduleProps {
   shifts?: Shift[];
   loading?: boolean;
@@ -49,10 +52,14 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
   // Local component state
   const [activeShifts, setActiveShifts] = useState<Shift[]>(shifts);
   const [addOpen, setAddOpen] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(false);
   const [selectedEid, setSelectedEid] = useState<number | null>(null);
   const [fromTime, setFromTime] = useState('');
   const [toTime, setToTime] = useState('');
   const [saving, setSaving] = useState(false);
+  const [allShifts, setAllShifts] = useState<Shift[]>([]);
+  const [viewMode, setViewMode] = useState<'week' | 'day'>('week');
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -61,12 +68,44 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
     setActiveShifts(shifts);
   }, [shifts]);
 
+  // Fetch all shifts for the roster view and shift validation
+  useEffect(() => {
+    const fetchAllShifts = async () => {
+      if (!backendURL) return;
+      try {
+        const response = await axios.get<Shift[]>(`${backendURL}/hr/shifts`);
+        setAllShifts(response.data);
+      } catch (error) {
+        console.error('Error fetching all shifts:', error);
+      }
+    };
 
+    // Always fetch shifts when adding a new shift or viewing roster
+    if (rosterOpen || addOpen) {
+      fetchAllShifts();
+    }
+  }, [backendURL, rosterOpen, addOpen]);
 
+  // Function to check if a new shift overlaps with existing ones
+  const checkShiftOverlap = (eid: number, fromTime: string, toTime: string): boolean => {
+    const newStart = new Date(fromTime).getTime();
+    const newEnd = new Date(toTime).getTime();
 
+    // Find all shifts for this employee
+    const employeeShifts = allShifts.filter(shift => shift.eid === eid);
 
+    // Check for overlaps
+    return employeeShifts.some(shift => {
+      const existingStart = new Date(shift.from_time).getTime();
+      const existingEnd = new Date(shift.to_time).getTime();
 
-
+      // Overlap occurs when newStart is between existing shift or newEnd is between existing shift
+      // or if new shift completely encompasses existing shift
+      return (newStart < existingEnd && newStart >= existingStart) || // New start during existing shift
+             (newEnd <= existingEnd && newEnd > existingStart) || // New end during existing shift
+             (newStart <= existingStart && newEnd >= existingEnd); // New shift contains existing shift
+    });
+  };
 
   // Format time in 12-hour format
   const formatTime = (time24: string) => {
@@ -106,7 +145,6 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
             <div className="text-2xl font-bold text-emerald-600">
               {loading ? "..." : currentlyActiveCount}
             </div>
-            
           </CardContent>
         </Card>
       </div>
@@ -122,7 +160,6 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
                   {formatTime(shift.from_time.split('T')[1].slice(0,5))} - {formatTime(shift.to_time.split('T')[1].slice(0,5))}
                 </CardDescription>
               </div>
-              
             </div>
           </CardHeader>
           <CardContent>
@@ -131,11 +168,70 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
       ))}
 
       <div className="flex justify-center mt-6">
-        <Button size="sm" variant="outline" className="text-blue-600">
-          <Calendar className="h-4 w-4 mr-2" />
+        <Button 
+          variant="outline" 
+          className="text-blue-600 flex items-center gap-2" 
+          onClick={() => setRosterOpen(true)}
+        >
+          <CalendarIcon className="h-4 w-4" />
           Manage Roster
         </Button>
       </div>
+      
+      <Dialog open={rosterOpen} onOpenChange={setRosterOpen}>
+        <DialogContent className="sm:max-w-[90vw] w-[90vw] max-h-[90vh] flex flex-col" style={{ maxWidth: '90vw' }}>
+          <DialogHeader className="pb-2 border-b">
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5" />
+              Staff Roster Management
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">View and manage employee shift schedules</p>
+          </DialogHeader>
+          <div className="flex justify-between items-center my-4">
+            <div className="text-lg font-semibold">Staff Roster</div>
+            <div className="flex bg-gray-100 p-1 rounded-md">
+              <button 
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-blue-800' : 'text-gray-600 hover:text-gray-800'}`}
+                onClick={() => setViewMode('week')}
+              >
+                Week View
+              </button>
+              <button 
+                className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-blue-800' : 'text-gray-600 hover:text-gray-800'}`}
+                onClick={() => setViewMode('day')}
+              >
+                Day View
+              </button>
+            </div>
+          </div>
+          <div className="py-4">
+            {viewMode === 'week' ? (
+              <RosterView 
+                employees={partTimeEmployees} 
+                shifts={allShifts} 
+                loading={loading} 
+              />
+            ) : (
+              <DayRosterView 
+                employees={partTimeEmployees} 
+                shifts={allShifts} 
+                loading={loading}
+                currentDate={currentDate}
+                onDateChange={setCurrentDate}
+              />
+            )}
+          </div>
+
+          <DialogFooter className="mt-2 pt-4 border-t">
+            <div className="text-xs text-gray-500 mr-auto">
+              {allShifts.length} shifts • {partTimeEmployees.length} employees
+            </div>
+            <Button variant="outline" onClick={() => setRosterOpen(false)} className="">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Shift Dialog */}
       <Dialog open={addOpen} onOpenChange={(v) => setAddOpen(v)}>
@@ -178,12 +274,29 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
                 toast.error('Please fill all fields');
                 return;
               }
+              
+              // Validate the times
+              const newFromTime = new Date(fromTime);
+              const newToTime = new Date(toTime);
+              
+              // Check if end time is after start time
+              if (newToTime <= newFromTime) {
+                toast.error('End time must be after start time');
+                return;
+              }
+              
+              // Check for overlaps with existing shifts
+              if (checkShiftOverlap(selectedEid, fromTime, toTime)) {
+                toast.error('This shift overlaps with an existing shift for this employee');
+                return;
+              }
+              
               setSaving(true);
               try {
                 await axios.post(`${backendURL}/hr/shifts`, {
                   eid: selectedEid,
-                  from_time: new Date(fromTime).toISOString(),
-                  to_time: new Date(toTime).toISOString()
+                  from_time: newFromTime.toISOString(),
+                  to_time: newToTime.toISOString()
                 });
                 toast.success('Shift added');
                 setAddOpen(false);
