@@ -65,6 +65,7 @@ const MedicalStudyInterface: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedStudyId, setExpandedStudyId] = useState<number | null>(null);
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const dicomurlx = process.env.DICOM_URL;
 
   // Helper: open DICOM viewer in a new tab using POST (required by backend)
   const openDicomInNewTab = (dicomUrl: string) => {
@@ -81,7 +82,7 @@ const MedicalStudyInterface: React.FC = () => {
   <body>
       <p>Opening DICOM file: ${dicomUrl}</p>
       <script>
-          fetch('http://localhost:4000/open-dicom', {
+          fetch('${dicomurlx}/open-dicom', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ url: '${fullUrl}' })

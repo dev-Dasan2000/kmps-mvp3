@@ -67,7 +67,7 @@ const MedicalStudyInterface: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [studyToEdit, setStudyToEdit] = useState<Study | null>(null);
   const [expandedStudyId, setExpandedStudyId] = useState<number | null>(null);
-  
+  const dicomurlx = process.env.DICOM_URL;
   
 
   const {user, isLoadingAuth, isLoggedIn} = useContext(AuthContext);
@@ -87,7 +87,7 @@ const MedicalStudyInterface: React.FC = () => {
   <body>
       <p>Opening DICOM file: ${dicomUrl}</p>
       <script>
-          fetch('http://localhost:4000/open-dicom', {
+          fetch('${dicomurlx}/open-dicom', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ url: '${fullUrl}' })

@@ -136,12 +136,15 @@ export default function DirectoryPage() {
             const attendanceData = attendanceResponse.data
             const leavesData = leavesResponse.data
             
+            // Ensure attendanceData is an array before processing it
+            const attendanceArray = Array.isArray(attendanceData) ? attendanceData : []
+            
             // Process attendance data to get worked days and hours
-            const workedDays = attendanceData.length
+            const workedDays = attendanceArray.length
             
             // Calculate total hours worked (assuming each record has clock_in and clock_out)
             let totalHours = 0
-            attendanceData.forEach((record: any) => {
+            attendanceArray.forEach((record: any) => {
                 if (record.clock_in && record.clock_out) {
                     const clockIn = new Date(record.clock_in)
                     const clockOut = new Date(record.clock_out)
