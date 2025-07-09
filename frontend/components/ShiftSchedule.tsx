@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import RosterView from './RosterView';
 
 
 // Shift schedule interface
@@ -35,6 +36,7 @@ interface Shift {
 interface Employee {
   eid: number;
   name: string;
+  employment_status: "part time" | "full time";
 }
 
 
@@ -49,10 +51,12 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
   // Local component state
   const [activeShifts, setActiveShifts] = useState<Shift[]>(shifts);
   const [addOpen, setAddOpen] = useState(false);
+  const [rosterOpen, setRosterOpen] = useState(false);
   const [selectedEid, setSelectedEid] = useState<number | null>(null);
   const [fromTime, setFromTime] = useState('');
   const [toTime, setToTime] = useState('');
   const [saving, setSaving] = useState(false);
+  const [allShifts, setAllShifts] = useState<Shift[]>([]);
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -60,6 +64,23 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
   useEffect(() => {
     setActiveShifts(shifts);
   }, [shifts]);
+  
+  // Fetch all shifts for the roster view
+  useEffect(() => {
+    const fetchAllShifts = async () => {
+      if (!backendURL) return;
+      try {
+        const response = await axios.get<Shift[]>(`${backendURL}/hr/shifts`);
+        setAllShifts(response.data);
+      } catch (error) {
+        console.error('Error fetching all shifts:', error);
+      }
+    };
+    
+    if (rosterOpen) {
+      fetchAllShifts();
+    }
+  }, [backendURL, rosterOpen]);
 
 
 
@@ -131,7 +152,12 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
       ))}
 
       <div className="flex justify-center mt-6">
-        <Button size="sm" variant="outline" className="text-blue-600">
+        <Button 
+          size="sm" 
+          variant="outline" 
+          className="text-blue-600"
+          onClick={() => setRosterOpen(true)}
+        >
           <Calendar className="h-4 w-4 mr-2" />
           Manage Roster
         </Button>
@@ -200,6 +226,28 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
             }} disabled={saving}>
               {saving ? 'Saving...' : 'Add'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Roster Management Dialog */}
+      <Dialog open={rosterOpen} onOpenChange={(v) => setRosterOpen(v)}>
+        <DialogContent className="w-full max-w-6xl md:max-w-[90vw]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Staff Roster Management</DialogTitle>
+          </DialogHeader>
+          <div className="text-lg font-semibold mb-2">Staff Roster</div>
+          
+          <div className="py-4">
+            <RosterView 
+              employees={partTimeEmployees} 
+              shifts={allShifts} 
+              loading={loading} 
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRosterOpen(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
