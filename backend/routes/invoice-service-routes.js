@@ -6,9 +6,11 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const services = await prisma.invoice_service.findMany();
+    console.log('Fetching all invoice services');
+    const services = await prisma.invoice_services.findMany();
     res.json(services);
-  } catch {
+  } catch(error) {
+    console.error('Error fetching invoice services:', error);
     res.status(500).json({ error: 'Failed to fetch services' });
   }
 });
@@ -28,7 +30,7 @@ router.get('/:service_id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { service_name, amount } = req.body;
-    const newService = await prisma.invoice_service.create({
+    const newService = await prisma.invoice_services.create({
       data: { service_name, amount },
     });
     res.status(201).json(newService);
@@ -40,7 +42,7 @@ router.post('/', async (req, res) => {
 router.put('/:service_id', async (req, res) => {
   try {
     const data = req.body;
-    const updatedService = await prisma.invoice_service.update({
+    const updatedService = await prisma.invoice_services.update({
       where: { service_id: Number(req.params.service_id) },
       data,
     });
@@ -52,7 +54,7 @@ router.put('/:service_id', async (req, res) => {
 
 router.delete('/:service_id', async (req, res) => {
   try {
-    await prisma.invoice_service.delete({
+    await prisma.invoice_services.delete({
       where: { service_id: Number(req.params.service_id) },
     });
     res.json({ message: 'Deleted' });

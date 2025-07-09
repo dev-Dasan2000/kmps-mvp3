@@ -515,7 +515,7 @@ model expense {
   dentists      dentists? @relation(fields: [dentist_id], references: [dentist_id])
 }
 
-model invoice_service {
+model invoice_services {
   service_id   Int     @id @default(autoincrement())
   service_name String
   amount       Float
@@ -544,7 +544,7 @@ model invoice_service_assign {
   service_id Int
 
   invoice    invoice       @relation(fields: [invoice_id], references: [invoice_id], onDelete: Cascade)
-  service    invoice_service @relation(fields: [service_id], references: [service_id], onDelete: Cascade)
+  service    invoice_services @relation(fields: [service_id], references: [service_id], onDelete: Cascade)
 
   @@id([invoice_id, service_id])
 }

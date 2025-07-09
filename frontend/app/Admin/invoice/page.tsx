@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,15 +40,16 @@ interface Dentist {
   specialization: string;
 }
 
-interface InvoiceServiceAssign {
-  invoice_id: number;
-  service_id: number;
-}
-
 interface InvoiceService {
   service_id: number;
   service_name: string;
   amount: number;
+}
+
+interface InvoiceServiceAssign {
+  invoice_id: number;
+  service_id: number;
+  service: InvoiceService;
 }
 
 interface Invoice {
@@ -63,7 +65,7 @@ interface Invoice {
   note: string;
   patients: Patient;
   dentists: Dentist | null;
-  
+  services: InvoiceServiceAssign[];
 }
 
 interface InvoiceFormData {
@@ -92,6 +94,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const [isLoading, setIsLoading] = useState(true);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [viewInvoiceDialogOpen, setViewInvoiceDialogOpen] = useState(false);
+  const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
 
@@ -107,101 +110,44 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     services: []
   });
 
+
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+
   const paymentTypes = ['cash', 'card', 'online', 'bank_transfer'];
 
-  // Mock data - Replace with actual API calls
+  // Fetch data from backend
   useEffect(() => {
-    const mockInvoices: Invoice[] = [
-      {
-        invoice_id: 1,
-        patient_id: "P001",
-        dentist_id: "D001",
-        payment_type: "cash",
-        tax_rate: 5,
-        lab_cost: 50,
-        discount: 25,
-        date: "2025-07-07T00:00:00.000Z",
-        total_amount: 400,
-        note: "Regular checkup and cleaning",
-        patients: {
-          patient_id: "P001",
-          hospital_patient_id: null,
-          password: "$2b$10$vZJggBTq4M4HFUnrPZV19efH2DSDGtYqtR31/IZ/Yjigu7Ytc8MyW",
-          name: "D Gayashan",
-          profile_picture: "/uploads/photos/1750699828497-mazda-removebg-preview.png",
-          email: "ashborn541@gmail.com",
-          phone_number: "077123456878",
-          address: "No.710",
-          nic: "20000331002",
-          blood_group: "o+",
-          date_of_birth: "2001-01-16",
-          gender: "Male"
-        },
-        dentists: {
-          dentist_id: "D001",
-          name: "Dr. Sarah Johnson",
-          email: "sarah.johnson@clinic.com",
-          phone_number: "077123456789",
-          specialization: "General Dentistry"
-        },
-        services: [
-          { service_id: 1, service_name: 'General Consultation', amount: 150 },
-          { service_id: 2, service_name: 'Dental Cleaning', amount: 120 },
-          { service_id: 7, service_name: 'Dental X-Ray', amount: 75 }
-        ]
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch all invoices with patient and dentist details
+        const invoicesRes = await axios.get(`${backendUrl}/invoices`);
+        const invoicesData = invoicesRes.data;
+        
+        // Fetch all services
+        const servicesRes = await axios.get(`${backendUrl}/invoice-services`);
+        const servicesData = servicesRes.data;
+        
+        // Fetch all patients
+        const patientsRes = await axios.get(`${backendUrl}/patients`);
+        const patientsData = patientsRes.data;
+        
+        // Fetch all dentists
+        const dentistsRes = await axios.get(`${backendUrl}/dentists`);
+        const dentistsData = dentistsRes.data;
+        
+        setInvoices(invoicesData);
+        setAvailableServices(servicesData);
+        setPatients(patientsData);
+        setDentists(dentistsData);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
       }
-    ];
-
-    const mockServices: InvoiceService[] = [
-      { service_id: 1, service_name: 'General Consultation', amount: 150 },
-      { service_id: 2, service_name: 'Dental Cleaning', amount: 120 },
-      { service_id: 3, service_name: 'Tooth Extraction', amount: 200 },
-      { service_id: 4, service_name: 'Dental Filling', amount: 180 },
-      { service_id: 5, service_name: 'Root Canal Treatment', amount: 800 },
-      { service_id: 6, service_name: 'Dental Crown', amount: 600 },
-      { service_id: 7, service_name: 'Dental X-Ray', amount: 75 },
-      { service_id: 8, service_name: 'Teeth Whitening', amount: 300 }
-    ];
-
-    const mockPatients: Patient[] = [
-      {
-        patient_id: "P001",
-        hospital_patient_id: null,
-        password: "$2b$10$vZJggBTq4M4HFUnrPZV19efH2DSDGtYqtR31/IZ/Yjigu7Ytc8MyW",
-        name: "D Gayashan",
-        profile_picture: "/uploads/photos/1750699828497-mazda-removebg-preview.png",
-        email: "ashborn541@gmail.com",
-        phone_number: "077123456878",
-        address: "No.710",
-        nic: "20000331002",
-        blood_group: "o+",
-        date_of_birth: "2001-01-16",
-        gender: "Male"
-      }
-    ];
-
-    const mockDentists: Dentist[] = [
-      {
-        dentist_id: "D001",
-        name: "Dr. Sarah Johnson",
-        email: "sarah.johnson@clinic.com",
-        phone_number: "077123456789",
-        specialization: "General Dentistry"
-      },
-      {
-        dentist_id: "D002",
-        name: "Dr. Michael Chen",
-        email: "michael.chen@clinic.com",
-        phone_number: "077123456790",
-        specialization: "Orthodontics"
-      }
-    ];
-
-    setInvoices(mockInvoices);
-    setAvailableServices(mockServices);
-    setPatients(mockPatients);
-    setDentists(mockDentists);
-    setIsLoading(false);
+    };
+    
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -222,10 +168,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   };
 
   const calculateSubtotal = () => {
-    return formData.services.reduce((total, serviceId) => {
-      const service = availableServices.find(s => s.service_id === serviceId);
-      return total + (service?.amount || 0);
-    }, 0);
+    const selectedServices = availableServices.filter(service => formData.services.includes(service.service_id));
+    return selectedServices.reduce((total, service) => total + service.amount, 0);
   };
 
   const calculateTotal = () => {
@@ -246,44 +190,167 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    const newInvoice: Invoice = {
-      invoice_id: invoices.length + 1,
-      patient_id: formData.patient_id,
-      dentist_id: formData.dentist_id,
-      payment_type: formData.payment_type,
-      tax_rate: formData.tax_rate,
-      lab_cost: formData.lab_cost,
-      discount: formData.discount,
-      date: formData.date,
-      total_amount: calculateTotal(),
-      note: formData.note,
-      patients: patients.find(p => p.patient_id === formData.patient_id)!,
-      dentists: formData.dentist_id ? dentists.find(d => d.dentist_id === formData.dentist_id) || null : null,
-      services: availableServices.filter(s => formData.services.includes(s.service_id))
-    };
-
-    // Here you would make API call to create invoice
-    setInvoices([...invoices, newInvoice]);
-    setIsCreatingInvoice(false);
-    
-    // Reset form
-    setFormData({
-      patient_id: '',
-      dentist_id: null,
-      payment_type: '',
-      tax_rate: 0,
-      lab_cost: 0,
-      discount: 0,
-      date: new Date().toISOString().split('T')[0],
-      note: '',
-      services: []
-    });
+    try {
+      // First create the invoice
+      const invoiceData = {
+        patient_id: formData.patient_id,
+        dentist_id: formData.dentist_id,
+        payment_type: formData.payment_type,
+        tax_rate: formData.tax_rate,
+        lab_cost: formData.lab_cost,
+        discount: formData.discount,
+        date: formData.date,
+        total_amount: calculateTotal(),
+        note: formData.note
+      };
+      
+      const invoiceResponse = await axios.post(`${backendUrl}/invoices`, invoiceData);
+      const newInvoice = invoiceResponse.data;
+      
+      // Then assign services to the invoice
+      const serviceAssignPromises = formData.services.map(serviceId => {
+        return axios.post(`${backendUrl}/invoice-service-assign`, {
+          invoice_id: newInvoice.invoice_id,
+          service_id: serviceId
+        });
+      });
+      
+      await Promise.all(serviceAssignPromises);
+      
+      // Refresh invoices data to include the new invoice
+      const invoicesRes = await axios.get(`${backendUrl}/invoices`);
+      setInvoices(invoicesRes.data);
+      
+      setIsCreatingInvoice(false);
+      
+      // Reset form
+      setFormData({
+        patient_id: '',
+        dentist_id: null,
+        payment_type: '',
+        tax_rate: 0,
+        lab_cost: 0,
+        discount: 0,
+        date: new Date().toISOString().split('T')[0],
+        note: '',
+        services: []
+      });
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleViewInvoice = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
     setViewInvoiceDialogOpen(true);
+  };
+
+  const handleEditInvoice = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    // Pre-populate the form with the invoice data
+    setFormData({
+      patient_id: invoice.patient_id,
+      dentist_id: invoice.dentist_id,
+      payment_type: invoice.payment_type || '',
+      tax_rate: invoice.tax_rate,
+      lab_cost: invoice.lab_cost,
+      discount: invoice.discount,
+      date: invoice.date ? new Date(invoice.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      note: invoice.note || '',
+      services: invoice.services.map(serviceAssign => serviceAssign.service_id)
+    });
+    setIsEditingInvoice(true);
+  };
+
+  const handleUpdateInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedInvoice) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // Update the invoice
+      const invoiceData = {
+        patient_id: formData.patient_id,
+        dentist_id: formData.dentist_id,
+        payment_type: formData.payment_type,
+        tax_rate: formData.tax_rate,
+        lab_cost: formData.lab_cost,
+        discount: formData.discount,
+        date: formData.date,
+        total_amount: calculateTotal(),
+        note: formData.note
+      };
+      
+      await axios.put(`${backendUrl}/invoices/${selectedInvoice.invoice_id}`, invoiceData);
+      
+      // First delete all existing service assignments
+      // We need to manually keep track of existing services since they might be removed
+      for (const existingService of selectedInvoice.services) {
+        await axios.delete(`${backendUrl}/invoice-service-assign`, {
+          data: {
+            invoice_id: selectedInvoice.invoice_id,
+            service_id: existingService.service_id
+          }
+        });
+      }
+      
+      // Then re-assign services to the invoice
+      const serviceAssignPromises = formData.services.map(serviceId => {
+        return axios.post(`${backendUrl}/invoice-service-assign`, {
+          invoice_id: selectedInvoice.invoice_id,
+          service_id: serviceId
+        });
+      });
+      
+      await Promise.all(serviceAssignPromises);
+      
+      // Refresh invoices data to include the updated invoice
+      const invoicesRes = await axios.get(`${backendUrl}/invoices`);
+      setInvoices(invoicesRes.data);
+      
+      setIsEditingInvoice(false);
+      
+      // Reset form
+      setFormData({
+        patient_id: '',
+        dentist_id: null,
+        payment_type: '',
+        tax_rate: 0,
+        lab_cost: 0,
+        discount: 0,
+        date: new Date().toISOString().split('T')[0],
+        note: '',
+        services: []
+      });
+      
+      setSelectedInvoice(null);
+    } catch (error) {
+      console.error('Error updating invoice:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId: number) => {
+    if (window.confirm('Are you sure you want to delete this invoice?')) {
+      setIsLoading(true);
+      
+      try {
+        await axios.delete(`${backendUrl}/invoices/${invoiceId}`);
+        
+        // Remove the deleted invoice from the state
+        setInvoices(invoices.filter(invoice => invoice.invoice_id !== invoiceId));
+      } catch (error) {
+        console.error('Error deleting invoice:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   const filteredInvoices = invoices.filter(invoice =>
@@ -398,6 +465,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         size="sm"
                         className="p-1 h-8 w-8"
                         title="Edit Invoice"
+                        onClick={() => handleEditInvoice(invoice)}
                       >
                         <Edit size={16} />
                       </Button>
@@ -408,6 +476,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         size="sm"
                         className="p-1 h-8 w-8 hover:text-red-600"
                         title="Delete Invoice"
+                        onClick={() => handleDeleteInvoice(invoice.invoice_id)}
                       >
                         <Trash2 size={16} />
                       </Button>
@@ -461,6 +530,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         size="sm"
                         className="p-2 h-8 w-8"
                         title="Edit Invoice"
+                        onClick={() => handleEditInvoice(invoice)}
                       >
                         <Edit size={16} />
                       </Button>
@@ -471,6 +541,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         size="sm"
                         className="p-2 h-8 w-8 hover:text-red-600"
                         title="Delete Invoice"
+                        onClick={() => handleDeleteInvoice(invoice.invoice_id)}
                       >
                         <Trash2 size={16} />
                       </Button>
@@ -884,10 +955,10 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   </tr>
                 </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {selectedInvoice.services.map((service) => (
-                          <tr key={service.service_id} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 text-sm text-gray-900">{service.service_name}</td>
-                            <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">${service.amount.toFixed(2)}</td>
+                        {selectedInvoice.services.map((serviceAssign) => (
+                          <tr key={serviceAssign.service_id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 text-sm text-gray-900">{serviceAssign.service.service_name}</td>
+                            <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">${serviceAssign.service.amount.toFixed(2)}</td>
                     </tr>
                   ))}
                         {selectedInvoice.services.length === 0 && (
@@ -913,7 +984,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Subtotal:</span>
                         <span className="font-medium">
-                          ${selectedInvoice.services.reduce((sum, service) => sum + service.amount, 0).toFixed(2)}
+                          ${selectedInvoice.services.reduce((sum, serviceAssign) => sum + serviceAssign.service.amount, 0).toFixed(2)}
                         </span>
                       </div>
                       {selectedInvoice.lab_cost > 0 && (

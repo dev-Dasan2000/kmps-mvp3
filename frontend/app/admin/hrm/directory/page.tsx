@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useMediaQuery } from "@/hooks/use-mobile"
+import { toast } from "sonner"
+import axios from "axios"
 
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -55,17 +57,19 @@ export default function DirectoryPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch all employees
-                const employeesRes = await fetch(`${backendUrl}/hr/employees`)
-                const employeesData = await employeesRes.json()
-                setEmployees(employeesData)
-
                 // Get today's date in YYYY-MM-DD format
                 const today = new Date().toISOString().split('T')[0]
-
-                // Fetch today's attendance to count available employees
-                const attendanceRes = await fetch(`${backendUrl}/hr/attendance/daily/${today}`)
-                const attendanceData: EmployeeAttendance[] = await attendanceRes.json()
+                
+                // Fetch employees and attendance data in parallel using axios
+                const [employeesRes, attendanceRes] = await Promise.all([
+                    axios.get(`${backendUrl}/hr/employees`),
+                    axios.get(`${backendUrl}/hr/attendance/daily/${today}`)
+                ])
+                
+                const employeesData = employeesRes.data
+                const attendanceData: EmployeeAttendance[] = attendanceRes.data
+                
+                setEmployees(employeesData)
 
                 // Count employees who are clocked in but not clocked out
                 const availableEmployees = attendanceData.filter(
@@ -75,6 +79,19 @@ export default function DirectoryPage() {
                 setAvailableCount(availableEmployees)
             } catch (error) {
                 console.error('Error fetching data:', error)
+                
+                // More specific error handling for axios errors
+                if (axios.isAxiosError(error)) {
+                    if (error.response) {
+                        toast.error(`Failed to fetch data: ${error.response.status}`)
+                    } else if (error.request) {
+                        toast.error('Network error. Please check your connection')
+                    } else {
+                        toast.error(`Error: ${error.message}`)
+                    }
+                } else {
+                    toast.error('Failed to load employee data')
+                }
             } finally {
                 setLoading(false)
             }
@@ -101,18 +118,82 @@ export default function DirectoryPage() {
 
     const handleViewStats = async (employee: Employee) => {
         try {
-            // In a real application, you would fetch this data from your backend
-            // For now, I'll simulate it with mock data
+            // Start loading state
+            setLoading(true)
+            
+            // Get the current month start and end dates
+            const now = new Date()
+            const currentMonth = now.getMonth()
+            const currentYear = now.getFullYear()
+            
+            // Fetch attendance data and leave data in parallel using axios
+            const [attendanceResponse, leavesResponse] = await Promise.all([
+                axios.get(`${backendUrl}/hr/attendance/total/${employee.eid}`),
+                axios.get(`${backendUrl}/hr/leaves/${employee.eid}`)
+            ])
+            
+            // Extract response data
+            const attendanceData = attendanceResponse.data
+            const leavesData = leavesResponse.data
+            
+            // Process attendance data to get worked days and hours
+            const workedDays = attendanceData.length
+            
+            // Calculate total hours worked (assuming each record has clock_in and clock_out)
+            let totalHours = 0
+            attendanceData.forEach((record: any) => {
+                if (record.clock_in && record.clock_out) {
+                    const clockIn = new Date(record.clock_in)
+                    const clockOut = new Date(record.clock_out)
+                    const hoursWorked = (clockOut.getTime() - clockIn.getTime()) / (1000 * 60 * 60)
+                    totalHours += hoursWorked
+                }
+            })
+            
+            // Round hours to nearest whole number
+            totalHours = Math.round(totalHours)
+            
+            // Calculate leaves in the current month
+            const leavesThisMonth = leavesData.filter((leave: any) => {
+                const fromDate = new Date(leave.from_date)
+                const toDate = new Date(leave.to_date)
+                const leaveMonth = fromDate.getMonth()
+                const leaveYear = fromDate.getFullYear()
+                
+                return leaveMonth === currentMonth && leaveYear === currentYear
+            }).length
+            
             const stats: EmployeeStats = {
-                worked_days: 22, // This would come from your API
-                total_hours: 176, // This would come from your API
-                leaves_per_month: 2 // This would come from your API
+                worked_days: workedDays,
+                total_hours: totalHours,
+                leaves_per_month: leavesThisMonth
             }
+            
             setEmployeeStats(stats)
             setSelectedEmployee(employee)
             setShowStatsDialog(true)
         } catch (error) {
             console.error('Error fetching employee stats:', error)
+            
+            // More specific error handling for axios errors
+            if (axios.isAxiosError(error)) {
+                if (error.response) {
+                    // The request was made and the server responded with a status code
+                    // that falls out of the range of 2xx
+                    toast.error(`Failed to fetch data: ${error.response.status} - ${error.response.data?.message || 'Unknown error'}`)
+                } else if (error.request) {
+                    // The request was made but no response was received
+                    toast.error('Server did not respond. Please check your connection')
+                } else {
+                    // Something happened in setting up the request
+                    toast.error(`Error: ${error.message}`)
+                }
+            } else {
+                // Generic error handling
+                toast.error('Failed to fetch employee statistics')
+            }
+        } finally {
+            setLoading(false)
         }
     }
 
