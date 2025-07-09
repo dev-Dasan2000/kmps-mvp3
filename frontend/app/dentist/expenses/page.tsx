@@ -406,7 +406,7 @@ export default function ExpenseManagement() {
                       </div>
                     )}
                   </div>
-                  <div className="text-sm font-medium text-gray-900">${expense.amount.toFixed(2)}</div>
+                  <div className="text-sm font-medium text-gray-900">Rs {expense.amount.toFixed(2)}</div>
                   <div>
                     <Badge className={`${getStatusColor(expense.status)} flex items-center gap-1`}>
                       {getStatusIcon(expense.status)}
@@ -509,7 +509,7 @@ export default function ExpenseManagement() {
                 <div className="flex items-center justify-between pt-2">
                   <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
                     <DollarSign size={16} />
-                    <span>${expense.amount.toFixed(2)}</span>
+                    <span>Rs {expense.amount.toFixed(2)}</span>
                   </div>
                   {expense.receipt_url && (
                     <Button

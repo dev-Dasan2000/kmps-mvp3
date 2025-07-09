@@ -825,7 +825,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
                     {appointment.time_from} - {appointment.time_to}
                   </div>
                 </td>
-                <td className="p-2 hidden md:table-cell">${appointment.fee}</td>
+                <td className="p-2 hidden md:table-cell">Rs {appointment.fee}</td>
                 <td className="p-2">
                   <div className="space-y-1">
                     <Badge className={getStatusColor(appointment.status)}>
@@ -946,7 +946,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
                                   </Badge>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                  <span className="text-sm text-gray-600">${appointment.fee}</span>
+                                  <span className="text-sm text-gray-600">Rs {appointment.fee}</span>
                                   <Badge className={getPaymentStatusColor(appointment.payment_status)}>
                                     {appointment.payment_status}
                                   </Badge>
