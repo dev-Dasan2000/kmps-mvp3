@@ -271,43 +271,95 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     }
   };
 
-  const handleViewInvoice = (invoice: Invoice) => {
-    // Debug logs for understanding service structure
-    console.log('Viewing invoice:', invoice);
-    if (invoice.services && invoice.services.length > 0) {
-      console.log('First service assignment:', invoice.services[0]);
-      console.log('First service data:', getServiceData(invoice.services[0]));
+  const handleViewInvoice = async (invoice: Invoice) => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch the services directly from the invoice-service-assign endpoint
+      const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice.invoice_id}`);
+      
+      // Create a copy of the invoice with updated services
+      const invoiceWithServices = {
+        ...invoice,
+        // Map the response to match our expected structure
+        services: response.data.map(item => ({
+          ...item,
+          services: item.service // Map the service property to services to match our interface
+        }))
+      };
+      
+      console.log('Fetched invoice services:', response.data);
+      console.log('Updated invoice with services:', invoiceWithServices);
+      
+      setSelectedInvoice(invoiceWithServices);
+      setViewInvoiceDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching invoice services:', error);
+      // Still show the invoice even if there's an error fetching services
+      setSelectedInvoice(invoice);
+      setViewInvoiceDialogOpen(true);
+    } finally {
+      setIsLoading(false);
     }
-    setSelectedInvoice(invoice);
-    setViewInvoiceDialogOpen(true);
   };
 
-  const handleEditInvoice = (invoice: Invoice) => {
-    // Add console logging to understand the structure
-    console.log('Editing invoice with services:', invoice.services);
-    
-    // Extract service IDs from the nested structure
-    const services = invoice.services?.map(serviceAssign => {
-      console.log('Service assignment:', serviceAssign);
-      return serviceAssign.service_id;
-    }) || [];
-    
-    console.log('Extracted service IDs:', services);
-    
-    setFormData({
-      patient_id: invoice.patient_id,
-      dentist_id: invoice.dentist_id,
-      payment_type: invoice.payment_type,
-      tax_rate: invoice.tax_rate,
-      lab_cost: invoice.lab_cost,
-      discount: invoice.discount,
-      date: invoice.date.toString().split('T')[0],
-      note: invoice.note || '',
-      services
-    });
-    
-    setSelectedInvoice(invoice);
-    setIsEditingInvoice(true);
+  const handleEditInvoice = async (invoice: Invoice) => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch the services directly from the invoice-service-assign endpoint
+      const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice.invoice_id}`);
+      console.log('Fetched service assignments for edit:', response.data);
+      
+      // Extract service IDs from the response
+      const services = response.data.map(item => item.service_id);
+      console.log('Extracted service IDs for edit:', services);
+      
+      // Create a copy of the invoice with updated services
+      const invoiceWithServices = {
+        ...invoice,
+        services: response.data.map(item => ({
+          ...item,
+          services: item.service // Map the service property to services to match our interface
+        }))
+      };
+      
+      setFormData({
+        patient_id: invoice.patient_id,
+        dentist_id: invoice.dentist_id,
+        payment_type: invoice.payment_type,
+        tax_rate: invoice.tax_rate,
+        lab_cost: invoice.lab_cost,
+        discount: invoice.discount,
+        date: invoice.date.toString().split('T')[0],
+        note: invoice.note || '',
+        services
+      });
+      
+      setSelectedInvoice(invoiceWithServices);
+      setIsEditingInvoice(true);
+    } catch (error) {
+      console.error('Error fetching invoice services for edit:', error);
+      // Still show the edit form even if there's an error fetching services
+      const services = invoice.services?.map(serviceAssign => serviceAssign.service_id) || [];
+      
+      setFormData({
+        patient_id: invoice.patient_id,
+        dentist_id: invoice.dentist_id,
+        payment_type: invoice.payment_type,
+        tax_rate: invoice.tax_rate,
+        lab_cost: invoice.lab_cost,
+        discount: invoice.discount,
+        date: invoice.date.toString().split('T')[0],
+        note: invoice.note || '',
+        services
+      });
+      
+      setSelectedInvoice(invoice);
+      setIsEditingInvoice(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleUpdateInvoice = async (e: React.FormEvent) => {
