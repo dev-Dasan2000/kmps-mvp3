@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState, useContext, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, LogOut, Settings, User2, Menu, X, Ticket, Users, DollarSign } from "lucide-react";
+import { BarChart3, LogOut, Settings, User2, Menu, X, Ticket, Users, DollarSign, Archive  } from "lucide-react";
 import { AuthContext } from "@/context/auth-context";
 import { toast } from "sonner";
 import Logo from "@/app/logo.png";
@@ -84,6 +84,11 @@ const items = [
     title: "HR Management",
     url: "/admin/hrm",
     icon: Users
+  },
+  {
+    title: "Inventory Management",
+    url: "http://localhost:8080",
+    icon: Archive
   },
 ];
 
