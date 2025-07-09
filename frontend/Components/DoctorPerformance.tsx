@@ -689,7 +689,7 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
                 <DollarSign className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 mb-1">Consultation Fee</p>
-                  <p className="text-sm lg:text-base text-gray-600">${user.appointment_fee}</p>
+                  <p className="text-sm lg:text-base text-gray-600">LKR{user.appointment_fee}</p>
                 </div>
               </div>
             )}
