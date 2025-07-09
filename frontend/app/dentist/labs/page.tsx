@@ -600,7 +600,8 @@ const DentalLabModule = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -637,21 +638,68 @@ const DentalLabModule = () => {
                     {order.priority}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                   <button
                     onClick={() => setSelectedOrder(order)}
-                    className="text-blue-600 hover:text-blue-900 mr-3"
+                    className="text-blue-600 hover:text-blue-900 inline-flex items-center justify-center"
                   >
                     <Eye className="h-4 w-4" />
-                  </button>
-                  <button className="text-gray-600 hover:text-gray-900">
-                    <Edit className="h-4 w-4" />
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden">
+        <div className="divide-y divide-gray-200">
+          {orders.filter(or => or.status != "request").map((order) => (
+            <div key={order.order_id} className="p-4 hover:bg-gray-50">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Order #{order.order_id}</div>
+                  <div className="text-xs text-gray-500">{order.due_date?.split("T")[0]}</div>
+                </div>
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                  {order.status}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Patient</div>
+                  <div className="text-sm text-gray-900">{order.patient?.name || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Work Type</div>
+                  <div className="text-sm text-gray-900">{order.work_type?.work_type || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Lab</div>
+                  <div className="text-sm text-gray-900">{order.lab?.name || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Priority</div>
+                  <div className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
+                    {order.priority}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-center pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => setSelectedOrder(order)}
+                  className="flex items-center text-blue-600 hover:text-blue-900 text-sm"
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  View
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1192,7 +1240,8 @@ const DentalLabModule = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -1229,23 +1278,68 @@ const DentalLabModule = () => {
                     {order.priority}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex justify-evenly items-center w-full gap-x-1">
-                    <button
-                      onClick={() => setSelectedOrder(order)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-                    <button className="text-gray-600 hover:text-gray-900">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                  </div>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                  <button
+                    onClick={() => setSelectedOrder(order)}
+                    className="text-blue-600 hover:text-blue-900 inline-flex items-center justify-center"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden">
+        <div className="divide-y divide-gray-200">
+          {orders.filter(or => or.status === "request").map((order) => (
+            <div key={order.order_id} className="p-4 hover:bg-gray-50">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <div className="text-sm font-medium text-gray-900">Request #{order.order_id}</div>
+                  <div className="text-xs text-gray-500">{order.due_date?.split("T")[0]}</div>
+                </div>
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                  {order.status}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Patient</div>
+                  <div className="text-sm text-gray-900">{order.patient?.name || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Work Type</div>
+                  <div className="text-sm text-gray-900">{order.work_type?.work_type || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Lab</div>
+                  <div className="text-sm text-gray-900">{order.lab?.name || 'N/A'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500">Priority</div>
+                  <div className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
+                    {order.priority}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-center pt-2 border-t border-gray-100">
+                <button
+                  onClick={() => setSelectedOrder(order)}
+                  className="flex items-center text-blue-600 hover:text-blue-900 text-sm"
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  View
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -1253,7 +1347,7 @@ const DentalLabModule = () => {
   return (
     <div className="min-h-screen bg-gray-100 overflow-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-6">
+        <div className="flex justify-between items-center py-0 md:py-2">
           <div>
             <h1 className="text-3xl font-bold mt-7 md:mt-0 text-gray-900 mb-2">Lab Management</h1>
             <p className="text-gray-600">Manage your lab orders, requests, and partner labs.</p>
