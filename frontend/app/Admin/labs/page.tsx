@@ -913,27 +913,29 @@ const DentalLabModule = () => {
             </div>
           </div>
 
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Progress Tracking</h3>
-            <div className="space-y-3">
-              {stages?.map((stage, index) => (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className={`w-4 h-4 rounded-full ${stage.completed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                  <span className={`flex-1 ${stage.completed ? 'text-gray-900' : 'text-gray-500'}`}>
-                    {stage.name}
-                  </span>
-                  {stage.completed && stage.date?.split("T")[0] && (
-                    <span className="text-sm text-gray-500">{stage.date.split("T")[0]}</span>
-                  )}
-                  {stage.completed ? (
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Clock className="h-4 w-4 text-gray-400" />
-                  )}
-                </div>
-              ))}
+          {order.status !== "request" && (
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Progress Tracking</h3>
+              <div className="space-y-3">
+                {stages?.map((stage, index) => (
+                  <div key={index} className="flex items-center space-x-3">
+                    <div className={`w-4 h-4 rounded-full ${stage.completed ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                    <span className={`flex-1 ${stage.completed ? 'text-gray-900' : 'text-gray-500'}`}>
+                      {stage.name}
+                    </span>
+                    {stage.completed && stage.date?.split("T")[0] && (
+                      <span className="text-sm text-gray-500">{stage.date.split("T")[0]}</span>
+                    )}
+                    {stage.completed ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Clock className="h-4 w-4 text-gray-400" />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {order.order_files && order.order_files.length > 0 && (
             <div>
