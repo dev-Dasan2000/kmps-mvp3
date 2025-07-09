@@ -390,7 +390,7 @@ export const LabOrderForm: React.FC<LabOrderFormProps> = ({
                     defaultValue={{}}
                     render={({ field }) => (
                       <>
-                        {['impressions', 'xrays', 'photos', 'prescriptions'].map((item) => (
+                        {['Intra Oral Scans', 'Stl Files', 'Cbct Scans', 'Photographs'].map((item) => (
                           <label key={item} className="flex items-center">
                             <input
                               type="checkbox"
@@ -421,7 +421,7 @@ export const LabOrderForm: React.FC<LabOrderFormProps> = ({
                     defaultValue={{}}
                     render={({ field }) => (
                       <>
-                        {['models', 'impressions', 'bite_registration', 'shade_tabs'].map((item) => (
+                        {['Impressions', 'Bite Registration', 'Models', 'Face Bow'].map((item) => (
                           <label key={item} className="flex items-center">
                             <input
                               type="checkbox"
@@ -452,7 +452,7 @@ export const LabOrderForm: React.FC<LabOrderFormProps> = ({
                     defaultValue={{}}
                     render={({ field }) => (
                       <>
-                        {['medical_history', 'dental_history', 'consent_forms', 'insurance_info'].map((item) => (
+                        {['Prescription', 'Clinical Notes'].map((item) => (
                           <label key={item} className="flex items-center">
                             <input
                               type="checkbox"
