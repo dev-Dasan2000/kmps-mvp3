@@ -1039,21 +1039,6 @@ const DentalLabModule = () => {
     }
   };
 
-  const [labSearch, setLabSearch] = useState<string>('');
-  
-  // Filter labs based on search query
-  const filteredLabs = labs.filter(lab => {
-    if (!labSearch.trim()) return true;
-    const searchLower = labSearch.toLowerCase().trim();
-    return (
-      lab.name.toLowerCase().includes(searchLower) ||
-      lab.contact_person.toLowerCase().includes(searchLower) ||
-      lab.email.toLowerCase().includes(searchLower) ||
-      lab.address.toLowerCase().includes(searchLower) ||
-      lab.specialties.toLowerCase().includes(searchLower)
-    );
-  });
-
   const LabsList = () => (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -1073,37 +1058,8 @@ const DentalLabModule = () => {
       </div>
 
       <div className="p-6">
-        {/* Search bar */}
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search labs by name, contact, email or specialties..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={labSearch}
-              onChange={(e) => setLabSearch(e.target.value)}
-            />
-          </div>
-          {labSearch && (
-            <button 
-              className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
-              onClick={() => setLabSearch('')}
-            >
-              <X className="h-4 w-4" />
-              Clear
-            </button>
-          )}
-        </div>
-
-        {filteredLabs.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No laboratories found matching your search.</p>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredLabs.map((lab) => (
+          {labs.map((lab) => (
             <div key={lab.lab_id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 border-b border-gray-200">
                 <div className="flex justify-between items-start">
