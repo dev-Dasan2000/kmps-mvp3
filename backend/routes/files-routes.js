@@ -73,13 +73,12 @@ router.post('/', upload.single('file'), (req, res) => {
   res.status(201).json({ url: fileUrl });
 });
 
-// Upload folder with files
+// Upload folder
 router.post('/folder', (req, res) => {
-  // Create a custom storage for folder uploads
   const folderUpload = multer({
     storage: multer.diskStorage({
       destination: (req, file, cb) => {
-        // Extract folder path from the file path in the request
+        // Extract folder path from the file path
         const relativePath = file.originalname.split('|')[0];
         const folderPath = path.join(UPLOAD_DIR, relativePath);
         

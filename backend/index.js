@@ -66,7 +66,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const corsOptions = {
   credentials: true,
-  origin: ['http://localhost:3001', 'http://localhost:4000', 'http://localhost:3000']
+  origin: ['http://localhost:3001', 'http://localhost:4000', 'http://localhost:3000', 'https://dentax.globalpearlventures.com', 'https://dentax.globalpearlventures.com:3001', 'https://dentax.globalpearlventures.com:4000', 'https://dentax.globalpearlventures.com:5000'],
 }
 
 app.use(cors(corsOptions));
