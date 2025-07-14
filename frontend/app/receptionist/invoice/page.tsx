@@ -17,9 +17,10 @@ import { format } from 'date-fns';
 import { Plus, Edit, Trash2, Download, Eye, Search, DollarSign, FileText, Users, Calendar as CalendarIcon, Phone, Mail, MapPin, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useRouter } from 'next/router';
+
 import { AuthContext } from '@/context/auth-context';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 // Types based on your database schema
 interface Patient {
