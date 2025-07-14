@@ -436,9 +436,10 @@ export default function ExpenseManagement() {
                       size="sm"
                       onClick={() => handleEditExpense(expense)}
                       className="p-1 h-8 w-8"
-                      title="Edit Expense"
+                      title={expense.status === 'approved' ? 'Cannot edit approved expenses' : 'Edit Expense'}
+                      disabled={expense.status === 'approved'}
                     >
-                      <Edit size={16} />
+                      <Edit size={16} className={expense.status === 'approved' ? 'text-gray-400' : ''} />
                     </Button>
                   </div>
                 </div>
@@ -467,25 +468,16 @@ export default function ExpenseManagement() {
                     {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
                   </Badge>
                   <div className="flex items-center gap-1">
-                    {expense.status === 'pending' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => acceptExpense(expense.expence_id)}
-                        className="p-2 h-8 w-8 hover:text-green-600"
-                        title="Accept Expense"
-                      >
-                        <Check size={16} />
-                      </Button>
-                    )}
+                    
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEditExpense(expense)}
                       className="p-2 h-8 w-8"
-                      title="Edit Expense"
+                      title={expense.status === 'approved' ? 'Cannot edit approved expenses' : 'Edit Expense'}
+                      disabled={expense.status === 'approved'}
                     >
-                      <Edit size={16} />
+                      <Edit size={16} className={expense.status === 'approved' ? 'text-gray-400' : ''} />
                     </Button>
                   </div>
                 </div>
