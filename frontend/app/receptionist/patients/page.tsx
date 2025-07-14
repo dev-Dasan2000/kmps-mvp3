@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { Plus, Edit, Trash2, X, Phone, Mail, MapPin, User, Calendar, Droplets, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import axios from 'axios';
 import { profile } from 'console';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { AuthContext } from '@/context/auth-context';
 
 type Patient = {
   patient_id: string;
@@ -115,7 +116,6 @@ const PatientManagement = () => {
       [name]: value
     }));
   };
-
 
   const handleSubmit = async () => {
     // Basic validation
@@ -266,6 +266,21 @@ const PatientManagement = () => {
   useEffect(() => {
     fetchPatients();
   }, []);
+
+  const router = useRouter();
+  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Session Expired", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "receptionist"){
+      toast.error("Access Denied", {description:"You do not have access to this user role"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
 
   return (

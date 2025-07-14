@@ -117,7 +117,7 @@ export default function ExpenseManagement() {
         router.push("/");
       }
     }
-  }, [isLoadingAuth, isLoggedIn, user, router]);
+  }, [isLoadingAuth]);
 
   const fetchDentists = async () => {
     setIsLoadingDentists(true);

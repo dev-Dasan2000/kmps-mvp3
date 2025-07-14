@@ -73,7 +73,6 @@ export default function AppointmentsPage() {
     }
   };
 
-
   const handleAcceptance = async (appointment_id: number) => {
     try {
       const response = await axios.put(
@@ -91,7 +90,7 @@ export default function AppointmentsPage() {
 
     }
   }
-
+  
   // Load appointments
   useEffect(() => {
     if (isLoadingAuth) return;
