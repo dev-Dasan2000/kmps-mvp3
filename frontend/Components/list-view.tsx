@@ -55,14 +55,15 @@ interface Appointment {
 
 interface ListViewProps {
   selectedDate: string
+  refreshKey?: number
+  searchQuery: string
 }
 
-export function ListView({ selectedDate }: ListViewProps) {
+export function ListView({ selectedDate, refreshKey, searchQuery }: ListViewProps) {
   const [todayAppointments, setTodayAppointments] = useState<Appointment[]>([])
   const [allAppointments, setAllAppointments] = useState<Appointment[]>([])
   const [checkedInAppointments, setCheckedInAppointments] = useState<Appointment[]>([])
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("today")
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL
@@ -111,7 +112,7 @@ export function ListView({ selectedDate }: ListViewProps) {
   // Load appointments
   useEffect(() => {
     fetchAppointments()
-  }, [])
+  }, [refreshKey]) // Add refreshKey to dependency array
 
   // Handle payment status toggle
   const handlePaymentToggle = async (appointmentId: number, currentStatus: string) => {
@@ -190,17 +191,17 @@ export function ListView({ selectedDate }: ListViewProps) {
         source = []
     }
 
-    if (searchTerm) {
+    if (searchQuery) {
       source = source.filter(
         (appointment) =>
-          (appointment.patient?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (appointment.dentist?.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (appointment.note || "").toLowerCase().includes(searchTerm.toLowerCase()),
+          (appointment.patient?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (appointment.dentist?.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (appointment.note || "").toLowerCase().includes(searchQuery.toLowerCase()),
       )
     }
 
     setFilteredAppointments(source)
-  }, [activeTab, searchTerm, todayAppointments, allAppointments, checkedInAppointments])
+  }, [activeTab, searchQuery, todayAppointments, allAppointments, checkedInAppointments])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -530,8 +531,8 @@ export function ListView({ selectedDate }: ListViewProps) {
                 <Calendar className="w-8 h-8 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No appointments found</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  {searchTerm
-                    ? `No appointments match "${searchTerm}"`
+                  {searchQuery
+                    ? `No appointments match "${searchQuery}"`
                     : `No appointments for ${activeTab === "today" ? "today" : activeTab}`}
                 </p>
               </CardContent>
