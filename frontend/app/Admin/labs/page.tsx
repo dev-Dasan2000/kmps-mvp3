@@ -134,12 +134,31 @@ const DentalLabModule = () => {
   const [acceptingOrder, setAcceptingOrder] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
 
-  // Restore scroll position after render
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+
+
   useEffect(() => {
     if (formScrollRef.current && showNewOrder) {
       formScrollRef.current.scrollTop = formScrollPosition.current;
     }
   });
+
+  useEffect(() => {
+    const query = searchQuery.toLowerCase();
+
+    if (!query) {
+      setFilteredOrders(orders);
+    } else {
+      const filtered = orders.filter(order =>
+        order.dentist?.name?.toLowerCase().includes(query) ||
+        order.patient?.name?.toLowerCase().includes(query) ||
+        order.lab?.email?.toLowerCase().includes(query)
+      );
+      setFilteredOrders(filtered);
+    }
+  }, [searchQuery, orders]);
+
 
   function getStagesForOrder(orderId: number): StageWithStatus[] {
     return fetchedStages.map(stage => {
@@ -407,7 +426,11 @@ const DentalLabModule = () => {
     fetchDentists();
     fetchShades();
     fetchMaterials();
-  }, [isLoadingAuth])
+  }, [isLoadingAuth]);
+
+  useEffect(()=>{
+    setSearchQuery('');
+  },[activeTab])
 
   const [newOrder, setNewOrder] = useState({
     patient_id: '',
@@ -581,7 +604,7 @@ const DentalLabModule = () => {
   };
 
   const handleRequestAcceptance = async (order_id: number) => {
-    if(!order_id) return;
+    if (!order_id) return;
     setAcceptingOrder(true);
     try {
       const res = await axios.put(
@@ -655,7 +678,7 @@ const DentalLabModule = () => {
   };
 
   const deleteOrder = async (orderId: number) => {
-    if(!orderId) return;
+    if (!orderId) return;
     if (!window.confirm('Are you sure you want to delete this order?')) {
       return;
     }
@@ -698,6 +721,8 @@ const DentalLabModule = () => {
           <div className="flex-1 relative">
             <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
             <input
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value) }}
               type="text"
               placeholder="Search orders..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -727,7 +752,7 @@ const DentalLabModule = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {orders.filter(or => or.status != "request").map((order) => (
+            {filteredOrders.filter(or => or.status != "request").map((order) => (
               <tr key={order.order_id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -781,7 +806,7 @@ const DentalLabModule = () => {
                     >
                       <Eye className="h-4 w-4" />
                     </button>
-                    
+
                     <button
                       onClick={() => deleteOrder(order.order_id)}
                       className="text-red-600 hover:text-red-900"
@@ -813,7 +838,7 @@ const DentalLabModule = () => {
                   {order.priority} Priority
                 </span>
               </div>
-              
+
               <div className="space-y-2 mb-3">
                 <div className="flex items-start">
                   <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
@@ -822,7 +847,7 @@ const DentalLabModule = () => {
                     <p className="text-sm font-medium">{order.patient?.name || 'N/A'}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
                   <div>
@@ -830,7 +855,7 @@ const DentalLabModule = () => {
                     <p className="text-sm font-medium">{order.dentist?.name || 'N/A'}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <Package className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
                   <div>
@@ -838,7 +863,7 @@ const DentalLabModule = () => {
                     <p className="text-sm font-medium">{order.work_type?.work_type || 'N/A'}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <Calendar className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
                   <div>
@@ -846,7 +871,7 @@ const DentalLabModule = () => {
                     <p className="text-sm font-medium">{order.due_date?.split("T")[0] || 'N/A'}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <MapPin className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
                   <div>
@@ -855,7 +880,7 @@ const DentalLabModule = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-3 pt-2 border-t border-gray-100">
                 <button
                   onClick={() => setSelectedOrder(order)}
@@ -1001,12 +1026,12 @@ const DentalLabModule = () => {
 
       // Create order first
       const orderResponse = await axios.post(`${backendURL}/orders`, orderData);
-      
+
       if (orderResponse.status === 201 && files.length > 0) {
         // If order created successfully and we have files, upload them
         const orderId = orderResponse.data;
         const filesFormData = new FormData();
-        
+
         files.forEach(file => {
           filesFormData.append('files', file);
         });
@@ -1221,6 +1246,8 @@ const DentalLabModule = () => {
           <div className="flex-1 relative">
             <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
             <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               type="text"
               placeholder="Search requests..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -1250,7 +1277,7 @@ const DentalLabModule = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {orders.filter(or => or.status === "request").map((order) => (
+            {filteredOrders.filter(or => or.status === "request").map((order) => (
               <tr key={order.order_id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -1286,7 +1313,7 @@ const DentalLabModule = () => {
                     >
                       <Eye className="h-4 w-4" />
                     </button>
-                    
+
                     <button
                       className="text-green-500 hover:text-green-600"
                       onClick={() => handleRequestAcceptance(order.order_id)}
@@ -1323,7 +1350,7 @@ const DentalLabModule = () => {
                   {order.priority} Priority
                 </span>
               </div>
-              
+
               <div className="space-y-2 mb-3">
                 <div className="flex items-start">
                   <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
@@ -1332,7 +1359,7 @@ const DentalLabModule = () => {
                     <p className="text-sm font-medium">{order.patient?.name || 'N/A'}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
                   <div>
@@ -1340,7 +1367,7 @@ const DentalLabModule = () => {
                     <p className="text-sm font-medium">{order.dentist?.name || 'N/A'}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <Package className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
                   <div>
@@ -1348,7 +1375,7 @@ const DentalLabModule = () => {
                     <p className="text-sm font-medium">{order.work_type?.work_type || 'N/A'}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <Calendar className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
                   <div>
@@ -1356,7 +1383,7 @@ const DentalLabModule = () => {
                     <p className="text-sm font-medium">{order.due_date?.split("T")[0] || 'N/A'}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <MapPin className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
                   <div>
@@ -1365,7 +1392,7 @@ const DentalLabModule = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-end space-x-3 pt-2 border-t border-gray-100">
                 <button
                   onClick={() => setSelectedOrder(order)}
