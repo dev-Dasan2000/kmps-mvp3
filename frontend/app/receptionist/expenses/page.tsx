@@ -40,12 +40,6 @@ interface ExpenseFormData {
   status: string;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'approved', label: 'Approved', color: 'bg-green-100 text-green-800' },
-  { value: 'rejected', label: 'Rejected', color: 'bg-red-100 text-red-800' },
-];
-
 const getStatusIcon = (status: string) => {
   switch (status) {
     case 'pending':
