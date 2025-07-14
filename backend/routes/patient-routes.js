@@ -8,6 +8,54 @@ const prisma = new PrismaClient();
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
+// Add this search endpoint before any other routes
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    console.log('Search request received with query:', q); // Debug log
+
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({ 
+        error: 'Search query must be at least 2 characters long'
+      });
+    }
+
+    const searchTerm = `%${q}%`;
+
+    // Using Prisma's raw query for better search functionality
+    const patients = await prisma.$queryRaw`
+      SELECT 
+        patient_id, 
+        name, 
+        email, 
+        phone_number
+      FROM patients
+      WHERE 
+        LOWER(name) LIKE LOWER(${searchTerm}) OR
+        patient_id::TEXT LIKE ${searchTerm} OR
+        LOWER(email) LIKE LOWER(${searchTerm}) OR
+        phone_number LIKE ${searchTerm}
+      LIMIT 20
+    `;
+
+    console.log('Search results:', patients); // Debug log
+    res.json(patients);
+
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ 
+      error: 'Failed to search patients',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Add this test route before any other routes
+router.get('/test', (req, res) => {
+  console.log('Test route hit'); // Debug log
+  res.json({ message: 'Test route is working!' });
+});
+
 router.get('/', /* authenticateToken, */ async (req, res) => {
   try {
     const patients = await prisma.patients.findMany();

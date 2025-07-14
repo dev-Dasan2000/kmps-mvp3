@@ -180,6 +180,9 @@ const MedicalStudyInterface: React.FC = () => {
 
   const [studies, setStudies] = useState<Study[]>([]);
   const [patients, setPatients] = useState<Record<string, Patient>>({});
+  const [patientSearchTerm, setPatientSearchTerm] = useState('');
+  const [patientSearchResults, setPatientSearchResults] = useState<Patient[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [todayCount, setTodayCount] = useState<number>(0);
@@ -243,6 +246,25 @@ const MedicalStudyInterface: React.FC = () => {
     };
     fetchTodayCount();
   }, []);
+
+  // Search for patients by name or ID
+  const searchPatients = async (term: string) => {
+    if (term.length < 2) {
+      setPatientSearchResults([]);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${backendUrl}/patients/search?q=${encodeURIComponent(term)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPatientSearchResults(data);
+      }
+    } catch (err) {
+      console.error('Error searching patients:', err);
+      setPatientSearchResults([]);
+    }
+  };
 
   // Fetch patients from the backend
   const fetchPatients = async (patientIds: string[]) => {
@@ -587,16 +609,63 @@ const MedicalStudyInterface: React.FC = () => {
     setIsEditMode(true);
     setNewStudy({
       patient_id: study.patient_id,
-      patient_name: '', // Assuming we don't have this in the Study type yet
-      modality: study.modality,
-      server_type: study.source,
-      assertion_number: study.assertion_number.toString(),
-      description: study.description,
-      dicom_files: [], // Cannot pre-fill file inputs due to security restrictions
+      patient_name: study.patient?.name || '',
+      modality: study.modality || '',
+      server_type: study.source || '',
+      assertion_number: study.assertion_number?.toString() || '',
+      description: study.description || '',
+      dicom_files: [],
       report_files: []
     });
+    setPatientSearchTerm(
+      study.patient 
+        ? `${study.patient.name} (${study.patient_id})`
+        : study.patient_id
+    );
     setIsAddStudyOpen(true);
   };
+
+  // Set up edit mode when studyToEdit changes
+  useEffect(() => {
+    if (studyToEdit) {
+      setNewStudy({
+        patient_id: studyToEdit.patient_id,
+        patient_name: studyToEdit.patient?.name || '',
+        modality: studyToEdit.modality || '',
+        server_type: studyToEdit.source || '',
+        assertion_number: studyToEdit.assertion_number?.toString() || '',
+        description: studyToEdit.description || '',
+        dicom_files: [],
+        report_files: []
+      });
+      setPatientSearchTerm(
+        studyToEdit.patient 
+          ? `${studyToEdit.patient.name} (${studyToEdit.patient_id})`
+          : studyToEdit.patient_id
+      );
+    }
+  }, [studyToEdit]);
+
+  // Reset form when opening/closing
+  useEffect(() => {
+    if (!isAddStudyOpen) {
+      setNewStudy({
+        patient_id: '',
+        patient_name: '',
+        modality: '',
+        server_type: '',
+        assertion_number: '',
+        description: '',
+        dicom_files: [],
+        report_files: []
+      });
+      setPatientSearchTerm('');
+      setPatientSearchResults([]);
+      setShowPatientDropdown(false);
+      setIsEditMode(false);
+      setStudyToEdit(null);
+    }
+  }, [isAddStudyOpen]);
 
   // Handle the actual update of a study
   const handleUpdateStudy = async () => {
@@ -1275,16 +1344,50 @@ const MedicalStudyInterface: React.FC = () => {
 
               <div className="space-y-6">
                 {/* Patient Information */}
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Patient ID
                   </label>
-                  <input
-                    type="text"
-                    value={newStudy.patient_id}
-                    onChange={(e) => setNewStudy(prev => ({ ...prev, patient_id: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={patientSearchTerm}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setPatientSearchTerm(value);
+                        searchPatients(value);
+                        setShowPatientDropdown(true);
+                      }}
+                      onFocus={() => setShowPatientDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowPatientDropdown(false), 200)}
+                      placeholder="Search by patient name or ID..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                    />
+                    {showPatientDropdown && patientSearchResults.length > 0 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                        {patientSearchResults.map((patient) => (
+                          <div
+                            key={patient.patient_id}
+                            className="cursor-pointer hover:bg-gray-100 px-4 py-2 text-sm text-gray-700"
+                            onMouseDown={(e) => {
+                              e.preventDefault(); // Prevent onBlur from firing before onClick
+                              setNewStudy(prev => ({
+                                ...prev,
+                                patient_id: patient.patient_id,
+                                patient_name: patient.name
+                              }));
+                              setPatientSearchTerm(`${patient.patient_id}`);
+                              setShowPatientDropdown(false);
+                            }}
+                          >
+                            <div className="font-medium">{patient.name}</div>
+                            <div className="text-xs text-gray-500">ID: {patient.patient_id}</div>
+                            {patient.email && <div className="text-xs text-gray-500">{patient.email}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Study Details */}
