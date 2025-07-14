@@ -956,9 +956,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
                               <div className="flex items-center space-x-2">
                                 <X className="w-4 h-4 text-red-500" />
                                 <span className="text-red-600 font-medium">Blocked</span>
-                                <Button variant="ghost" size="sm" className="ml-auto">
-                                  <Edit className="w-3 h-3" />
-                                </Button>
+                                
                               </div>
                             ) : (
                               <span className="text-gray-400">Available</span>
