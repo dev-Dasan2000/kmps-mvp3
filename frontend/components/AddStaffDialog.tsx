@@ -297,13 +297,20 @@ export function AddStaffDialog({
               </div>
               <div className="space-y-2">
                 <Label className="font-medium" htmlFor="job_title">Job Title *</Label>
-                <Input
-                  id="job_title"
-                  name="job_title"
+                <Select
                   value={formData.job_title}
-                  onChange={handleInputChange}
+                  onValueChange={(value) => handleSelectChange('job_title', value)}
                   required
-                />
+                >
+                  <SelectTrigger id="job_title">
+                    <SelectValue placeholder="Select job title" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dentist">Dentist</SelectItem>
+                    <SelectItem value="receptionist">Receptionist</SelectItem>
+                    <SelectItem value="radiologist">Radiologist</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="font-medium" htmlFor="salary">Salary *</Label>
