@@ -132,7 +132,7 @@ const NewAppointmentForm = ({
                 onMouseDown={(e) => {
                   e.preventDefault();
                   setPatient_id(patient.patient_id);
-                  setPatientSearchTerm(`${patient.name} (${patient.patient_id})`);
+                  setPatientSearchTerm(`${patient.patient_id}`);
                   setShowPatientDropdown(false);
                 }}
               >
