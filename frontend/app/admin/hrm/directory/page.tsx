@@ -34,13 +34,11 @@ interface EmployeeAttendance {
     clock_out: string | null
 }
 
-const departments = [
+const userRoles = [
     { value: "all", label: "All" },
-    { value: "general-dentistry", label: "General Dentistry" },
-    { value: "orthodontics", label: "Orthodontics" },
-    { value: "radiology", label: "Radiology" },
-    { value: "front-office", label: "Front Office" },
-    { value: "pediatrics", label: "Pediatrics" },
+    { value: "dentist", label: "Dentist" },
+    { value: "receptionist", label: "Receptionist" },
+    { value: "radiologist", label: "Radiologist" },
 ]
 
 export default function DirectoryPage() {
@@ -48,7 +46,7 @@ export default function DirectoryPage() {
     const [availableCount, setAvailableCount] = useState(0)
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
-    const [selectedDepartment, setSelectedDepartment] = useState("all")
+    const [selectedRole, setSelectedRole] = useState("all")
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
     const [employeeStats, setEmployeeStats] = useState<EmployeeStats | null>(null)
     const [showStatsDialog, setShowStatsDialog] = useState(false)
@@ -105,10 +103,10 @@ export default function DirectoryPage() {
                             employee.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             employee.phone.includes(searchQuery)
         
-        const matchesDepartment = selectedDepartment === "all" || 
-                                employee.job_title.toLowerCase().includes(selectedDepartment.toLowerCase())
+        const matchesRole = selectedRole === "all" || 
+                          employee.job_title.toLowerCase() === selectedRole.toLowerCase()
         
-        return matchesSearch && matchesDepartment
+        return matchesSearch && matchesRole
     })
 
     const stats = [
@@ -342,16 +340,16 @@ export default function DirectoryPage() {
                                     />
                                 </div>
                                 <Select
-                                    value={selectedDepartment}
-                                    onValueChange={setSelectedDepartment}
+                                    value={selectedRole}
+                                    onValueChange={setSelectedRole}
                                 >
                                     <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="Select Department" />
+                                        <SelectValue placeholder="Select Role" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {departments.map((department) => (
-                                            <SelectItem key={department.value} value={department.value}>
-                                                {department.label}
+                                        {userRoles.map((role) => (
+                                            <SelectItem key={role.value} value={role.value}>
+                                                {role.label}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

@@ -8,7 +8,6 @@ const prisma = new PrismaClient();
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
-// Add this search endpoint before any other routes
 router.get('/search', async (req, res) => {
   try {
     const { q } = req.query;
@@ -48,12 +47,6 @@ router.get('/search', async (req, res) => {
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-});
-
-// Add this test route before any other routes
-router.get('/test', (req, res) => {
-  console.log('Test route hit'); // Debug log
-  res.json({ message: 'Test route is working!' });
 });
 
 router.get('/', /* authenticateToken, */ async (req, res) => {
