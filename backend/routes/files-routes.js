@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import checkDiskSpace from 'check-disk-space'; // npm install check-disk-space
+import { mkdirSync } from 'fs';
 
 const router = express.Router();
 
@@ -70,6 +71,62 @@ router.post('/', upload.single('file'), (req, res) => {
   }
   const fileUrl = `/uploads/files/${req.file.filename}`;
   res.status(201).json({ url: fileUrl });
+});
+
+// Upload folder with files
+router.post('/folder', (req, res) => {
+  // Create a custom storage for folder uploads
+  const folderUpload = multer({
+    storage: multer.diskStorage({
+      destination: (req, file, cb) => {
+        // Extract folder path from the file path in the request
+        const relativePath = file.originalname.split('|')[0];
+        const folderPath = path.join(UPLOAD_DIR, relativePath);
+        
+        // Create the folder structure if it doesn't exist
+        if (!fs.existsSync(folderPath)) {
+          mkdirSync(folderPath, { recursive: true });
+        }
+        
+        cb(null, folderPath);
+      },
+      filename: (req, file, cb) => {
+        // Extract just the filename from the original path
+        const originalFilename = file.originalname.split('|')[1];
+        
+        // Check if file exists and remove it
+        const filePath = path.join(
+          UPLOAD_DIR, 
+          file.originalname.split('|')[0], 
+          originalFilename
+        );
+        
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        
+        cb(null, originalFilename);
+      }
+    })
+  }).array('files', 100); // Allow up to 100 files in a single request
+  
+  folderUpload(req, res, (err) => {
+    if (err) {
+      console.error('Folder upload error:', err);
+      return res.status(500).json({ error: 'Folder upload failed', details: err.message });
+    }
+    
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+    }
+    
+    const fileUrls = req.files.map(file => {
+      const relativePath = file.originalname.split('|')[0];
+      return `/uploads/files/${relativePath}`;
+    });
+    
+    res.status(201).json({ urls: fileUrls });
+  });
 });
 
 // Delete file
