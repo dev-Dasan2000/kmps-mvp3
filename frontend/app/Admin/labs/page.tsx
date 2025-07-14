@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { Loader, Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, AlertCircle, CheckCircle, Eye, Edit, Plus, Search, Filter, X, CircleCheckBig, Trash2 } from 'lucide-react';
+import { Loader, Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, AlertCircle, CheckCircle, Eye, Edit, Plus, Filter, X, CircleCheckBig, Trash2 } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { headers } from 'next/headers';
-import { LabOrderForm } from '../../../components/LabOrderForm';
+import { LabOrderForm } from '@/Components/LabOrderForm';
+import { Search } from '@/Components/ui/search';
 // ======================== TYPES ========================
 
 type Lab = {
@@ -134,31 +135,11 @@ const DentalLabModule = () => {
   const [acceptingOrder, setAcceptingOrder] = useState(false);
   const [creatingOrder, setCreatingOrder] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
-
-
   useEffect(() => {
     if (formScrollRef.current && showNewOrder) {
       formScrollRef.current.scrollTop = formScrollPosition.current;
     }
   });
-
-  useEffect(() => {
-    const query = searchQuery.toLowerCase();
-
-    if (!query) {
-      setFilteredOrders(orders);
-    } else {
-      const filtered = orders.filter(order =>
-        order.dentist?.name?.toLowerCase().includes(query) ||
-        order.patient?.name?.toLowerCase().includes(query) ||
-        order.lab?.email?.toLowerCase().includes(query)
-      );
-      setFilteredOrders(filtered);
-    }
-  }, [searchQuery, orders]);
-
 
   function getStagesForOrder(orderId: number): StageWithStatus[] {
     return fetchedStages.map(stage => {
@@ -429,7 +410,7 @@ const DentalLabModule = () => {
   }, [isLoadingAuth]);
 
   useEffect(()=>{
-    setSearchQuery('');
+    // setSearchQuery(''); // Removed as per edit hint
   },[activeTab])
 
   const [newOrder, setNewOrder] = useState({
@@ -703,206 +684,238 @@ const DentalLabModule = () => {
 
   // ======================== SUBCOMPONENTS ========================
 
-  const OrdersList = () => (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Lab Orders</h2>
-          <button
-            onClick={() => setShowNewOrder(true)}
-            className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New Order
-          </button>
-        </div>
+  const OrdersList = () => {
+    const [orderSearchQuery, setOrderSearchQuery] = useState('');
+    const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+    const [selectedPriority, setSelectedPriority] = useState<string>('all');
 
-        <div className="flex gap-4 mb-4">
-          <div className="flex-1 relative">
-            <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value) }}
-              type="text"
-              placeholder="Search orders..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+    useEffect(() => {
+      const query = orderSearchQuery.toLowerCase();
+      let filtered = orders.filter(or => or.status !== "request");
+
+      // Apply search filter
+      if (query) {
+        filtered = filtered.filter(order =>
+          order.dentist?.name?.toLowerCase().includes(query) ||
+          order.patient?.name?.toLowerCase().includes(query) ||
+          order.lab?.email?.toLowerCase().includes(query)
+        );
+      }
+
+      // Apply priority filter
+      if (selectedPriority !== 'all') {
+        filtered = filtered.filter(order => order.priority === selectedPriority);
+      }
+
+      setFilteredOrders(filtered);
+    }, [orderSearchQuery, orders, selectedPriority]);
+    
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Lab Orders</h2>
+            <button
+              onClick={() => setShowNewOrder(true)}
+              className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New Order
+            </button>
           </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
-          </button>
-        </div>
-      </div>
 
-      {/* Table view for medium and large screens */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredOrders.filter(or => or.status != "request").map((order) => (
-              <tr key={order.order_id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{order.dentist?.name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{order.dentist?.dentist_id || 'N/A'}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{order.patient?.patient_id || 'N/A'}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div>
-                    <div className="text-sm text-gray-900">{order.work_type?.work_type || 'N/A'}</div>
-                    {order.special_instructions && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        <ul className="list-disc list-inside">
-                          {order.special_instructions.split('\n').map((instruction, index) => (
-                            instruction.trim() && (
-                              <li key={index} className="truncate max-w-xs" title={instruction.trim()}>
-                                {instruction.trim()}
-                              </li>
-                            )
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab?.name || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date?.split("T")[0]}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
-                    {order.priority}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex items-center space-x-3">
-                    <button
-                      onClick={() => setSelectedOrder(order)}
-                      className="text-blue-600 hover:text-blue-900"
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-
-                    <button
-                      onClick={() => deleteOrder(order.order_id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Delete Order"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Card view for small screens */}
-      <div className="md:hidden">
-        <div className="divide-y divide-gray-200">
-          {orders.filter(or => or.status != "request").map((order) => (
-            <div key={order.order_id} className="p-4 hover:bg-gray-50">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <span className="text-sm font-medium text-gray-900">Order #{order.order_id}</span>
-                  <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </div>
-                <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
-                  {order.priority} Priority
-                </span>
-              </div>
-
-              <div className="space-y-2 mb-3">
-                <div className="flex items-start">
-                  <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Patient</p>
-                    <p className="text-sm font-medium">{order.patient?.name || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Dentist</p>
-                    <p className="text-sm font-medium">{order.dentist?.name || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <Package className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Work Type</p>
-                    <p className="text-sm font-medium">{order.work_type?.work_type || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <Calendar className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Due Date</p>
-                    <p className="text-sm font-medium">{order.due_date?.split("T")[0] || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <MapPin className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Lab</p>
-                    <p className="text-sm font-medium">{order.lab?.name || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-2 border-t border-gray-100">
-                <button
-                  onClick={() => setSelectedOrder(order)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
-                  title="View Details"
-                >
-                  <Eye className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => deleteOrder(order.order_id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-full"
-                  title="Delete Order"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1">
+              <Search
+                value={orderSearchQuery}
+                onChange={(value) => setOrderSearchQuery(value)}
+                placeholder="Search orders..."
+                className="w-full"
+              />
             </div>
-          ))}
+            <select
+              value={selectedPriority}
+              onChange={(e) => setSelectedPriority(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+              <option value="all">All Priorities</option>
+              <option value="High">High Priority</option>
+              <option value="Medium">Medium Priority</option>
+              <option value="Low">Low Priority</option>
+            </select>
+           
+          </div>
+        </div>
+
+        {/* Table view for medium and large screens */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredOrders.filter(or => or.status != "request").map((order) => (
+                <tr key={order.order_id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{order.dentist?.name || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">{order.dentist?.dentist_id || 'N/A'}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">{order.patient?.patient_id || 'N/A'}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div>
+                      <div className="text-sm text-gray-900">{order.work_type?.work_type || 'N/A'}</div>
+                      {order.special_instructions && (
+                        <div className="mt-1 text-xs text-gray-500">
+                          <ul className="list-disc list-inside">
+                            {order.special_instructions.split('\n').map((instruction, index) => (
+                              instruction.trim() && (
+                                <li key={index} className="truncate max-w-xs" title={instruction.trim()}>
+                                  {instruction.trim()}
+                                </li>
+                              )
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab?.name || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date?.split("T")[0]}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
+                      {order.priority}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        onClick={() => deleteOrder(order.order_id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete Order"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Card view for small screens */}
+        <div className="md:hidden">
+          <div className="divide-y divide-gray-200">
+            {orders.filter(or => or.status != "request").map((order) => (
+              <div key={order.order_id} className="p-4 hover:bg-gray-50">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">Order #{order.order_id}</span>
+                    <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
+                    {order.priority} Priority
+                  </span>
+                </div>
+
+                <div className="space-y-2 mb-3">
+                  <div className="flex items-start">
+                    <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Patient</p>
+                      <p className="text-sm font-medium">{order.patient?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start">
+                    <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Dentist</p>
+                      <p className="text-sm font-medium">{order.dentist?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start">
+                    <Package className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Work Type</p>
+                      <p className="text-sm font-medium">{order.work_type?.work_type || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start">
+                    <Calendar className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Due Date</p>
+                      <p className="text-sm font-medium">{order.due_date?.split("T")[0] || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start">
+                    <MapPin className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Lab</p>
+                      <p className="text-sm font-medium">{order.lab?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-2 border-t border-gray-100">
+                  <button
+                    onClick={() => setSelectedOrder(order)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
+                    title="View Details"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => deleteOrder(order.order_id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-full"
+                    title="Delete Order"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const OrderDetails = ({ order, onClose }: { order: Order; onClose: () => void }) => (
     <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -1064,27 +1077,47 @@ const DentalLabModule = () => {
     }
   };
 
-  const LabsList = () => (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="p-6 border-b border-gray-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Partner Laboratories</h2>
-          <p className="text-sm text-gray-500 mt-1">Manage your partner dental laboratories</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <button
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors w-full sm:w-auto justify-center"
-            onClick={() => setShowInviteDialog(true)}
-          >
-            <Mail className="h-4 w-4" />
-            Invite Lab
-          </button>
-        </div>
-      </div>
+  const LabsList = () => {
+    const [labSearchQuery, setLabSearchQuery] = useState('');
+    const [filteredLabs, setFilteredLabs] = useState<Lab[]>([]);
 
-      <div className="p-6">
+    useEffect(() => {
+      const query = labSearchQuery.toLowerCase();
+      if (!query) {
+        setFilteredLabs(labs);
+      } else {
+        const filtered = labs.filter(lab =>
+          lab.name.toLowerCase().includes(query) ||
+          lab.email.toLowerCase().includes(query) ||
+          lab.contact_person.toLowerCase().includes(query)
+        );
+        setFilteredLabs(filtered);
+      }
+    }, [labSearchQuery, labs]);
+    
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-semibold">Labs</h2>
+          <div className="flex gap-4 items-center">
+            <Search
+              value={labSearchQuery}
+              onChange={(value) => setLabSearchQuery(value)}
+              placeholder="Search labs..."
+              className="w-64"
+            />
+            <button
+              onClick={() => setShowInviteDialog(true)}
+              className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              Invite Lab
+            </button>
+          </div>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {labs.map((lab) => (
+          {filteredLabs.map((lab) => (
             <div key={lab.lab_id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
               <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 border-b border-gray-200">
                 <div className="flex justify-between items-start">
@@ -1092,7 +1125,7 @@ const DentalLabModule = () => {
                 </div>
                 <p className="text-sm text-gray-600 mt-1">{lab.contact_person}</p>
               </div>
-
+              
               <div className="p-4">
                 <div className="space-y-3">
                   <div className="flex items-start">
@@ -1104,7 +1137,7 @@ const DentalLabModule = () => {
                       <p className="text-sm font-medium text-gray-900">{lab.contact_number}</p>
                     </div>
                   </div>
-
+                  
                   <div className="flex items-start">
                     <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3">
                       <Mail className="h-4 w-4" />
@@ -1114,7 +1147,7 @@ const DentalLabModule = () => {
                       <p className="text-sm font-medium text-gray-900 truncate">{lab.email}</p>
                     </div>
                   </div>
-
+                  
                   <div className="flex items-start">
                     <div className="bg-blue-100 p-2 rounded-lg text-blue-600 mr-3">
                       <MapPin className="h-4 w-4" />
@@ -1125,7 +1158,7 @@ const DentalLabModule = () => {
                     </div>
                   </div>
                 </div>
-
+                
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <h4 className="text-sm font-medium text-gray-900 mb-2">Specialties</h4>
                   <div className="flex flex-wrap gap-2">
@@ -1144,8 +1177,8 @@ const DentalLabModule = () => {
           ))}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const Dashboard = () => {
     const stats = [
@@ -1236,190 +1269,222 @@ const DentalLabModule = () => {
     );
   };
 
-  const RequestsList = () => (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Lab Requests</h2>
-        </div>
-        <div className="flex gap-4 mb-4">
-          <div className="flex-1 relative">
-            <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              type="text"
-              placeholder="Search requests..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
+  const RequestsList = () => {
+    const [requestSearchQuery, setRequestSearchQuery] = useState('');
+    const [filteredRequests, setFilteredRequests] = useState<Order[]>([]);
+    const [selectedPriority, setSelectedPriority] = useState<string>('all');
+
+    useEffect(() => {
+      const query = requestSearchQuery.toLowerCase();
+      let filtered = orders.filter(or => or.status === "request");
+
+      // Apply search filter
+      if (query) {
+        filtered = filtered.filter(order =>
+          order.dentist?.name?.toLowerCase().includes(query) ||
+          order.patient?.name?.toLowerCase().includes(query) ||
+          order.lab?.email?.toLowerCase().includes(query)
+        );
+      }
+
+      // Apply priority filter
+      if (selectedPriority !== 'all') {
+        filtered = filtered.filter(order => order.priority === selectedPriority);
+      }
+
+      setFilteredRequests(filtered);
+    }, [requestSearchQuery, orders, selectedPriority]);
+    
+    return (
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Lab Requests</h2>
           </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
-          </button>
-        </div>
-      </div>
-
-      {/* Table view for medium and large screens */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredOrders.filter(or => or.status === "request").map((order) => (
-              <tr key={order.order_id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{order.dentist?.name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{order.dentist?.dentist_id || 'N/A'}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{order.patient?.patient_id || 'N/A'}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.work_type?.work_type || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab?.name || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date?.split("T")[0]}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
-                    {order.priority}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex justify-evenly items-center w-full gap-x-1">
-                    <button
-                      onClick={() => setSelectedOrder(order)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
-
-                    <button
-                      className="text-green-500 hover:text-green-600"
-                      onClick={() => handleRequestAcceptance(order.order_id)}
-                      disabled={acceptingOrder}
-                    >
-                      {acceptingOrder ? (
-                        <Loader className='h-4 w-4' />
-                      )
-                        :
-                        (<CircleCheckBig className="h-4 w-4" />)}
-
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Card view for small screens */}
-      <div className="md:hidden">
-        <div className="divide-y divide-gray-200">
-          {orders.filter(or => or.status === "request").map((order) => (
-            <div key={order.order_id} className="p-4 hover:bg-gray-50">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <span className="text-sm font-medium text-gray-900">Request #{order.order_id}</span>
-                  <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </div>
-                <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
-                  {order.priority} Priority
-                </span>
-              </div>
-
-              <div className="space-y-2 mb-3">
-                <div className="flex items-start">
-                  <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Patient</p>
-                    <p className="text-sm font-medium">{order.patient?.name || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Dentist</p>
-                    <p className="text-sm font-medium">{order.dentist?.name || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <Package className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Work Type</p>
-                    <p className="text-sm font-medium">{order.work_type?.work_type || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <Calendar className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Due Date</p>
-                    <p className="text-sm font-medium">{order.due_date?.split("T")[0] || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <MapPin className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
-                  <div>
-                    <p className="text-xs text-gray-500">Lab</p>
-                    <p className="text-sm font-medium">{order.lab?.name || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-2 border-t border-gray-100">
-                <button
-                  onClick={() => setSelectedOrder(order)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
-                  title="View Details"
-                >
-                  <Eye className="h-4 w-4" />
-                </button>
-                <button
-                  className="p-2 text-green-500 hover:bg-green-50 rounded-full"
-                  onClick={() => handleRequestAcceptance(order.order_id)}
-                  disabled={acceptingOrder}
-                  title="Accept Request"
-                >
-                  {acceptingOrder ? (
-                    <Loader className='h-4 w-4' />
-                  ) : (
-                    <CircleCheckBig className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1">
+              <Search
+                value={requestSearchQuery}
+                onChange={(value) => setRequestSearchQuery(value)}
+                placeholder="Search requests..."
+                className="w-full"
+              />
             </div>
-          ))}
+            <select
+              value={selectedPriority}
+              onChange={(e) => setSelectedPriority(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+              <option value="all">All Priorities</option>
+              <option value="High">High Priority</option>
+              <option value="Medium">Medium Priority</option>
+              <option value="Low">Low Priority</option>
+            </select>
+            
+          </div>
+        </div>
+        
+        {/* Table view for medium and large screens */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lab</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredRequests.map((order) => (
+                <tr key={order.order_id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{order.dentist?.name || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">{order.dentist?.dentist_id || 'N/A'}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{order.patient?.name || 'N/A'}</div>
+                      <div className="text-sm text-gray-500">{order.patient?.patient_id || 'N/A'}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.work_type?.work_type || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.lab?.name || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{order.due_date?.split("T")[0]}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
+                      {order.priority}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex justify-evenly items-center w-full gap-x-1">
+                      <button
+                        onClick={() => setSelectedOrder(order)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      
+                      <button
+                        className="text-green-500 hover:text-green-600"
+                        onClick={() => handleRequestAcceptance(order.order_id)}
+                        disabled={acceptingOrder}
+                      >
+                        {acceptingOrder ? (
+                          <Loader className='h-4 w-4' />
+                        )
+                          :
+                          (<CircleCheckBig className="h-4 w-4" />)}
+                        
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Card view for small screens */}
+        <div className="md:hidden">
+          <div className="divide-y divide-gray-200">
+            {orders.filter(or => or.status === "request").map((order) => (
+              <div key={order.order_id} className="p-4 hover:bg-gray-50">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">Request #{order.order_id}</span>
+                    <span className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </div>
+                  <span className={`text-sm font-medium ${getPriorityColor(order.priority)}`}>
+                    {order.priority} Priority
+                  </span>
+                </div>
+                
+                <div className="space-y-2 mb-3">
+                  <div className="flex items-start">
+                    <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Patient</p>
+                      <p className="text-sm font-medium">{order.patient?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <User className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Dentist</p>
+                      <p className="text-sm font-medium">{order.dentist?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Package className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Work Type</p>
+                      <p className="text-sm font-medium">{order.work_type?.work_type || 'N/A'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <Calendar className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Due Date</p>
+                      <p className="text-sm font-medium">{order.due_date?.split("T")[0] || 'N/A'}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start">
+                    <MapPin className="h-4 w-4 text-gray-400 mt-0.5 mr-2" />
+                    <div>
+                      <p className="text-xs text-gray-500">Lab</p>
+                      <p className="text-sm font-medium">{order.lab?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-3 pt-2 border-t border-gray-100">
+                  <button
+                    onClick={() => setSelectedOrder(order)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-full"
+                    title="View Details"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
+                    className="p-2 text-green-500 hover:bg-green-50 rounded-full"
+                    onClick={() => handleRequestAcceptance(order.order_id)}
+                    disabled={acceptingOrder}
+                    title="Accept Request"
+                  >
+                    {acceptingOrder ? (
+                      <Loader className='h-4 w-4' />
+                    ) : (
+                      <CircleCheckBig className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 overflow-auto">
