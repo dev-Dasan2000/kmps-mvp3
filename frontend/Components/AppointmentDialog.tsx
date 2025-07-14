@@ -43,13 +43,16 @@ interface AppointmentDialogProps {
 }
 
 export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: AppointmentDialogProps) {
-  const [patients, setPatients] = useState<Patient[]>([])
+  const [patients, setPatients] = useState<Record<string, Patient>>({})
   const [dentists, setDentists] = useState<Dentist[]>([])
   const [selectedDentist, setSelectedDentist] = useState<Dentist | null>(null)
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
   const [loading, setLoading] = useState(false)
   const [dateString, setDateString] = useState<string>('')
-  const [debugInfo, setDebugInfo] = useState<string>('') // Added for debugging
+  const [debugInfo, setDebugInfo] = useState<string>('')
+  const [patientSearchTerm, setPatientSearchTerm] = useState('')
+  const [patientSearchResults, setPatientSearchResults] = useState<Patient[]>([])
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false) // Added for debugging
   
   const [formData, setFormData] = useState({
     patientId: '',
@@ -214,27 +217,42 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
     return isWorking
   }
 
-  // Fetch patients and dentists on component mount
+  // Search for patients by name, ID, or email
+  const searchPatients = async (term: string) => {
+    if (term.length < 2) {
+      setPatientSearchResults([]);
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${backendURL}/patients/search?q=${encodeURIComponent(term)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPatientSearchResults(data);
+      }
+    } catch (err) {
+      console.error('Error searching patients:', err);
+      setPatientSearchResults([]);
+    }
+  };
+
+  // Fetch dentists on component mount
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDentists = async () => {
       try {
-        setDebugInfo('Fetching patients and dentists...')
-        const [patientsRes, dentistsRes] = await Promise.all([
-          axios.get(`${backendURL}/patients`),
-          axios.get(`${backendURL}/dentists`)
-        ])
-        setPatients(patientsRes.data)
-        setDentists(dentistsRes.data)
-        setDebugInfo(`Loaded ${patientsRes.data.length} patients and ${dentistsRes.data.length} dentists`)
-        console.log('✅ Loaded data:', { patients: patientsRes.data.length, dentists: dentistsRes.data.length })
+        setDebugInfo('Fetching dentists...')
+        const response = await axios.get(`${backendURL}/dentists`)
+        setDentists(response.data)
+        setDebugInfo(`Loaded ${response.data.length} dentists`)
+        console.log('✅ Loaded dentists:', response.data.length)
       } catch (error) {
-        console.error('❌ Error fetching data:', error)
-        setDebugInfo('Error loading data: ' + (error as Error).message)
+        console.error('❌ Error fetching dentists:', error)
+        setDebugInfo('Error loading dentists: ' + (error as Error).message)
       }
     }
 
     if (open) {
-      fetchData()
+      fetchDentists()
     }
   }, [open, backendURL])
 
@@ -487,26 +505,47 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
               </div>
             )}
 
-            {/* Patient Selection */}
+            {/* Patient Search and Selection */}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="patient" className="text-right">
                 Patient <span className="text-red-500">*</span>
               </Label>
-              <Select
-                value={formData.patientId}
-                onValueChange={(value) => handleChange('patientId', value)}
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select a patient" />
-                </SelectTrigger>
-                <SelectContent>
-                  {patients.map((patient) => (
-                    <SelectItem key={patient.patient_id} value={patient.patient_id}>
-                      {patient.name} ({patient.patient_id})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="relative col-span-3">
+                <input
+                  type="text"
+                  value={patientSearchTerm}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setPatientSearchTerm(value);
+                    searchPatients(value);
+                    setShowPatientDropdown(true);
+                  }}
+                  onFocus={() => setShowPatientDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowPatientDropdown(false), 200)}
+                  placeholder="Search by patient name or ID..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                />
+                {showPatientDropdown && patientSearchResults.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                    {patientSearchResults.map((patient) => (
+                      <div
+                        key={patient.patient_id}
+                        className="cursor-pointer hover:bg-gray-100 px-4 py-2 text-sm text-gray-700"
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent onBlur from firing before onClick
+                          handleChange('patientId', patient.patient_id);
+                          setPatientSearchTerm(`${patient.name} (${patient.patient_id})`);
+                          setShowPatientDropdown(false);
+                        }}
+                      >
+                        <div className="font-medium">{patient.name}</div>
+                        <div className="text-xs text-gray-500">ID: {patient.patient_id}</div>
+                        {patient.email && <div className="text-xs text-gray-500">{patient.email}</div>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Dentist Selection */}
