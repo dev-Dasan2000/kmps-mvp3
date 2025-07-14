@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Search, Calendar, DollarSign, User, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { AuthContext } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
 
 // Types based on the database schema
 interface Patient {
@@ -50,8 +52,6 @@ interface PaymentRecord {
   dentist: Dentist;
   payment: PaymentHistory;
 }
-
-
 
 const PaymentsInterface: React.FC = () => {
 
@@ -116,6 +116,21 @@ const PaymentsInterface: React.FC = () => {
   useEffect(()=>{
     fetchPayments();
   },[]);
+
+  const router = useRouter();
+  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Session Expired", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "receptionist"){
+      toast.error("Access Denied", {description:"You do not have access to this user role"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {

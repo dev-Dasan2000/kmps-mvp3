@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useContext } from 'react';
 import { Search, Clock, Phone, Mail, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 import axios from 'axios';
+import { AuthContext } from '@/context/auth-context';
+import { toast } from 'sonner';
 
 
 interface Dentist {
@@ -62,7 +64,6 @@ export default function DentistDirectory() {
     fetchDentists();
   }, []);
   
-
   useEffect(() => {
     const filtered = dentists.filter(
       dentist =>
@@ -72,6 +73,21 @@ export default function DentistDirectory() {
     );
     setFilteredDentists(filtered);
   }, [searchTerm, dentists]);
+
+  const router = useRouter();
+  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Session Expired", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "receptionist"){
+      toast.error("Access Denied", {description:"You do not have access to this user role"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   const formatWorkingHours = (dentist: Dentist) => {
     if (!dentist.work_days_from || !dentist.work_time_from) return 'Not specified';
