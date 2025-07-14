@@ -180,7 +180,7 @@ const AdminSidebar = () => {
             <SidebarGroupContent className="h-full flex flex-col">
               <SidebarMenu className="space-y-2 flex-1">
                 {items.map((item) => {
-                  const isActive = pathname === item.url;
+                  const isActive = item.url === "/admin" ? pathname === "/admin" : pathname.startsWith(item.url);
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
