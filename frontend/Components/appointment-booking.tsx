@@ -249,11 +249,10 @@ export default function AppointmentBooking() {
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                 <DropdownMenuItem onClick={() => setCalendarView("list")}>List View</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setCalendarView("week")}>Calendar View </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setCalendarView("room")}>Room View</DropdownMenuItem>
-               
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setCalendarView("week")}>Calendar view</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCalendarView("room")}>Room view</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCalendarView("list")}>List view</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -320,7 +319,7 @@ export default function AppointmentBooking() {
         {calendarView === "room" ? (
           <RoomView weekDays={weekDays} selectedDate={selectedDate} viewMode={viewMode} />
         ) : calendarView === "list" ? (
-          <ListView selectedDate={selectedDate} refreshKey={refreshKey} />
+          <ListView selectedDate={selectedDate} refreshKey={refreshKey} searchQuery={searchQuery} />
         ) : (
           /* Doctor Schedule Columns */
           <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-4">
