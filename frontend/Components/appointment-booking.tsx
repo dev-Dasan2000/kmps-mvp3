@@ -320,7 +320,7 @@ export default function AppointmentBooking() {
         {calendarView === "room" ? (
           <RoomView weekDays={weekDays} selectedDate={selectedDate} viewMode={viewMode} />
         ) : calendarView === "list" ? (
-          <ListView selectedDate={selectedDate} refreshKey={refreshKey} searchQuery={searchQuery} />
+          <ListView selectedDate={selectedDate} refreshKey={refreshKey} />
         ) : (
           /* Doctor Schedule Columns */
           <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-4">
