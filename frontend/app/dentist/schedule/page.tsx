@@ -1,7 +1,7 @@
 // app/dentist/[dentistId]/schedule/page.tsx
 "use client";
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { Calendar, Clock, User, Search, Plus, X, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,22 +63,15 @@ const formatDate = (dateString: string) => {
   return dateString.split('T')[0];
 };
 
-const NewAppointmentForm = ({
-  patient_id,
-  setPatient_id,
-  date,
-  setDate,
-  time_from,
-  setTimeFrom,
-  note,
-  setNote,
-  timeSlots,
-  handleAppointmentCreation,
-  creatingAppointment,
-  isTimeSlotAvailable
-}: {
+interface NewAppointmentFormProps {
   patient_id: string;
   setPatient_id: (value: string) => void;
+  patientSearchTerm: string;
+  setPatientSearchTerm: (value: string) => void;
+  patientSearchResults: any[];
+  setPatientSearchResults: (value: any[]) => void;
+  showPatientDropdown: boolean;
+  setShowPatientDropdown: (value: boolean) => void;
   date: string;
   setDate: (value: string) => void;
   time_from: string;
@@ -89,20 +82,67 @@ const NewAppointmentForm = ({
   handleAppointmentCreation: () => void;
   creatingAppointment: boolean;
   isTimeSlotAvailable: (time: string) => boolean;
-}) => (
+}
+
+const NewAppointmentForm = ({
+  patient_id,
+  setPatient_id,
+  patientSearchTerm,
+  setPatientSearchTerm,
+  patientSearchResults,
+  setPatientSearchResults,
+  showPatientDropdown,
+  setShowPatientDropdown,
+  date,
+  setDate,
+  time_from,
+  setTimeFrom,
+  note,
+  setNote,
+  timeSlots,
+  handleAppointmentCreation,
+  creatingAppointment,
+  isTimeSlotAvailable
+}: NewAppointmentFormProps) => (
   <DialogContent className=" max-h-screen overflow-y-auto">
     <DialogHeader>
       <DialogTitle>New Appointment</DialogTitle>
     </DialogHeader>
     <div className="space-y-4">
-      <div>
-        <Label className='mb-2' htmlFor="patient" >Patient</Label>
+      <div className="relative">
+        <Label className='mb-2' htmlFor="patient">Patient</Label>
         <Input
           id="patient"
-          placeholder="Enter Patient ID"
-          value={patient_id}
-          onChange={(e) => setPatient_id(e.target.value)}
+          placeholder="Search by patient name or ID..."
+          value={patientSearchTerm}
+          onChange={(e) => {
+            const value = e.target.value;
+            setPatientSearchTerm(value);
+            setShowPatientDropdown(true);
+          }}
+          onFocus={() => setShowPatientDropdown(true)}
+          onBlur={() => setTimeout(() => setShowPatientDropdown(false), 200)}
         />
+        {showPatientDropdown && patientSearchResults.length > 0 && (
+          <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+            {patientSearchResults.map((patient) => (
+              <div
+                key={patient.patient_id}
+                className="cursor-pointer hover:bg-gray-100 px-4 py-2 text-sm text-gray-700"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setPatient_id(patient.patient_id);
+                  setPatientSearchTerm(`${patient.name} (${patient.patient_id})`);
+                  setShowPatientDropdown(false);
+                }}
+              >
+                <div className="font-medium">{patient.name}</div>
+                <div className="text-xs text-gray-500">ID: {patient.patient_id}</div>
+                {patient.email && <div className="text-xs text-gray-500">{patient.email}</div>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div>
         <Label className='mb-2' htmlFor="date">Date</Label>
@@ -283,6 +323,59 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const [blockTimeFrom, setBlockTimeFrom] = useState("");
   const [blockTimeTo, setBlockTimeTo] = useState("");
 
+  // Patient search states
+  const [patientSearchTerm, setPatientSearchTerm] = useState("");
+  const [patientSearchResults, setPatientSearchResults] = useState<any[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout>();
+
+  // Search patients function
+  const searchPatients = async (term: string) => {
+    if (term.length < 2) {
+      setPatientSearchResults([]);
+      return;
+    }
+    try {
+      const response = await fetch(`${backendURL}/patients/search?q=${encodeURIComponent(term)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPatientSearchResults(data);
+      }
+    } catch (err) {
+      console.error('Error searching patients:', err);
+      setPatientSearchResults([]);
+    }
+  };
+
+  // Debounced search effect
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (patientSearchTerm.length >= 2) {
+      searchTimeoutRef.current = setTimeout(() => {
+        searchPatients(patientSearchTerm);
+      }, 300);
+    } else {
+      setPatientSearchResults([]);
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [patientSearchTerm]);
+
+  // Reset search when modal is opened/closed
+  useEffect(() => {
+    if (!isNewAppointmentOpen) {
+      setPatientSearchTerm("");
+      setPatientSearchResults([]);
+      setShowPatientDropdown(false);
+    }
+  }, [isNewAppointmentOpen]);
 
   const [timeSlots, setTimeSlots] = useState([""]);
 
@@ -923,6 +1016,12 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
                 handleAppointmentCreation={handleAppointmentCreation}
                 creatingAppointment={creatingAppointment}
                 isTimeSlotAvailable={isTimeSlotAvailable}
+                patientSearchTerm={patientSearchTerm}
+                setPatientSearchTerm={setPatientSearchTerm}
+                patientSearchResults={patientSearchResults}
+                setPatientSearchResults={setPatientSearchResults}
+                showPatientDropdown={showPatientDropdown}
+                setShowPatientDropdown={setShowPatientDropdown}
               />
             </Dialog>
           </div>
