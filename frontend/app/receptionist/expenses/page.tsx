@@ -413,8 +413,9 @@ export default function ExpenseManagement() {
                       onClick={() => handleEditExpense(expense)}
                       className="p-1 h-8 w-8"
                       title="Edit Expense"
+                      disabled={expense.status.toLowerCase() === 'approved'}
                     >
-                      <Edit size={16} />
+                      <Edit size={16} className={expense.status.toLowerCase() === 'approved' ? 'text-gray-300' : ''} />
                     </Button>
 
                   </div>
@@ -450,8 +451,9 @@ export default function ExpenseManagement() {
                       onClick={() => handleEditExpense(expense)}
                       className="p-2 h-8 w-8"
                       title="Edit Expense"
+                      disabled={expense.status.toLowerCase() === 'approved'}
                     >
-                      <Edit size={16} />
+                      <Edit size={16} className={expense.status.toLowerCase() === 'approved' ? 'text-gray-300' : ''} />
                     </Button>
                   </div>
                 </div>
