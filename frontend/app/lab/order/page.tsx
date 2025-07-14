@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
-import { Loader, Clock, User, FileText, Eye, Search, Filter, X, CheckCircle, Paperclip, Receipt, ListCheckIcon, List, BookCheck } from 'lucide-react';
+import { Loader, Clock, User, FileText, Eye, Filter, X, CheckCircle, Paperclip, Receipt, ListCheckIcon, List, BookCheck } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
+import { Search } from "@/Components/ui/search";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCallback } from 'react';
 
 // ======================== TYPES ========================
 
@@ -101,7 +104,18 @@ const LabOrderModule = () => {
   const [loadingStages, setLoadingStages] = useState(false);
   const [loadingStageAssigns, setLoadingStageAssigns] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [updatingStage, setUpdatingStage] = useState<number | null>(null);
+
+  // Debounce search query updates
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   function getStagesForOrder(orderId: number): StageWithStatus[] {
     return fetchedStages.map(stage => {
@@ -218,16 +232,16 @@ const LabOrderModule = () => {
   };
 
   const filteredOrders = orders.filter(order => {
-    if (!searchQuery) return true;
-    
-    const query = searchQuery.toLowerCase();
-    return (
-      order.order_id.toString().includes(query) ||
-      (order.patient?.name || '').toLowerCase().includes(query) ||
-      (order.dentist?.name || '').toLowerCase().includes(query) ||
-      (order.work_type?.work_type || '').toLowerCase().includes(query) ||
-      (order.status || '').toLowerCase().includes(query)
-    );
+    const matchesSearch = !debouncedSearchQuery || 
+      order.order_id.toString().toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      (order.patient?.name || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      (order.dentist?.name || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      (order.work_type?.work_type || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      (order.status || '').toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+
+    const matchesPriority = selectedPriority === 'all' || order.priority?.toLowerCase() === selectedPriority.toLowerCase();
+
+    return matchesSearch && matchesPriority;
   });
 
   const OrdersList = () => (
@@ -238,20 +252,24 @@ const LabOrderModule = () => {
         </div>
 
         <div className="flex gap-4 mb-4">
-          <div className="flex-1 relative">
-            <Search className="h-4 w-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search orders..."
+          <div className="flex-1">
+            <Search
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(value) => setSearchQuery(value)}
+              placeholder="Search by order ID, patient, dentist..."
             />
           </div>
-          <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filter
-          </button>
+          <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Priorities</SelectItem>
+              <SelectItem value="high">High Priority</SelectItem>
+              <SelectItem value="medium">Medium Priority</SelectItem>
+              <SelectItem value="low">Low Priority</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

@@ -55,7 +55,9 @@ interface NewStudyForm {
   assertion_number: string;
   description: string;
   dicom_files: File[];
+  dicom_folder: File[];
   report_files: File[];
+  upload_type: 'file' | 'folder';
 }
 
 interface AssignmentForm {
@@ -75,7 +77,7 @@ const MedicalStudyInterface: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedStudyId, setExpandedStudyId] = useState<number | null>(null);
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const dicomurlx = process.env.DICOM_URL;
+  const dicomurlx = process.env.NEXT_PUBLIC_DICOM_URL || 'http://localhost:4000';
 
   const {isLoadingAuth, user, isLoggedIn} = useContext(AuthContext);
   const router = useRouter();
@@ -170,7 +172,9 @@ const MedicalStudyInterface: React.FC = () => {
     assertion_number: '',
     description: '',
     dicom_files: [],
-    report_files: []
+    dicom_folder: [],
+    report_files: [],
+    upload_type: 'file'
   });
 
   const [assignmentForm, setAssignmentForm] = useState<AssignmentForm>({
@@ -363,14 +367,53 @@ const MedicalStudyInterface: React.FC = () => {
   const tabs = ['1D', '3D', '1W', '1M', '1Y', 'ALL'];
   const modalities = ['All', 'CT', 'MRI', 'DX', 'IO', 'CR'];
 
-  const handleFileUpload = (files: FileList | null, type: 'dicom' | 'report') => {
+  const handleFileUpload = (files: FileList | null, type: 'dicom' | 'report' | 'dicom_folder') => {
     if (!files) return;
 
     const fileArray = Array.from(files);
-    setNewStudy(prev => ({
-      ...prev,
-      [type === 'dicom' ? 'dicom_files' : 'report_files']: fileArray
-    }));
+    
+    // Validate DICOM files (.dcm or .DCM extension)
+    if (type === 'dicom' || type === 'dicom_folder') {
+      const invalidFiles = fileArray.filter(file => {
+        const extension = file.name.split('.').pop()?.toLowerCase();
+        return extension !== 'dcm';
+      });
+      
+      if (invalidFiles.length > 0) {
+        toast.error('Invalid file type', { 
+          description: 'Only .dcm or .DCM files are allowed for DICOM uploads' 
+        });
+        return;
+      }
+    }
+    
+    // Update state based on upload type
+    setNewStudy(prev => {
+      if (type === 'dicom') {
+        return {
+          ...prev,
+          dicom_files: fileArray,
+          upload_type: 'file'
+        };
+      } else if (type === 'dicom_folder') {
+        return {
+          ...prev,
+          dicom_folder: fileArray,
+          upload_type: 'folder'
+        };
+      } else {
+        return {
+          ...prev,
+          report_files: fileArray
+        };
+      }
+    });
+  };
+  
+  // Helper function to handle directory selection
+  const handleDirectoryUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    handleFileUpload(files, 'dicom_folder');
   };
 
   const handleSubmitStudy = async () => {
@@ -379,35 +422,70 @@ const MedicalStudyInterface: React.FC = () => {
       setError(null);
       console.log('Submitting study:', newStudy);
 
-      // Step 1: Validate required DICOM file
-      if (newStudy.dicom_files.length === 0) {
+      // Step 1: Validate required DICOM file or folder
+      if (newStudy.upload_type === 'file' && newStudy.dicom_files.length === 0) {
         toast.error('Please upload a DICOM file before submitting the study');
         setError('DICOM file is required');
-        setLoading(false);
+        setisuploading(false);
+        return;
+      } else if (newStudy.upload_type === 'folder' && newStudy.dicom_folder.length === 0) {
+        toast.error('Please upload DICOM files from a folder before submitting the study');
+        setError('DICOM folder files are required');
+        setisuploading(false);
         return;
       }
 
-      // Step 2: Upload DICOM file first
+      // Step 2: Upload DICOM file(s)
       let dicomFileUrl = '';
       try {
-        const dicomFormData = new FormData();
-        dicomFormData.append('file', newStudy.dicom_files[0]);
+        if (newStudy.upload_type === 'file') {
+          // Single file upload
+          const dicomFormData = new FormData();
+          dicomFormData.append('file', newStudy.dicom_files[0]);
 
-        const dicomResponse = await fetch(`${backendUrl}/files`, {
-          method: 'POST',
-          body: dicomFormData
-        });
+          const dicomResponse = await fetch(`${backendUrl}/files`, {
+            method: 'POST',
+            body: dicomFormData
+          });
 
-        if (!dicomResponse.ok) {
-          throw new Error(`DICOM file upload failed with status: ${dicomResponse.status}`);
+          if (!dicomResponse.ok) {
+            throw new Error(`DICOM file upload failed with status: ${dicomResponse.status}`);
+          }
+
+          const dicomData = await dicomResponse.json();
+          dicomFileUrl = dicomData.url;
+          console.log('DICOM file uploaded successfully:', dicomFileUrl);
+        } else {
+          // Folder upload
+          const folderFormData = new FormData();
+          
+          // Process files to maintain folder structure
+          for (const file of newStudy.dicom_folder) {
+            // Extract relative path from file webkitRelativePath or use fallback
+            const relativePath = (file as any).webkitRelativePath || '';
+            const folderPath = relativePath.split('/').slice(0, -1).join('/');
+            
+            // Format for backend: folderpath|filename
+            folderFormData.append('files', file, `${folderPath}|${file.name}`);
+          }
+
+          const folderResponse = await fetch(`${backendUrl}/files/folder`, {
+            method: 'POST',
+            body: folderFormData
+          });
+
+          if (!folderResponse.ok) {
+            throw new Error(`DICOM folder upload failed with status: ${folderResponse.status}`);
+          }
+
+          const folderData = await folderResponse.json();
+          // Use the first URL as the main reference URL
+          dicomFileUrl = folderData.urls[0] || '';
+          console.log('DICOM folder uploaded successfully:', folderData.urls);
         }
-
-        const dicomData = await dicomResponse.json();
-        dicomFileUrl = dicomData.url;
-        console.log('DICOM file uploaded successfully:', dicomFileUrl);
       } catch (error) {
-        console.error('Error uploading DICOM file:', error);
-        setError('Failed to upload DICOM file. Please try again.');
+        console.error('Error uploading DICOM files:', error);
+        setError('Failed to upload DICOM files. Please try again.');
         setisuploading(false);
         return;
       }
@@ -480,7 +558,9 @@ const MedicalStudyInterface: React.FC = () => {
           assertion_number: '',
           description: '',
           dicom_files: [],
-          report_files: []
+          dicom_folder: [],
+          report_files: [],
+          upload_type: 'file'
         });
 
         // Step 4: Create new report reocrd in reports table
@@ -615,7 +695,9 @@ const MedicalStudyInterface: React.FC = () => {
       assertion_number: study.assertion_number?.toString() || '',
       description: study.description || '',
       dicom_files: [],
-      report_files: []
+      dicom_folder: [],
+      report_files: [],
+      upload_type: 'file'
     });
     setPatientSearchTerm(
       study.patient 
@@ -636,7 +718,9 @@ const MedicalStudyInterface: React.FC = () => {
         assertion_number: studyToEdit.assertion_number?.toString() || '',
         description: studyToEdit.description || '',
         dicom_files: [],
-        report_files: []
+        dicom_folder: [],
+        report_files: [],
+        upload_type: 'file'
       });
       setPatientSearchTerm(
         studyToEdit.patient 
@@ -657,7 +741,9 @@ const MedicalStudyInterface: React.FC = () => {
         assertion_number: '',
         description: '',
         dicom_files: [],
-        report_files: []
+        dicom_folder: [],
+        report_files: [],
+        upload_type: 'file'
       });
       setPatientSearchTerm('');
       setPatientSearchResults([]);
@@ -682,7 +768,7 @@ const MedicalStudyInterface: React.FC = () => {
 
       // Step 1: Handle DICOM file if a new one was uploaded
       let dicomFileUrl = studyToEdit.dicom_file_url || '';
-      if (newStudy.dicom_files.length > 0) {
+      if (newStudy.upload_type === 'file' && newStudy.dicom_files.length > 0) {
         try {
           // Delete the old DICOM file if it exists
           if (studyToEdit.dicom_file_url) {
@@ -722,6 +808,59 @@ const MedicalStudyInterface: React.FC = () => {
         } catch (error) {
           console.error('Error uploading DICOM file:', error);
           setError('Failed to upload DICOM file. Please try again.');
+          setisuploading(false);
+          return;
+        }
+      } else if (newStudy.upload_type === 'folder' && newStudy.dicom_folder.length > 0) {
+        try {
+          // Delete the old DICOM file if it exists
+          if (studyToEdit.dicom_file_url) {
+            try {
+              // Extract the file name from the URL
+              const fileName = studyToEdit.dicom_file_url.split('/').pop();
+              if (fileName) {
+                const deleteResponse = await fetch(`${backendUrl}/files/${fileName}`, {
+                  method: 'DELETE'
+                });
+
+                if (!deleteResponse.ok) {
+                  console.warn(`Warning: Could not delete old DICOM file: ${deleteResponse.status}`);
+                }
+              }
+            } catch (error) {
+              console.error('Error deleting old DICOM file:', error);
+            }
+          }
+
+          // Upload the new DICOM folder
+          const folderFormData = new FormData();
+          
+          // Process files to maintain folder structure
+          for (const file of newStudy.dicom_folder) {
+            // Extract relative path from file webkitRelativePath or use fallback
+            const relativePath = (file as any).webkitRelativePath || '';
+            const folderPath = relativePath.split('/').slice(0, -1).join('/');
+            
+            // Format for backend: folderpath|filename
+            folderFormData.append('files', file, `${folderPath}|${file.name}`);
+          }
+
+          const folderResponse = await fetch(`${backendUrl}/files/folder`, {
+            method: 'POST',
+            body: folderFormData
+          });
+
+          if (!folderResponse.ok) {
+            throw new Error(`DICOM folder upload failed with status: ${folderResponse.status}`);
+          }
+
+          const folderData = await folderResponse.json();
+          // Use the first URL as the main reference URL
+          dicomFileUrl = folderData.urls[0] || '';
+          console.log('DICOM folder uploaded successfully:', folderData.urls);
+        } catch (error) {
+          console.error('Error uploading DICOM folder:', error);
+          setError('Failed to upload DICOM folder. Please try again.');
           setisuploading(false);
           return;
         }
@@ -869,7 +1008,9 @@ const MedicalStudyInterface: React.FC = () => {
         assertion_number: '',
         description: '',
         dicom_files: [],
-        report_files: []
+        dicom_folder: [],
+        report_files: [],
+        upload_type: 'file'
       });
 
     } catch (error) {
@@ -1451,43 +1592,119 @@ const MedicalStudyInterface: React.FC = () => {
 
                 {/* File Uploads */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    DICOM Files
-                  </label>
-                  <div
-                    className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative"
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      handleFileUpload(e.dataTransfer.files, 'dicom');
-                    }}
-                  >
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">
-                      <label htmlFor="dicom-upload" className="text-blue-600 underline cursor-pointer">Upload a file</label> or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500">DCM, DOC, DOCX files up to 10MB</p>
-                    <input
-                      type="file"
-                      multiple
-                      accept=".dcm,.doc,.docx"
-                      onChange={(e) => handleFileUpload(e.target.files, 'dicom')}
-                      className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
-                      id="dicom-upload"
-                    />
-                    <div className="mt-2">
-                      {newStudy.dicom_files.length > 0 && (
-                        <div className="text-sm text-green-600">
-                          <p>{newStudy.dicom_files.length} file(s) selected</p>
-                          <ul className="text-left mt-2">
-                            {Array.from(newStudy.dicom_files).map((file, index) => (
-                              <li key={index} className="truncate">{file.name}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        DICOM Upload Method
+                      </label>
+                      <div className="flex border border-teal-500 rounded-lg overflow-hidden">
+                        <button
+                          type="button"
+                          onClick={() => setNewStudy(prev => ({ ...prev, upload_type: 'file' }))}
+                          className={`px-3 py-1 text-xs ${newStudy.upload_type === 'file' ? 'bg-teal-500 text-white' : 'bg-white text-teal-700'}`}
+                        >
+                          Single File
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewStudy(prev => ({ ...prev, upload_type: 'folder' }))}
+                          className={`px-3 py-1 text-xs ${newStudy.upload_type === 'folder' ? 'bg-teal-500 text-white' : 'bg-white text-teal-700'}`}
+                        >
+                          Folder
+                        </button>
+                      </div>
                     </div>
                   </div>
+                  
+                  {newStudy.upload_type === 'file' ? (
+                    <>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        DICOM File
+                      </label>
+                      <div
+                        className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center relative"
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          handleFileUpload(e.dataTransfer.files, 'dicom');
+                        }}
+                      >
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 mb-2">
+                          <label htmlFor="dicom-upload" className="text-blue-600 underline cursor-pointer">Upload a file</label> or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500">Only .dcm or .DCM files allowed</p>
+                        <input
+                          type="file"
+                          accept=".dcm,.DCM"
+                          onChange={(e) => handleFileUpload(e.target.files, 'dicom')}
+                          className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                          id="dicom-upload"
+                        />
+                        <div className="mt-2">
+                          {newStudy.dicom_files.length > 0 && (
+                            <div className="text-sm text-green-600">
+                              <p>{newStudy.dicom_files.length} file(s) selected</p>
+                              <ul className="text-left mt-2">
+                                {Array.from(newStudy.dicom_files).map((file, index) => (
+                                  <li key={index} className="truncate">{file.name}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        DICOM Folder
+                      </label>
+                      <div
+                        className="border-2 border-dashed border-blue-200 bg-blue-50 rounded-lg p-6 text-center relative"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-500 mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                          <path d="M12 11v6"></path>
+                          <path d="M9 14h6"></path>
+                        </svg>
+                        <p className="text-sm text-gray-600 mb-2">
+                          <label htmlFor="folder-upload" className="text-blue-600 underline cursor-pointer">Select a folder</label> containing DICOM files
+                        </p>
+                        <p className="text-xs text-gray-500">Only .dcm or .DCM files will be uploaded</p>
+                        <input
+                          type="file"
+                          id="folder-upload"
+                          onChange={handleDirectoryUpload}
+                          webkitdirectory="true"
+                          directory="true"
+                          multiple
+                          className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                        />
+                        <div className="mt-2">
+                          {newStudy.dicom_folder.length > 0 && (
+                            <div className="text-sm text-green-600">
+                              <p>{newStudy.dicom_folder.length} file(s) selected from folder</p>
+                              <p className="text-xs">Folder structure will be preserved</p>
+                              {newStudy.dicom_folder.length > 0 && newStudy.dicom_folder.length <= 5 && (
+                                <ul className="text-left mt-2 text-xs">
+                                  {Array.from(newStudy.dicom_folder).map((file, index) => {
+                                    const relativePath = (file as any).webkitRelativePath || file.name;
+                                    return (
+                                      <li key={index} className="truncate">{relativePath}</li>
+                                    );
+                                  })}
+                                </ul>
+                              )}
+                              {newStudy.dicom_folder.length > 5 && (
+                                <p className="text-xs mt-1">Showing first 5 of {newStudy.dicom_folder.length} files</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div>
