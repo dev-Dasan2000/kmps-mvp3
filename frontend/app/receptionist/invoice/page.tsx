@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,9 @@ import { format } from 'date-fns';
 import { Plus, Edit, Trash2, Download, Eye, Search, DollarSign, FileText, Users, Calendar as CalendarIcon, Phone, Mail, MapPin, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useRouter } from 'next/router';
+import { AuthContext } from '@/context/auth-context';
+import { toast } from 'sonner';
 
 // Types based on your database schema
 interface Patient {
@@ -169,7 +172,6 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     }
   };
 
-
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   const paymentTypes = ['cash', 'card', 'online', 'bank_transfer'];
@@ -215,6 +217,21 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       setFormData(prev => ({ ...prev, date: date.toISOString().split('T')[0] }));
     }
   }, [date]);
+
+  const router = useRouter();
+  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Session Expired", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "receptionist"){
+      toast.error("Access Denied", {description:"You do not have access to this user role"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   const getStatusColor = (paymentType: string) => {
     switch (paymentType) {

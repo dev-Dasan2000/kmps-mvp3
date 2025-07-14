@@ -249,11 +249,10 @@ export default function AppointmentBooking() {
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                 <DropdownMenuItem onClick={() => setCalendarView("list")}>List View</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setCalendarView("week")}>Calendar View </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setCalendarView("room")}>Room View</DropdownMenuItem>
-               
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setCalendarView("week")}>Calendar view</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCalendarView("room")}>Room view</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setCalendarView("list")}>List view</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

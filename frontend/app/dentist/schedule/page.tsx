@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext } from 'react';
-import { Calendar, Clock, User, Search, Plus, X, Edit } from 'lucide-react';
+import { Calendar, Clock, User, Search, Plus, X, Edit, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -349,24 +349,59 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   };
 
   const handleBlockDeletion = async (blocked_date_id: number) => {
-    if (!confirm("Are you sure you want to delete this block slot?")) return;
-
-    setDeletingBlock(true);
-    try {
-      const response = await axios.delete(
-        `${backendURL}/blocked-dates/${blocked_date_id}`
-      );
-      if (response.status == 500) {
-        throw new Error("Error Deleting Block Slot");
-      }
-      fetchBlockedSlots();
-    }
-    catch (err: any) {
-      toast.error(err.message);
-    }
-    finally {
-      setDeletingBlock(false);
-    }
+    toast.custom((t) => (
+      <div className="bg-emerald-50 rounded-lg shadow-lg p-6 min-w-[400px] max-w-2xl">
+        <div className="flex items-start gap-3">
+          <div className="p-2 bg-red-100 rounded-full">
+            <Trash2 className="w-5 h-5 text-red-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-medium text-gray-900">Delete Block Slot</h3>
+            <p className="text-sm text-gray-500 mt-1">This action cannot be undone. Are you sure you want to proceed?</p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 mt-6">
+          <Button
+            variant="outline"
+            size="sm"
+            className="px-4"
+            onClick={() => toast.dismiss(t)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="px-4"
+            onClick={async () => {
+              toast.dismiss(t);
+              setDeletingBlock(true);
+              try {
+                const response = await axios.delete(
+                  `${backendURL}/blocked-dates/${blocked_date_id}`
+                );
+                if (response.status == 500) {
+                  throw new Error("Error Deleting Block Slot");
+                }
+                fetchBlockedSlots();
+                toast.success("Block slot deleted successfully");
+              }
+              catch (err: any) {
+                toast.error(err.message);
+              }
+              finally {
+                setDeletingBlock(false);
+              }
+            }}
+          >
+            Delete Block
+          </Button>
+        </div>
+      </div>
+    ), {
+      duration: 6000,
+      position: 'top-center',
+    });
   }
 
   const fetchDentistWorkInfo = async () => {
@@ -956,9 +991,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
                               <div className="flex items-center space-x-2">
                                 <X className="w-4 h-4 text-red-500" />
                                 <span className="text-red-600 font-medium">Blocked</span>
-                                <Button variant="ghost" size="sm" className="ml-auto">
-                                  <Edit className="w-3 h-3" />
-                                </Button>
+                                
                               </div>
                             ) : (
                               <span className="text-gray-400">Available</span>

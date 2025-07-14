@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, use, useContext } from 'react';
 import { Search, Clock, Phone, Mail, MapPin } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 import axios from 'axios';
+import { AuthContext } from '@/context/auth-context';
+import { toast } from 'sonner';
 
 
 interface Dentist {
@@ -34,86 +36,6 @@ interface DentistDirectoryProps {
   }>;
 }
 
-
-// Mock data based on your database structure
-const mockDentists: Dentist[] = [
-  {
-    dentist_id: '1',
-    name: 'Dr. John Smith',
-    profile_picture: '',
-    email: 'john.smith@example.com',
-    phone_number: '+1234567890',
-    language: 'English, Spanish',
-    service_types: 'Filling, Cleaning, Root Canal',
-    work_days_from: 'Monday',
-    work_days_to: 'Friday',
-    work_time_from: '09:00',
-    work_time_to: '17:00',
-    appointment_duration: '30',
-    appointment_fee: 200.00
-  },
-  {
-    dentist_id: '2',
-    name: 'Dr. Sarah Johnson',
-    profile_picture: '',
-    email: 'sarah.johnson@example.com',
-    phone_number: '+1234567891',
-    language: 'English, French',
-    service_types: 'Filling, Orthodontics',
-    work_days_from: 'Monday',
-    work_days_to: 'Friday',
-    work_time_from: '08:00',
-    work_time_to: '16:00',
-    appointment_duration: '45',
-    appointment_fee: 250.00
-  },
-  {
-    dentist_id: '3',
-    name: 'Dr. Michael Brown',
-    profile_picture: '',
-    email: 'michael.brown@example.com',
-    phone_number: '+1234567892',
-    language: 'English',
-    service_types: 'Filling, Surgery, Implants',
-    work_days_from: 'Tuesday',
-    work_days_to: 'Saturday',
-    work_time_from: '10:00',
-    work_time_to: '18:00',
-    appointment_duration: '60',
-    appointment_fee: 300.00
-  },
-  {
-    dentist_id: '4',
-    name: 'Dr. Emily Davis',
-    profile_picture: '',
-    email: 'emily.davis@example.com',
-    phone_number: '+1234567893',
-    language: 'English, German',
-    service_types: 'Filling, Pediatric Dentistry',
-    work_days_from: 'Monday',
-    work_days_to: 'Thursday',
-    work_time_from: '09:00',
-    work_time_to: '15:00',
-    appointment_duration: '30',
-    appointment_fee: 180.00
-  },
-  {
-    dentist_id: '5',
-    name: 'Dr. Robert Wilson',
-    profile_picture: '',
-    email: 'robert.wilson@example.com',
-    phone_number: '+1234567894',
-    language: 'English, Italian',
-    service_types: 'Filling, Cosmetic Dentistry',
-    work_days_from: 'Wednesday',
-    work_days_to: 'Sunday',
-    work_time_from: '11:00',
-    work_time_to: '19:00',
-    appointment_duration: '45',
-    appointment_fee: 220.00
-  }
-];
-
 export default function DentistDirectory() {
   
   const { receptionistID } = useParams();
@@ -126,20 +48,6 @@ export default function DentistDirectory() {
 
 
   useEffect(() => {
-    // Get receptionist ID from auth token or use default
-    const getReceptionistId = () => {
-      try {
-        // In a real app, you'd decode the auth token here
-        // For now, use the param or default to '123'
-        return receptionistID || '123';
-      } catch (error) {
-        return '123';
-      }
-    };
-
-   
-    
-   
     const fetchDentists = async () => {
       try {
         const response = await axios.get(`${backendURL}/dentists`);
@@ -156,7 +64,6 @@ export default function DentistDirectory() {
     fetchDentists();
   }, []);
   
-
   useEffect(() => {
     const filtered = dentists.filter(
       dentist =>
@@ -166,6 +73,21 @@ export default function DentistDirectory() {
     );
     setFilteredDentists(filtered);
   }, [searchTerm, dentists]);
+
+  const router = useRouter();
+  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Session Expired", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "receptionist"){
+      toast.error("Access Denied", {description:"You do not have access to this user role"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   const formatWorkingHours = (dentist: Dentist) => {
     if (!dentist.work_days_from || !dentist.work_time_from) return 'Not specified';
