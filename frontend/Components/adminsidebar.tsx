@@ -139,7 +139,7 @@ const AdminSidebar = () => {
       <Button
         variant="ghost"
         size="sm"
-        className="md:hidden fixed top-4 left-4 z-[50] bg-white shadow-md border"
+      className="md:hidden fixed top-4 left-4 z-[100] bg-white shadow-md border"
         onClick={toggleMobileMenu}
       >
         {isMobileMenuOpen ? (
