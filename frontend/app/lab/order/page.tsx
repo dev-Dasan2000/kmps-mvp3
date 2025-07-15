@@ -453,8 +453,8 @@ const LabOrderModule = () => {
     if (isLoadingAuth) return;
     if (!isLoggedIn) {
       setToast({
-        type:"error",
-        message:"Please Log in",
+        type: "error",
+        message: "Please Log in",
         show: true
       })
       router.push("/");
@@ -462,8 +462,8 @@ const LabOrderModule = () => {
     }
     if (user.role != "lab") {
       setToast({
-        type:"error",
-        message:"Access Denied",
+        type: "error",
+        message: "Access Denied",
         show: true
       })
       router.push("/");
@@ -572,7 +572,7 @@ const OrdersList = React.memo(({
             <Loader className="h-6 w-6 animate-spin text-gray-500" />
             <span className="ml-2 text-gray-500">Loading orders...</span>
           </div>
-        ) : (
+        ) : filteredOrders.length > 0 ? (
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -628,8 +628,13 @@ const OrdersList = React.memo(({
               ))}
             </tbody>
           </table>
+        ) : (
+          <div className="text-center py-10 text-gray-500">
+            <p>No orders available</p>
+          </div>
         )}
       </div>
+
     </div>
   );
 });
