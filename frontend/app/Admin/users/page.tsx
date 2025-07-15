@@ -327,6 +327,13 @@ export default function UserTable() {
                         >
                           <Eye className="h-5 w-5 text-blue-600" />
                         </button>
+                        <button 
+                          className="p-2 hover:bg-red-50 rounded-lg transition-colors" 
+                          onClick={()=>{handleDelete(inuser.id, inuser.role)}}
+                          title="Delete User"
+                        >
+                          <Trash2 className="h-5 w-5 text-red-500" />
+                        </button>
                         {inuser.role === "Dentist" && (
                           <button
                             onClick={() => handleViewAnalytics(inuser)}
@@ -336,13 +343,6 @@ export default function UserTable() {
                             <BarChart3 className="h-5 w-5 text-purple-600" />
                           </button>
                         )}
-                        <button 
-                          className="p-2 hover:bg-red-50 rounded-lg transition-colors" 
-                          onClick={()=>{handleDelete(inuser.id, inuser.role)}}
-                          title="Delete User"
-                        >
-                          <Trash2 className="h-5 w-5 text-red-500" />
-                        </button>
                       </div>
                     </td>
                   </tr>
