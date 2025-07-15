@@ -120,16 +120,14 @@ const PatientManagement = () => {
     }));
   };
 
-
   const handleSubmit = async () => {
     // Basic validation
     if (!formData.name || !formData.email) {
      toast.error("Please fill in all required fields");
       return;
     }
-
-    if (editingPatient) {
-      try{
+    try{
+      if(editingPatient){
         const response = await axios.put(
           `${backendURL}/patients/${editingPatient.patient_id}`,
           {
@@ -155,24 +153,8 @@ const PatientManagement = () => {
         }
         toast.success("Patient updated successfully");
       }
-      catch(err: any){
-        toast.error("Error updating patient");
-      }
-      finally{
-
-      }
-      // Update existing patient
-      setPatients(prev =>
-        prev?.map(patient =>
-          patient.patient_id === editingPatient.patient_id
-            ? { ...formData }
-            : patient
-        )
-      );
-    } else {
-      // Add new patient
-      const newPatientId = `P${String(patients.length + 1).padStart(3, '0')}`;
-      try {
+      else{
+        const newPatientId = `P${String(patients.length + 1).padStart(3, '0')}`;
         const response = await axios.post(
           `${backendURL}/patients`, {
           hospital_patient_id: formData.hospital_patient_id,
@@ -202,15 +184,14 @@ const PatientManagement = () => {
           setPatients(prev => [...prev, { ...formData, patient_id: newPatientId }]);
         }
       }
-      catch (err: any) {
-        toast.error("Error Creating Patient");
-      }
-      finally {
-
-      }
     }
-
-    handleCloseOverlay();
+    catch(err: any){
+      toast.error("Error updating", {description: err.message});
+    }
+    finally{
+      fetchPatients();
+      handleCloseOverlay();
+    }
   };
 
   const handleDeletePatient = async (patientId: string) => {
@@ -266,22 +247,16 @@ const PatientManagement = () => {
   }, []);
 
   useEffect(()=>{
-    if(!isLoadingAuth){
-      if(!isLoggedIn){
-        toast.error("Session Error", {
-          description: "Your session is expired, please login again"
-        });
-        router.push("/");
-      }
-      else if(user.role != "admin"){
-        toast.error("Access Error", {
-          description: "You do not have access, redirecting..."
-        });
-        router.push("/");
-      }
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
     }
   },[isLoadingAuth]);
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 overflow-auto">

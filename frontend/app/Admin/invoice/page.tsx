@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,9 @@ import { format } from 'date-fns';
 import { Plus, Edit, Trash2, Download, Eye, Search, DollarSign, FileText, Users, Calendar as CalendarIcon, Phone, Mail, MapPin, X } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { toast } from 'sonner';
+import { AuthContext } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
 
 // Types based on your database schema
 interface Patient {
@@ -96,6 +99,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const router = useRouter();
 
   const [formData, setFormData] = useState<InvoiceFormData>({
     patient_id: '',
@@ -109,8 +113,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     services: []
   });
 
-
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
 
   const paymentTypes = ['cash', 'card', 'online', 'bank_transfer'];
 
@@ -529,8 +533,6 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     }
   };
 
-
-  // Role-based permissions
   const canCreate = true;
   const canEdit = userRole === 'admin' || userRole === 'dentist';
   const canDelete = userRole === 'admin';
@@ -546,6 +548,18 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
   const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.total_amount, 0);
   const pendingInvoices = invoices.filter(invoice => invoice.payment_type === 'pending').length;
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   if (isLoading) {
     return (

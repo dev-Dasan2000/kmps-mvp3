@@ -9,6 +9,7 @@ import { AuthContext } from '@/context/auth-context';
 import ShiftSchedule from '@/components/ShiftSchedule';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 // Interface for today's attendance data
 // Added Employee and Shift interfaces for extra data fetching
@@ -81,7 +82,8 @@ interface AttendanceStats {
 
 export default function TimeManagementPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { accessToken, isLoggedIn } = useContext(AuthContext);
+  const { accessToken, isLoggedIn, isLoadingAuth, user } = useContext(AuthContext);
+  const router = useRouter();
   
   // State variables
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -292,6 +294,18 @@ export default function TimeManagementPage() {
     
     return parseFloat((diffMinutes / 60).toFixed(1));
   };
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   return (
     <div className="w-full">

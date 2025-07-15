@@ -2,7 +2,7 @@
 import { RoomAssignment } from '@/components/room-assigmentadmin';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthContext } from '@/context/auth-context';
 
 const page = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -25,6 +26,7 @@ const page = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
 
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,6 +53,18 @@ const page = () => {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   return (
     <main className="overflow-auto w-full h-full">
