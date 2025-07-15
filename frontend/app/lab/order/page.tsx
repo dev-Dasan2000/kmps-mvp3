@@ -4,7 +4,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Loader, Clock, User, FileText, Eye, Filter, X, CheckCircle, Paperclip, Receipt, ListCheckIcon, List, BookCheck } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
-import { Search } from "@/Components/ui/search";
+import { Search } from "@/components/ui/search";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from 'next/navigation';
 
