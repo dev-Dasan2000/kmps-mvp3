@@ -447,8 +447,7 @@ export default function ExpenseManagement() {
                     ) : (
                       <div className="p-1 h-8 w-8"></div>
                     )}
-                    {/* Edit Button - Always present */}
-                    <Button
+                    {expense.status != "approved" && <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEditExpense(expense)}
@@ -456,8 +455,8 @@ export default function ExpenseManagement() {
                       title="Edit Expense"
                     >
                       <Edit size={16} />
-                    </Button>
-
+                    </Button>}
+                    
                     {/* Accept Button - Shows for pending, invisible placeholder for others */}
                     {expense.status === 'pending' ? (
                       <Button
