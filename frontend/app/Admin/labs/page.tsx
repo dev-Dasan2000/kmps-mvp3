@@ -95,8 +95,8 @@ const DentalLabModule = () => {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const formScrollRef = useRef<HTMLDivElement>(null); // Add a ref for the form container
-  const formScrollPosition = useRef<number>(0); // Add a ref to store scroll position
+  const formScrollRef = useRef<HTMLDivElement>(null);
+  const formScrollPosition = useRef<number>(0);
 
   const { user, isLoggedIn, isLoadingAuth } = useContext(AuthContext);
 

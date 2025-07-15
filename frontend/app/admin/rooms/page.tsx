@@ -196,13 +196,17 @@ export default function RoomTable() {
       )
     : rooms;
 
-  useEffect(() => {
-    if (!isLoadingAuth && isLoggedIn) {
-      fetchRooms();
-    } else if (!isLoadingAuth && !isLoggedIn) {
-      router.push('/');
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
     }
-  }, [isLoadingAuth, isLoggedIn, router]);
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   return (
     <div className="p-6">

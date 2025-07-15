@@ -4,7 +4,6 @@ import { Search, Calendar, DollarSign, User, Clock } from 'lucide-react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import axios from 'axios';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -109,7 +108,6 @@ const PaymentsInterface: React.FC = () => {
     }
   };
 
-
   useEffect(() => {
     const filtered = payments.filter(payment =>
       payment.patient?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -124,19 +122,14 @@ const PaymentsInterface: React.FC = () => {
   },[]);
 
   useEffect(()=>{
-    if(!isLoadingAuth){
-      if(!isLoggedIn){
-        toast.error("Session Error", {
-          description: "Your session is expired, please login again"
-        });
-        router.push("/");
-      }
-      else if(user.role != "admin"){
-        toast.error("Access Error", {
-          description: "You do not have access, redirecting..."
-        });
-        router.push("/");
-      }
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
     }
   },[isLoadingAuth]);
 

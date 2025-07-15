@@ -109,21 +109,17 @@ export default function ExpenseManagement() {
     }
   }, [dentists, expenses])
 
-  useEffect(() => {
-    if (!isLoadingAuth) {
-      if (!isLoggedIn) {
-        toast.error("Session Error", {
-          description: "Your session is expired, please login again"
-        });
-        router.push("/");
-      } else if (user?.role !== "admin") {
-        toast.error("Access Error", {
-          description: "You do not have access, redirecting..."
-        });
-        router.push("/");
-      }
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
     }
-  }, [isLoadingAuth, isLoggedIn, user, router]);
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   const fetchDentists = async () => {
     setIsLoadingDentists(true);

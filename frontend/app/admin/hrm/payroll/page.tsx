@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertCircle, DollarSign, User, CreditCard, CheckCircle, BarChart, TrendingUp } from 'lucide-react';
 import axios from 'axios';
+import { useRouter } from 'next/navigation';
 
 // Interface for bank info
 interface BankInfo {
@@ -49,7 +50,8 @@ interface Payroll {
 
 export default function PayrollPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { accessToken, isLoggedIn } = useContext(AuthContext);
+  const { accessToken, isLoggedIn, isLoadingAuth, user } = useContext(AuthContext);
+  const router = useRouter();
   
   // State variables
   const [loading, setLoading] = useState(true);
@@ -128,6 +130,18 @@ export default function PayrollPage() {
     
     setFilteredPayrolls(filtered);
   }, [searchQuery, payrolls]);
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
   
   // Process salary function
   const processSalary = async (payroll: Payroll) => {

@@ -3,8 +3,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QuickActions } from '../../../../components/QuickActions';
 import { StaffDirectory } from '../../../../components/StaffDirectort';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useContext } from 'react';
 import axios from 'axios';
+import { AuthContext } from "@/context/auth-context";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 //backend url
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -34,6 +37,10 @@ export default function PIMPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const {isLoadingAuth, isLoggedIn, user, accessToken} = useContext(AuthContext);
+  const router = useRouter();
+
+
   const [staffStats, setStaffStats] = useState<StaffStats>({
     totalStaff: 0,
     fullTime: 0,
@@ -81,6 +88,18 @@ export default function PIMPage() {
   const handleEmployeeAdded = useCallback(() => {
     fetchEmployees();
   }, [fetchEmployees]);
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-full">Loading...</div>;

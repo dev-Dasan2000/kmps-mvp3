@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { Mail, Eye, MessageCircle, Search, Phone, Calendar, Clock, CalendarDays } from "lucide-react"
@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useMediaQuery } from "@/hooks/use-mobile"
 import { toast } from "sonner"
 import axios from "axios"
+import { AuthContext } from "@/context/auth-context"
+import { useRouter } from "next/navigation"
 
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -51,6 +53,8 @@ export default function DirectoryPage() {
     const [employeeStats, setEmployeeStats] = useState<EmployeeStats | null>(null)
     const [showStatsDialog, setShowStatsDialog] = useState(false)
     const isMobile = useMediaQuery("(max-width: 768px)")
+    const {isLoadingAuth, isLoggedIn, user, accessToken} = useContext(AuthContext);
+    const router = useRouter();
 
     useEffect(() => {
         const fetchData = async () => {
@@ -292,6 +296,18 @@ export default function DirectoryPage() {
             </CardContent>
         </Card>
     )
+
+    useEffect(()=>{
+        if(isLoadingAuth) return;
+        if(!isLoggedIn){
+          toast.error("Login Error", {description:"Please Login"});
+          router.push("/");
+        }
+        else if(user.role != "admin"){
+          toast.error("Access Denied", {description:"You do not have admin priviledges"});
+          router.push("/");
+        }
+      },[isLoadingAuth]);
 
     if (loading) {
         return (

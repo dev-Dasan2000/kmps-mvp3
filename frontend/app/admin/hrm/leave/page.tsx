@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 
 // Interfaces for leave data
 interface LeaveRequest {
@@ -42,7 +43,8 @@ interface LeaveSummary {
 
 export default function LeavesManagementPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { accessToken, isLoggedIn, user } = useContext(AuthContext);
+  const { accessToken, isLoggedIn, user, isLoadingAuth } = useContext(AuthContext);
+  const router = useRouter();
   
   // State variables
   const [loading, setLoading] = useState(true);
@@ -216,6 +218,18 @@ export default function LeavesManagementPage() {
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   return (
     <div className="container mx-auto py-6">

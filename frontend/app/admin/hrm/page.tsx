@@ -9,6 +9,7 @@ import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
 import { toast } from 'sonner';
 import * as Chart from 'chart.js';
+import { useRouter } from 'next/navigation';
 
 // Register Chart.js components
 Chart.Chart.register(
@@ -58,7 +59,8 @@ interface WeeklyAttendance {
 
 export default function HRMDashboardPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { accessToken, isLoggedIn } = useContext(AuthContext);
+  const { accessToken, isLoggedIn, isLoadingAuth, user } = useContext(AuthContext);
+  const router = useRouter();
   
   // Chart references
   const weeklyChartRef = useRef<HTMLCanvasElement>(null);
@@ -258,6 +260,18 @@ export default function HRMDashboardPage() {
       }
     });
   }, [dailyAttendanceCounts, loading, employees.length]);
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   return (
     <div className="w-full">
