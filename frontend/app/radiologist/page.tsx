@@ -154,6 +154,21 @@ const MedicalStudyInterface: React.FC = () => {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return dateString.split('T')[0]; // Fallback to just splitting if parsing fails
+    }
+  };
+
   const [newStudy, setNewStudy] = useState<NewStudyForm>({
     patient_id: '',
     patient_name: '',
@@ -829,7 +844,7 @@ const MedicalStudyInterface: React.FC = () => {
                       <td className="px-4 py-3 text-sm text-gray-900">ACC-{study.assertion_number}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{study.modality}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{study.description}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.date}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{formatDate(study.date)}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{study.time}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{study.report?.status ?? 'No status'}</td>
                       <td className="px-4 py-3 text-sm text-gray-900">{study.source}</td>
@@ -968,7 +983,7 @@ const MedicalStudyInterface: React.FC = () => {
                 <div className="text-sm text-gray-600 space-y-1">
                   <div>Modality: {study.modality}</div>
                   <div>Description: {study.description}</div>
-                  <div>Date: {study.date} at {study.time}</div>
+                  <div>Date: {formatDate(study.date)} at {study.time}</div>
                   <div>Accession: ACC-{study.assertion_number}</div>
                   <div className="text-blue-600 underline cursor-pointer">Report_001.pdf</div>
                   {study.radiologist && (
