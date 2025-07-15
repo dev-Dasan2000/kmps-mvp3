@@ -190,13 +190,13 @@ const ReceptionistSidebar = () => {
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
-                        <a
-                          href={item.url}
+                        <button
+                          onClick={() => router.push(item.url)}
                           className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all duration-200 ${
                             isActive
                               ? "bg-emerald-100 text-emerald-700 border-l-4 border-emerald-500 shadow-sm"
                               : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                          }`}
+                          } focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2`}
                         >
                           <item.icon
                             className={`w-5 h-5 ${
@@ -204,7 +204,7 @@ const ReceptionistSidebar = () => {
                             }`}
                           />
                           <span className="font-medium">{item.title}</span>
-                        </a>
+                        </button>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   );
@@ -257,14 +257,14 @@ const ReceptionistSidebar = () => {
             {items.map((item) => {
               const isActive = pathname === item.url;
               return (
-                <a
+                <button
                   key={item.title}
-                  href={item.url}
+                  onClick={() => router.push(item.url)}
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all duration-200 ${
                     isActive
                       ? "bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm"
                       : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
+                  } focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2`}
                 >
                   <item.icon
                     className={`w-4 h-4 flex-shrink-0 ${
@@ -274,7 +274,7 @@ const ReceptionistSidebar = () => {
                   <span className="font-medium text-sm truncate">
                     {item.title}
                   </span>
-                </a>
+                </button>
               );
             })}
           </div>
