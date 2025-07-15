@@ -370,7 +370,7 @@ export function RoomAssignmentInterface() {
 
       {/* Filter and Date Selection */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div className="relative flex-1">
+        <div className="relative flex-1 bg-white">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="Search by dentist"
@@ -392,7 +392,7 @@ export function RoomAssignmentInterface() {
               }
             }}
           >
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32 bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
