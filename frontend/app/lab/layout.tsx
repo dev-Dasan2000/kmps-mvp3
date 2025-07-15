@@ -2,8 +2,8 @@
 
 import DoctorHeader from "@/components/Doctorheader"
 import DoctorSidebar from "@/components/Doctorsidebar"
-import LabPartnerHeader from "@/Components/labHeader"
-import LabPartnerSidebar from "@/Components/labsidebar"
+import LabPartnerHeader from "@/components/labHeader"
+import LabPartnerSidebar from "@/components/labsidebar"
 import PatientHeader from "@/components/patientHeader"
 
 import { SidebarProvider } from "@/components/ui/sidebar"

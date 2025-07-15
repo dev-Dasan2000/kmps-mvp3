@@ -6,8 +6,8 @@ import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { headers } from 'next/headers';
-import { LabOrderForm } from '@/Components/LabOrderForm';
-import { Search } from '@/Components/ui/search';
+import { LabOrderForm } from '@/components/LabOrderForm';
+import { Search } from '@/components/ui/search';
 // ======================== TYPES ========================
 
 type Lab = {

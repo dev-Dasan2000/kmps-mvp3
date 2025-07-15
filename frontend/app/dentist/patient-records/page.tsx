@@ -14,7 +14,7 @@ import axios from 'axios'
 import { AuthContext } from '@/context/auth-context'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner';
-import MedicalHistoryForm from '@/Components/medicalhistoryform'
+import MedicalHistoryForm from '@/components/medicalhistoryform'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';

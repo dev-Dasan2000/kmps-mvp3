@@ -8,8 +8,8 @@ import axios from 'axios';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { DentistLabOrderForm } from '@/Components/DentistLabOrderForm';
-import { Search } from '@/Components/ui/search';
+import { DentistLabOrderForm } from '@/components/DentistLabOrderForm';
+import { Search } from '@/components/ui/search';
 
 // ======================== TYPES ========================
 
