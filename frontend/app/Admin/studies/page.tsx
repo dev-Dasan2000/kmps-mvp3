@@ -806,6 +806,7 @@ const MedicalStudyInterface: React.FC = () => {
           const dicomData = await dicomResponse.json();
           dicomFileUrl = dicomData.url;
           console.log('DICOM file uploaded successfully:', dicomFileUrl);
+          setisuploading(false);
         } catch (error) {
           console.error('Error uploading DICOM file:', error);
           setError('Failed to upload DICOM file. Please try again.');
