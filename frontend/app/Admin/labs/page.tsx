@@ -1041,12 +1041,10 @@ const DentalLabModule = () => {
   const handleLabOrderSubmit = async (formData: any, files: File[]) => {
     setCreatingOrder(true);
     try {
-      // Validate required fields
       if (!formData.dentist_id) {
         throw new Error('Dentist is required');
       }
-
-      // First, create the order
+  
       const orderData = {
         patient_id: formData.patient_id || null,
         dentist_id: formData.dentist_id,
@@ -1060,35 +1058,65 @@ const DentalLabModule = () => {
         status: "accepted",
         file_types: formData.submissionChecklist ? JSON.stringify(formData.submissionChecklist) : null
       };
-
-      console.log('Sending order data:', orderData); // Debug log
-
-      // Create order first
+  
       const orderResponse = await axios.post(`${backendURL}/orders`, orderData);
-
-      if (orderResponse.status === 201 && files.length > 0) {
-        // If order created successfully and we have files, upload them
-        const orderId = orderResponse.data;
-        const filesFormData = new FormData();
-
-        files.forEach(file => {
-          filesFormData.append('files', file);
-        });
-        filesFormData.append('order_id', orderId.toString());
-
-        // Upload files
-        await axios.post(`${backendURL}/order-files`, filesFormData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+      if (orderResponse.status !== 201) {
+        throw new Error('Order creation failed');
       }
-
+  
+      const orderId = orderResponse.data;
+  
+      if (files.length > 0) {
+        const uploadPromises = files.map(async (file, index) => {
+          const fileFormData = new FormData();
+          fileFormData.append("file", file);
+  
+          const uploadRes = await axios.post(`${backendURL}/files`, fileFormData, {
+            headers: {
+              "Content-Type": "multipart/form-data"
+            },
+            withCredentials: true
+          });
+  
+          const uploadedFile = {
+            id: Date.now() + index,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            url: uploadRes.data.url,
+            category: 'uncategorized'
+          };
+  
+          const dbRes = await axios.post(
+            `${backendURL}/order-files`,
+            {
+              url: uploadedFile.url,
+              order_id: orderId
+            },
+            {
+              withCredentials: true,
+              headers: {
+                "Content-Type": "application/json"
+              }
+            }
+          );
+  
+          if (dbRes.status !== 201) {
+            throw new Error(`Failed to link file "${file.name}" to order`);
+          }
+  
+          setUploadedFiles(prev => [...prev, uploadedFile]);
+        });
+  
+        await Promise.all(uploadPromises);
+      }
+  
       setToast({
         show: true,
         message: 'Order created successfully',
         type: 'success'
       });
+  
       fetchOrders();
       setShowNewOrder(false);
     } catch (error: any) {
@@ -1102,6 +1130,7 @@ const DentalLabModule = () => {
       setCreatingOrder(false);
     }
   };
+  
 
   const LabsList = () => {
     const [labSearchQuery, setLabSearchQuery] = useState('');
