@@ -954,6 +954,7 @@ const MedicalStudyInterface: React.FC = () => {
 
       const updatedStudyData = await studyResponse.json();
       console.log('Study updated successfully:', updatedStudyData);
+      setisuploading(false);
 
       // Step 4: Update or create report if needed
       if (reportFileUrl) {
