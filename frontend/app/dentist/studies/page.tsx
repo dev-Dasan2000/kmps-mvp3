@@ -174,15 +174,20 @@ const MedicalStudyInterface: React.FC = () => {
   const [patients, setPatients] = useState<Record<string, any>>({});
 
   // Get current user from auth context
-  const { user, isLoggedIn, isLoadingAuth } = useContext(AuthContext);
+  const { user, isLoggedIn, isLoadingAuth, accessToken } = useContext(AuthContext);
   const router = useRouter();
 
-  // Redirect if not logged in or not a dentist
-  useEffect(() => {
-    if (!isLoadingAuth && (!isLoggedIn || user?.role !== 'dentist')) {
-      router.push('/');
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
     }
-  }, [isLoadingAuth, isLoggedIn, user, router]);
+    else if(user.role != "dentist"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   // Helper to convert API study payload into UI-friendly shape
   const normalizeStudy = (raw: any): Study => {

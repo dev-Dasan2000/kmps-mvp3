@@ -127,7 +127,7 @@ const DentalLabModule = () => {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { user, isLoggedIn, isLoadingAuth } = useContext(AuthContext);
+  const { user, isLoggedIn, isLoadingAuth, accessToken } = useContext(AuthContext);
 
   const router = useRouter();
 

@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Checkbox } from '@/components/ui/checkbox';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import router from 'next/router'
 
 interface Patient {
   patient_id: string
@@ -693,7 +694,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useContext(AuthContext);
+  const { user, isLoadingAuth, isLoggedIn, accessToken } = useContext(AuthContext);
 
   const [searchTerm, setSearchTerm] = useState('')
   const [dentist, setDentist] = useState<Dentist | null>(null)
@@ -1220,6 +1221,18 @@ export default function DentistDashboard({ params }: DashboardProps) {
     if (!user) return;
     fetchPatients();
   }, [user]);
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "dentist"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   const PatientDetailsContent = () => (
     <div className="space-y-6 p-6">

@@ -95,7 +95,7 @@ export default function ExpenseManagement() {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
-  const { isLoadingAuth, isLoggedIn, user } = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, accessToken } = useContext(AuthContext);
 
   useEffect(() => {
     if(!user) return;
@@ -108,21 +108,17 @@ export default function ExpenseManagement() {
     }
   }, [expenses])
 
-  useEffect(() => {
-    if (!isLoadingAuth) {
-      if (!isLoggedIn) {
-        toast.error("Session Error", {
-          description: "Your session is expired, please login again"
-        });
-        router.push("/");
-      } else if (user?.role !== "dentist") {
-        toast.error("Access Error", {
-          description: "You do not have access, redirecting..."
-        });
-        router.push("/");
-      }
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
     }
-  }, [isLoadingAuth, isLoggedIn, user, router]);
+    else if(user.role != "dentist"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   const fetchExpenses = async () => {
     setIsLoadingExpenses(true);

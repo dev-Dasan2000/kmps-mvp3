@@ -292,7 +292,7 @@ const BlockTimeForm = ({
 
 export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { user, isLoadingAuth, isLoggedIn } = useContext(AuthContext);
+  const { user, isLoadingAuth, isLoggedIn, accessToken } = useContext(AuthContext);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
@@ -846,6 +846,18 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
       return time >= apt.time_from && time < apt.time_to;
     });
   };
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "dentist"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   useEffect(() => {
     if (isLoadingAuth) return;

@@ -38,7 +38,7 @@ type Appointment = {
 const DentalDashboard = () => {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const {user, isLoggedIn, isLoadingAuth} = useContext(AuthContext);
+  const {user, isLoggedIn, isLoadingAuth, accessToken} = useContext(AuthContext);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isMobile, setIsMobile] = useState(false);
@@ -429,28 +429,23 @@ const DentalDashboard = () => {
     fetchUpcomingAppointments();
   },[user]);
 
-  useEffect(() => {
-    if (isLoadingAuth) return;
-    if (!isLoggedIn) {
-      toast.error("Authentication Required");
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
       router.push("/");
-      return;
     }
-  
-    if (user?.role !== "dentist") {
-      toast.error("Access Denied");
+    else if(user.role != "dentist"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
       router.push("/");
-      return;
     }
-  }, [isLoadingAuth]);
+  },[isLoadingAuth]);
 
   useEffect(() => {
     if (!status || !appointment_id) return;
     updateStatusChange();
   }, [status, appointment_id]);
   
-  
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
 

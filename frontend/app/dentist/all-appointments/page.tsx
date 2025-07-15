@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { format, addDays, subDays, parseISO, isSameDay } from 'date-fns';
 import axios from 'axios';
+import { AuthContext } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -72,6 +75,9 @@ export default function AllAppointmentsPage() {
   // Add state to track current match index and all matches
   const [matchingAppointments, setMatchingAppointments] = useState<Appointment[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(-1);
+
+  const {isLoadingAuth, isLoggedIn, user, accessToken} = useContext(AuthContext);
+  const router = useRouter();
 
   // Simplified match checking function
   const matchesSearch = (appointment: Appointment | undefined) => {
@@ -330,6 +336,18 @@ export default function AllAppointmentsPage() {
       </div>
     </div>
   );
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Login Error", {description:"Please Login"});
+      router.push("/");
+    }
+    else if(user.role != "dentist"){
+      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+      router.push("/");
+    }
+  },[isLoadingAuth]);
 
   if (loading && doctors.length === 0) {
     return (
