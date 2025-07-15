@@ -299,7 +299,7 @@ const PatientManagement = () => {
               <div className="flex items-center">Name</div>
               <div className="flex items-center">Address</div>
               <div className="flex items-center">Email</div>
-              <div className="flex items-center justify-end pr-4">Action</div>
+              <div className="flex items-center justify-center w-full">Action</div>
             </div>
           </div>
 
@@ -350,18 +350,18 @@ const PatientManagement = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEditPatient(patient)}
-                      className="p-1 h-8 w-8"
+                      className="p-1 h-8 w-8 text-blue-600 hover:bg-blue-50 rounded transition-colors"
                     >
-                      <Edit size={16} />
+                      <Edit size={16} className='text-blue-600' />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => { toast.success("Patient deleted successfully");
-                         handleDeletePatient(patient.patient_id) }}
-                      className="p-1 h-8 w-8 hover:text-red-600"
+                      handleDeletePatient(patient.patient_id) }}
+                      className="p-2 h-8 w-8 hover:bg-red-50 rounded-lg transition-colors"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={16} className="text-red-500"/>
                     </Button>
                   </div>
                 </div>
