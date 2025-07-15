@@ -602,6 +602,7 @@ const MedicalStudyInterface: React.FC = () => {
         }
         const updatedStudyData = await updateStudyResponse.json();
         console.log('Study updated successfully:', updatedStudyData);
+        toast.success("Study Updated Successfully");
       } catch (error) {
         console.error('Error creating study:', error);
         setError('Failed to create study. Please try again.');
