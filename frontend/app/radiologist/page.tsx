@@ -70,8 +70,8 @@ const MedicalStudyInterface: React.FC = () => {
   const dicomurlx = process.env.DICOM_URL;
   
 
-  const {user, isLoadingAuth, isLoggedIn} = useContext(AuthContext);
-  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const {user, isLoadingAuth, isLoggedIn, accessToken} = useContext(AuthContext);
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL; 
 
   const openDicomInNewTab = (dicomUrl: string) => {
     if (!dicomUrl) return;
