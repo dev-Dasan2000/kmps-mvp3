@@ -102,11 +102,10 @@ const MedicalStudyInterface: React.FC = () => {
       // Check file type based on extension
       const fileExtension = fileUrl.split('.').pop()?.toLowerCase();
       
+      //for pdf open in browser, others download
       if (fileExtension === 'pdf') {
-        // For PDF files, open in a new tab
         window.open(`${backendUrl}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`, '_blank');
       } else {
-        // For Word documents and other files, trigger download
         const fullUrl = `${backendUrl}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
         
         // Create a temporary anchor element to trigger download
