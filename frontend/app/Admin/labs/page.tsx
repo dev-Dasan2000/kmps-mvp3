@@ -469,22 +469,43 @@ const DentalLabModule = () => {
   };
 
   const getStatusColor = (status: string | null) => {
-    switch (status) {
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      case 'In Progress': return 'bg-blue-100 text-blue-800';
-      case 'Ready for Pickup': return 'bg-green-100 text-green-800';
-      case 'Completed': return 'bg-gray-100 text-gray-800';
-      case 'Delayed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+    const baseStyles = 'px-2.5 py-1 text-xs font-medium rounded-full';
+    
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return `${baseStyles} bg-yellow-100 text-yellow-800 dark:bg-yellow-900/80 dark:text-yellow-200`;
+      case 'in progress':
+        return `${baseStyles} bg-blue-100 text-blue-800 dark:bg-blue-900/80 dark:text-blue-200`;
+      case 'ready for pickup':
+        return `${baseStyles} bg-purple-100 text-purple-800 dark:bg-purple-900/80 dark:text-purple-200`;
+      case 'completed':
+        return `${baseStyles} bg-green-100 text-green-800 dark:bg-green-900/80 dark:text-green-200`;
+      case 'delayed':
+        return `${baseStyles} bg-red-100 text-red-800 dark:bg-red-900/80 dark:text-red-200`;
+      case 'request':
+        return `${baseStyles} bg-purple-100 text-purple-800 dark:bg-purple-900/80 dark:text-purple-200`;
+      case 'accepted':
+        return `${baseStyles} bg-teal-100 text-teal-800 dark:bg-teal-900/80 dark:text-teal-200`;
+      default:
+        return `${baseStyles} bg-gray-100 text-gray-800 dark:bg-gray-700/80 dark:text-gray-300`;
     }
   };
 
   const getPriorityColor = (priority: string | null) => {
-    switch (priority) {
-      case 'High': return 'text-red-600';
-      case 'Normal': return 'text-green-600';
-      case 'Low': return 'text-gray-600';
-      default: return 'text-gray-600';
+    const baseStyles = 'px-2.5 py-1 text-xs font-semibold rounded-full';
+    
+    switch (priority?.toLowerCase()) {
+      case 'high':
+        return `${baseStyles} bg-red-100 text-red-800 dark:bg-red-900/90 dark:text-red-100`;
+      case 'urgent':
+        return `${baseStyles} bg-red-500 text-white dark:bg-red-600`;
+      case 'medium':
+      case 'normal':
+        return `${baseStyles} bg-yellow-100 text-yellow-800 dark:bg-yellow-900/80 dark:text-yellow-200`;
+      case 'low':
+        return `${baseStyles} bg-green-100 text-green-800 dark:bg-green-900/80 dark:text-green-200`;
+      default:
+        return `${baseStyles} bg-gray-100 text-gray-800 dark:bg-gray-700/80 dark:text-gray-300`;
     }
   };
 
