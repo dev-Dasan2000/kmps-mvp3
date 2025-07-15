@@ -64,7 +64,7 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   // Helper function to generate time slots based on work hours and duration
-  const generateTimeSlots = (workTimeFrom: string, workTimeTo: string, duration: string): TimeSlot[] => {
+    const generateTimeSlots = (workTimeFrom: string, workTimeTo: string, duration: string): TimeSlot[] => {
     const slots: TimeSlot[] = []
     
     console.log('🔍 Generating slots with:', { workTimeFrom, workTimeTo, duration })

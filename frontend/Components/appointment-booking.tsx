@@ -209,7 +209,7 @@ export default function AppointmentBooking() {
     </Popover>
 
     {/* View Mode Toggle */}
-    <div className="flex rounded-lg p-1">
+    <div className="flex rounded-lg p-1 gap-2">
       <Button
         size="sm"
         onClick={() => setViewMode("day")}
