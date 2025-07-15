@@ -6,6 +6,7 @@ import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
 import { Search } from "@/Components/ui/search";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRouter } from 'next/navigation';
 
 // ======================== TYPES ========================
 
@@ -106,6 +107,8 @@ const LabOrderModule = () => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [updatingStage, setUpdatingStage] = useState<number | null>(null);
+
+  const router = useRouter();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -445,6 +448,27 @@ const LabOrderModule = () => {
       </div>
     </div>
   );
+
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
+      setToast({
+        type:"error",
+        message:"Please Log in",
+        show: true
+      })
+      router.push("/");
+      return;
+    }
+    if (user.role != "lab") {
+      setToast({
+        type:"error",
+        message:"Access Denied",
+        show: true
+      })
+      router.push("/");
+    }
+  }, [isLoadingAuth])
 
   return (
     <div className="min-h-screen bg-gray-100 overflow-auto">

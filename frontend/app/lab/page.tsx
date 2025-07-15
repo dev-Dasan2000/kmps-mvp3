@@ -129,7 +129,7 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
   onOrderDelete
 }) => {
   const router = useRouter();
-  const { isLoadingAuth, isLoggedIn, user } = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, accessToken } = useContext(AuthContext);
   const [orders, setOrders] = useState<Order[]>([]);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
