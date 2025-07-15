@@ -596,15 +596,18 @@ const DentalDashboard = () => {
           {/* Calendar */}
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="p-4 md:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Calendar</h2>
-                <div className="flex items-center space-x-2">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Calendar</h2>
+                <div className="flex items-center justify-center space-x-4 mb-4">
                   <button
                     onClick={() => navigateMonth(-1)}
                     className="p-1 hover:bg-gray-100 rounded"
                   >
                     <ChevronLeft className="w-5 h-5" />
                   </button>
+                  <h3 className="font-medium text-gray-900">
+                    {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                  </h3>
                   <button
                     onClick={() => navigateMonth(1)}
                     className="p-1 hover:bg-gray-100 rounded"
@@ -612,12 +615,6 @@ const DentalDashboard = () => {
                     <ChevronRight className="w-5 h-5" />
                   </button>
                 </div>
-              </div>
-
-              <div className="text-center mb-4">
-                <h3 className="font-medium text-gray-900">
-                  {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-                </h3>
               </div>
 
               <div className="grid grid-cols-7 gap-1 mb-2">
@@ -633,15 +630,15 @@ const DentalDashboard = () => {
                   <div key={index} className="aspect-square">
                     {day && (
                       <button
-                        className={`w-full h-full flex items-center justify-center text-sm rounded hover:bg-gray-100 '
+                        className={`w-8 h-8 mx-auto flex items-center justify-center text-sm rounded-full transition-all duration-200
                             ${
                               day === new Date().getDate() &&
                               currentDate.getMonth() === new Date().getMonth() &&
                               currentDate.getFullYear() === new Date().getFullYear()
-                                ? 'bg-emerald-100 text-emerald-800' 
+                                ? 'bg-emerald-500 text-white font-semibold ring-2 ring-emerald-300 scale-105 hover:bg-emerald-600' 
                                 : isDateSelected(day as number)
-                                ? 'bg-blue-100 text-blue-800 font-medium'
-                                : 'text-gray-700'
+                                ? 'bg-blue-500 text-white font-semibold ring-2 ring-blue-200 scale-105 hover:bg-blue-600'
+                                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                             }
                           `}
                         onClick={() => handleDateClick(day as number)}
