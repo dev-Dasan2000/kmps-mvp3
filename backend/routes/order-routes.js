@@ -1,5 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import path from 'path';
+import fs from 'fs';
 const prisma = new PrismaClient();
 const router = express.Router();
 
@@ -167,12 +169,43 @@ router.put('/priority/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
+  const orderId = Number(req.params.id);
+  const uploadPath = path.join('uploads', 'files');
+
   try {
-    await prisma.orders.delete({ where: { order_id: Number(req.params.id) } });
-    res.json({ message: 'Deleted' });
-  } catch {
-    res.status(500).json({ error: 'Failed to delete order' });
+    // Step 1: Fetch all order_files related to the order
+    const files = await prisma.order_files.findMany({
+      where: { order_id: orderId },
+    });
+
+    // Step 2: Delete each file from the file system
+    for (const file of files) {
+      const filePath = path.join(uploadPath, file.url); // Adjust key if needed
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (fileErr) {
+          console.warn(`Failed to delete file: ${filePath}`, fileErr);
+        }
+      }
+    }
+
+    // Step 3: Delete order_files records
+    await prisma.order_files.deleteMany({
+      where: { order_id: orderId },
+    });
+
+    // Step 4: Delete the order itself
+    await prisma.orders.delete({
+      where: { order_id: orderId },
+    });
+
+    res.json({ message: 'Order and associated files deleted successfully' });
+  } catch (err) {
+    console.error('Delete order failed:', err);
+    res.status(500).json({ error: 'Failed to delete order and its files' });
   }
 });
+
 
 export default router;
