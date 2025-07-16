@@ -454,7 +454,7 @@ export default function ExpenseManagement() {
                       className="p-1 h-8 w-8"
                       title="Edit Expense"
                     >
-                      <Edit size={16} />
+                      <Edit size={16} className="text-blue-600" />
                     </Button>}
                     
                     {/* Accept Button - Shows for pending, invisible placeholder for others */}
@@ -518,7 +518,7 @@ export default function ExpenseManagement() {
                       className="p-2 h-8 w-8"
                       title="Edit Expense"
                     >
-                      <Edit size={16} />
+                      <Edit size={16} className='text-blue-600' />
                     </Button>
                   </div>
                 </div>

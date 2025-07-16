@@ -362,7 +362,7 @@ export default function PayrollPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Button onClick={() => setAddDialogOpen(true)}>
+            <Button  className='bg-emerald-500 hover:bg-emerald-600 text-white' onClick={() => setAddDialogOpen(true)}>
               Add Payroll
             </Button>
           </div>

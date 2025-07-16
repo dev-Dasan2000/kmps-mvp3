@@ -235,7 +235,7 @@ export default function LeavesManagementPage() {
     <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Leave Management</h1>
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button className="bg-emerald-500 hover:bg-emerald-600 text-white" onClick={() => setIsDialogOpen(true)}>
           Add Leave
         </Button>
       </div>

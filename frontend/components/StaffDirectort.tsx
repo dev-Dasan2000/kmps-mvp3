@@ -139,7 +139,7 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
   };
 
   const ScheduleBadge = ({ status }: { status: string }) => (
-    <span className={`px-2 py-1 rounded ${
+    <span className={`px-2 py-1 rounded-full ${
       status === 'full time' ? 'bg-green-100 text-green-800' :
       status === 'part time' ? 'bg-blue-100 text-blue-800' :
       'bg-gray-100 text-gray-800'
@@ -199,7 +199,7 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
                   </td>
                   <td className="py-4 px-4">{staff.job_title}</td>
                   <td className="py-4 px-4">
-                    <ScheduleBadge status={staff.employment_status} />
+                    <ScheduleBadge status={staff.employment_status}  />
                   </td>
                   <td className="py-4 px-4">
                     <div className="text-sm">
@@ -215,7 +215,7 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
                         onClick={() => handleEdit(staff.eid)}
                         disabled={isLoading}
                       >
-                        <Edit />
+                        <Edit className="text-blue-600" />
                       </Button>
                       <Button 
                         variant="outline" 
