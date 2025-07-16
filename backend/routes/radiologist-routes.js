@@ -52,6 +52,108 @@ router.get('/:radiologist_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
+// Get the 10 most recent studies for a radiologist
+router.get('/:radiologist_id/recent-studies', /* authenticateToken, */ async (req, res) => {
+  try {
+    const radiologistId = req.params.radiologist_id;
+
+    //if radiologist exists
+    const existingRadiologist = await prisma.radiologists.findUnique({
+      where: { radiologist_id: radiologistId }
+    });
+    
+    if (!existingRadiologist) {
+      return res.status(404).json({ error: 'Radiologist not found' });
+    }
+
+    // Get the 10 most recent studies for the radiologist
+    const recentStudies = await prisma.study.findMany({
+      where: { 
+        radiologist_id: radiologistId 
+      },
+      select: {
+        study_id: true,
+        patient_id: true,
+        date: true,
+        modality: true,
+        source: true,
+        patient: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        date: 'desc'
+      },
+      take: 10
+    });
+
+    // Format the response
+    const formattedStudies = recentStudies.map(study => ({
+      study_id: study.study_id,
+      patient_id: study.patient_id,
+      patient_name: study.patient.name,
+      date: study.date,
+      modality: study.modality,
+      source: study.source
+    }));
+
+    res.json(formattedStudies);
+  } catch (error) {
+    console.error('Error fetching recent studies for radiologist:', error);
+    res.status(500).json({ error: 'Failed to fetch recent studies' });
+  }
+});
+
+// Get counts of studies by report status for a radiologist
+router.get('/:radiologist_id/study-counts', /* authenticateToken, */ async (req, res) => {
+  try {
+    const radiologistId = req.params.radiologist_id;
+
+    // Check if radiologist exists
+    const existingRadiologist = await prisma.radiologists.findUnique({
+      where: { radiologist_id: radiologistId }
+    });
+    
+    if (!existingRadiologist) {
+      return res.status(404).json({ error: 'Radiologist not found' });
+    }
+
+    // Get all studies assigned to the radiologist
+    const studies = await prisma.study.findMany({
+      where: { 
+        radiologist_id: radiologistId 
+      },
+      include: {
+        report: true
+      }
+    });
+
+    // Count studies by report status
+    const counts = {
+      notReported: 0,   
+      draft: 0,         
+      finalized: 0 
+    };
+
+    studies.forEach(study => {
+      if (!study.report_id) {
+        counts.notReported++;
+      } else if (study.report && study.report.status === 'draft') {
+        counts.draft++;
+      } else if (study.report && study.report.status === 'finalized') {
+        counts.finalized++;
+      }
+    });
+
+    res.json(counts);
+  } catch (error) {
+    console.error('Error fetching study counts for radiologist:', error);
+    res.status(500).json({ error: 'Failed to fetch study counts' });
+  }
+});
+
 // Create new radiologist
 router.post('/', /* authenticateToken, */ async (req, res) => {
   try {
