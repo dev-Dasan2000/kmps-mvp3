@@ -60,6 +60,8 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
     timeSlot: '',
     note: ''
   })
+  const [patientValidated, setPatientValidated] = useState(true)
+  const [patientErrorMessage, setPatientErrorMessage] = useState('')
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -229,6 +231,12 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
       if (response.ok) {
         const data = await response.json();
         setPatientSearchResults(data);
+        
+        // If no patients were found matching the search term
+        if (data.length === 0 && term.length > 2) {
+          setPatientValidated(false);
+          setPatientErrorMessage('No matching patients found. Please select a patient from the dropdown.');
+        }
       }
     } catch (err) {
       console.error('Error searching patients:', err);
@@ -402,6 +410,14 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Validate that a patient was properly selected
+    if (!formData.patientId) {
+      setPatientValidated(false);
+      setPatientErrorMessage('Please select a patient from the dropdown');
+      toast.error('Patient selection required');
+      return;
+    }
+    
     if (!formData.patientId || !formData.dentistId || !formData.timeSlot || !dateString) {
       toast.error('Please fill in all required fields')
       return
@@ -517,13 +533,38 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
                   onChange={(e) => {
                     const value = e.target.value;
                     setPatientSearchTerm(value);
+                    
+                    // Reset patientId if the input field is cleared or modified
+                    if (!value || (formData.patientId && !value.includes(formData.patientId))) {
+                      handleChange('patientId', '');
+                      setPatientValidated(false);
+                      if (value.length > 0) {
+                        setPatientErrorMessage('Please select a patient from the dropdown list');
+                      } else {
+                        setPatientErrorMessage('');
+                      }
+                    }
+                    
                     searchPatients(value);
                     setShowPatientDropdown(true);
                   }}
-                  onFocus={() => setShowPatientDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowPatientDropdown(false), 200)}
+                  onFocus={() => {
+                    setShowPatientDropdown(true);
+                    if (!formData.patientId && patientSearchTerm.length > 0) {
+                      setPatientValidated(false);
+                      setPatientErrorMessage('Please select a patient from the dropdown list');
+                    }
+                  }}
+                  onBlur={() => setTimeout(() => {
+                    setShowPatientDropdown(false);
+                    // Check if a valid patient was selected
+                    if (!formData.patientId && patientSearchTerm.length > 0) {
+                      setPatientValidated(false);
+                      setPatientErrorMessage('Please select a patient from the dropdown list');
+                    }
+                  }, 200)}
                   placeholder="Search by patient name or ID..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border ${!patientValidated ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent`}
                 />
                 {showPatientDropdown && patientSearchResults.length > 0 && (
                   <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
@@ -536,6 +577,8 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
                           handleChange('patientId', patient.patient_id);
                           setPatientSearchTerm(`${patient.name} (${patient.patient_id})`);
                           setShowPatientDropdown(false);
+                          setPatientValidated(true);
+                          setPatientErrorMessage('');
                         }}
                       >
                         <div className="font-medium">{patient.name}</div>
@@ -544,6 +587,9 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
                       </div>
                     ))}
                   </div>
+                )}
+                {!patientValidated && patientErrorMessage && (
+                  <div className="text-red-500 text-xs mt-1">{patientErrorMessage}</div>
                 )}
               </div>
             </div>
