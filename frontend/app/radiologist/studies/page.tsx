@@ -292,7 +292,7 @@ const MedicalStudyInterface: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${backendURL}/studies/${radiologistID}`);
+        const response = await fetch(`${backendURL}/studies/radiologist/${radiologistID}`);
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
         }
