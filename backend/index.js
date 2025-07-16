@@ -56,6 +56,7 @@ import hrAttendanceRouter from './routes/hr/attendance-routes.js';
 import hrLeaveRouter from './routes/hr/leave-routes.js';
 import hrPayrollRouter from './routes/hr/payroll-routes.js';
 import hrShiftsRouter from './routes/hr/shifts-routes.js';
+import notesRouter from './routes/note-routes.js';
 
 
 import './routes/automated-routes.js';
@@ -101,6 +102,7 @@ app.use('/soap-notes', soapNotesRouter);
 app.use('/radiologist-security-question-answers', radioLogistSecurityQuestionsAnswersRouter);
 app.use('/rooms',roomsRouter);
 app.use('/rooms-assign',roomAssignRouter);
+app.use('/notes', notesRouter);
 
 app.use('/studies', studyRouter);
 app.use('/radiologists', radiologistRouter);

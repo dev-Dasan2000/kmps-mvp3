@@ -65,10 +65,11 @@ model dentists {
   security_answers     dentist_security_question_answers[]
   dentistAssigns      DentistAssign[]
   room_assigns         room_assign[]
-  orders                orders[]
+  orders               orders[]
   consent_forms        consent_form[]
-  invoices   invoice[]
-  expenses   expense[]
+  notes                note[]
+  invoices             invoice[]
+  expenses             expense[]
 }
 
 model appointments {
@@ -157,6 +158,7 @@ model security_questions {
   dentist_answers      dentist_security_question_answers[]
   receptionist_answers receptionist_security_question_answers[]
   radiologist_answers  radiologist_security_question_answers[]
+  lab_answers          lab_security_question_answers[]
 }
 
 model patient_security_question_answers {
@@ -208,8 +210,10 @@ model radiologists {
   profile_picture String?
   email          String @unique
   phone_number   String?
+  signature      String?
   security_answers radiologist_security_question_answers[]
   studies        study[]
+  notes          note[]
 }
 
 model radiologist_security_question_answers {
@@ -312,6 +316,18 @@ model lab {
   specialties    String?
 
   orders         orders[]
+  security_answers lab_security_question_answers[]
+}
+
+model lab_security_question_answers {
+  lab_id        String
+  security_question_id  Int
+  answer                String
+
+  lab           lab?            @relation(fields: [lab_id], references: [lab_id], onDelete: Cascade)
+  question              security_questions @relation(fields: [security_question_id], references: [security_question_id])
+
+  @@id([lab_id, security_question_id])
 }
 
 model work_types {
@@ -547,4 +563,16 @@ model invoice_service_assign {
   service    invoice_services @relation(fields: [service_id], references: [service_id], onDelete: Cascade)
 
   @@id([invoice_id, service_id])
+}
+
+model note{
+  note_id     Int      @id @default(autoincrement())
+  dentist_id  String?
+  radiologist_id  String?
+  note        String
+  created_at  DateTime @default(now())
+
+  dentist     dentists? @relation(fields: [dentist_id], references: [dentist_id], onDelete: SetNull)
+  radiologist     radiologists? @relation(fields: [radiologist_id], references: [radiologist_id], onDelete: SetNull)
+  @@map("note")
 }

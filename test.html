@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+  <html lang="en">
+  <head>
+      <meta charset="UTF-8">
+      <title>Opening DICOM...</title>
+  </head>
+  <body>
+      <p>Opening DICOM file: ${dicomUrl}</p>
+      <script>
+          fetch('http://localhost:4000/open-dicom', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url: 'http://localhost:5000/uploads/files/series-00005' })
+          })
+          .then(response => {
+              if (response.redirected) {
+                  window.location.href = response.url;
+              } else {
+                  document.body.innerHTML = '<p>DICOM request sent successfully!</p>';
+              }
+          })
+          .catch(error => {
+              document.body.innerHTML = '<p>Error: ' + error.message + '</p>';
+          });
+      </script>
+  </body>
+  </html>
