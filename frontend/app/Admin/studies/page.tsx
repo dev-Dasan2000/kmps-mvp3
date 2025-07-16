@@ -45,6 +45,11 @@ interface Study {
   dicom_file_url?: string;
   body_part?: string;
   reason?: string;
+  status?: string; // Added status property
+  report?: { // Added report property
+    status?: string;
+    id?: number;
+  };
 }
 
 interface NewStudyForm {
@@ -65,6 +70,12 @@ interface AssignmentForm {
   doctor_ids: string[];
 }
 
+// Add this interface near the top of the file with the other interfaces
+interface DirectoryInputHTMLAttributes extends React.InputHTMLAttributes<HTMLInputElement> {
+  webkitdirectory?: string;
+  directory?: string;
+}
+
 const MedicalStudyInterface: React.FC = () => {
   const [isAddStudyOpen, setIsAddStudyOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -81,6 +92,10 @@ const MedicalStudyInterface: React.FC = () => {
 
   const {isLoadingAuth, user, isLoggedIn} = useContext(AuthContext);
   const router = useRouter();
+
+  // Add these state variables after the other state variables
+  const [patientValidated, setPatientValidated] = useState(true);
+  const [patientErrorMessage, setPatientErrorMessage] = useState('');
 
   // Helper to open or download report files based on file type
   const openReportFile = async (reportId: number) => {
@@ -262,6 +277,12 @@ const MedicalStudyInterface: React.FC = () => {
       if (response.ok) {
         const data = await response.json();
         setPatientSearchResults(data);
+        
+        // If no patients were found matching the search term
+        if (data.length === 0 && term.length > 2) {
+          setPatientValidated(false);
+          setPatientErrorMessage('No matching patients found. Please select a patient from the dropdown.');
+        }
       }
     } catch (err) {
       console.error('Error searching patients:', err);
@@ -315,8 +336,14 @@ const MedicalStudyInterface: React.FC = () => {
         setStudies(normalized);
         
         // Extract unique patient IDs and fetch patient data
-        const patientIds = [...new Set(normalized.map((study: Study) => study.patient_id))];
-        fetchPatients(patientIds);
+        // We know that patient_id is always a string in our data model
+        const patientIds = normalized
+          .map((study: Study) => study.patient_id)
+          .filter(Boolean) as string[];
+        
+        // Remove duplicates while maintaining type
+        const uniquePatientIds = [...new Set(patientIds)];
+        fetchPatients(uniquePatientIds);
         
       } catch (err) {
         console.error('Failed to fetch studies:', err);
@@ -417,6 +444,14 @@ const MedicalStudyInterface: React.FC = () => {
 
   const handleSubmitStudy = async () => {
     try {
+      // Check if patient is properly selected
+      if (!newStudy.patient_id) {
+        setPatientValidated(false);
+        setPatientErrorMessage('Please select a patient from the dropdown');
+        toast.error('Patient selection required');
+        return;
+      }
+
       setisuploading(true);
       setError(null);
       console.log('Submitting study:', newStudy);
@@ -1472,7 +1507,7 @@ const MedicalStudyInterface: React.FC = () => {
 
       {/* Add New Study Modal */}
       {isAddStudyOpen && (
-        <div className="fixed inset-0 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
@@ -1489,7 +1524,7 @@ const MedicalStudyInterface: React.FC = () => {
                 {/* Patient Information */}
                 <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Patient ID
+                    Patient ID <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
@@ -1498,13 +1533,42 @@ const MedicalStudyInterface: React.FC = () => {
                       onChange={(e) => {
                         const value = e.target.value;
                         setPatientSearchTerm(value);
+                        
+                        // Reset patientId if the input field is cleared or modified
+                        if (!value || (newStudy.patient_id && !value.includes(newStudy.patient_id))) {
+                          setNewStudy(prev => ({
+                            ...prev,
+                            patient_id: '',
+                            patient_name: ''
+                          }));
+                          setPatientValidated(false);
+                          if (value.length > 0) {
+                            setPatientErrorMessage('Please select a patient from the dropdown list');
+                          } else {
+                            setPatientErrorMessage('');
+                          }
+                        }
+                        
                         searchPatients(value);
                         setShowPatientDropdown(true);
                       }}
-                      onFocus={() => setShowPatientDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowPatientDropdown(false), 200)}
+                      onFocus={() => {
+                        setShowPatientDropdown(true);
+                        if (!newStudy.patient_id && patientSearchTerm.length > 0) {
+                          setPatientValidated(false);
+                          setPatientErrorMessage('Please select a patient from the dropdown list');
+                        }
+                      }}
+                      onBlur={() => setTimeout(() => {
+                        setShowPatientDropdown(false);
+                        // Check if a valid patient was selected
+                        if (!newStudy.patient_id && patientSearchTerm.length > 0) {
+                          setPatientValidated(false);
+                          setPatientErrorMessage('Please select a patient from the dropdown list');
+                        }
+                      }, 200)}
                       placeholder="Search by patient name or ID..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                      className={`w-full px-3 py-2 border ${!patientValidated ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent`}
                     />
                     {showPatientDropdown && patientSearchResults.length > 0 && (
                       <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
@@ -1519,8 +1583,10 @@ const MedicalStudyInterface: React.FC = () => {
                                 patient_id: patient.patient_id,
                                 patient_name: patient.name
                               }));
-                              setPatientSearchTerm(`${patient.patient_id}`);
+                              setPatientSearchTerm(`${patient.name} (${patient.patient_id})`);
                               setShowPatientDropdown(false);
+                              setPatientValidated(true);
+                              setPatientErrorMessage('');
                             }}
                           >
                             <div className="font-medium">{patient.name}</div>
@@ -1529,6 +1595,9 @@ const MedicalStudyInterface: React.FC = () => {
                           </div>
                         ))}
                       </div>
+                    )}
+                    {!patientValidated && patientErrorMessage && (
+                      <div className="text-red-500 text-xs mt-1">{patientErrorMessage}</div>
                     )}
                   </div>
                 </div>
@@ -1678,10 +1747,11 @@ const MedicalStudyInterface: React.FC = () => {
                           type="file"
                           id="folder-upload"
                           onChange={handleDirectoryUpload}
-                          webkitdirectory="true"
-                          directory="true"
+                          webkitdirectory=""
+                          directory=""
                           multiple
                           className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                          {...{} as DirectoryInputHTMLAttributes}
                         />
                         <div className="mt-2">
                           {newStudy.dicom_folder.length > 0 && (
