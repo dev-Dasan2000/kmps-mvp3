@@ -51,7 +51,7 @@ const RadiologistSidebar = () => {
         title: "Dashboard",
         url: `/radiologist`,
         icon: LayoutGrid,
-      },
+      },/*
       {
         title: "Studies",
         url: `/radiologist/studies`,
@@ -61,7 +61,7 @@ const RadiologistSidebar = () => {
         title: "Reports",
         url: `/radiologist/reports`,
         icon: FileText,
-      },
+      },*/
     ];
   }, []);
 
