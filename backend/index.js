@@ -45,6 +45,7 @@ import orderRouter from './routes/order-routes.js';
 import stagesRouter from './routes/stages-routes.js';
 import stageAssignRouter from './routes/stage-assign-routes.js';
 import labRouter from './routes/lab-routes.js';
+import labSecurityQuestionsAnswersRouter from './routes/lab-security-question-answers-routes.js';
 import expenseRouter from './routes/expense-routes.js';
 import invoiceServiceRouter from './routes/invoice-service-routes.js';
 import invoiceRouter from './routes/invoice-routes.js';
@@ -57,6 +58,8 @@ import hrLeaveRouter from './routes/hr/leave-routes.js';
 import hrPayrollRouter from './routes/hr/payroll-routes.js';
 import hrShiftsRouter from './routes/hr/shifts-routes.js';
 import notesRouter from './routes/note-routes.js';
+
+import passwordResetRouter from './routes/password-reset-routes.js';
 
 
 import './routes/automated-routes.js';
@@ -117,6 +120,7 @@ app.use('/orders', orderRouter);
 app.use('/stages', stagesRouter);
 app.use('/stage-assign', stageAssignRouter);
 app.use('/labs', labRouter);
+app.use('/lab-security-question-answers', labSecurityQuestionsAnswersRouter);
 app.use('/expense', expenseRouter);
 app.use('/invoice-services', invoiceServiceRouter);
 app.use('/invoices', invoiceRouter);
@@ -128,5 +132,7 @@ app.use('/hr/attendance', hrAttendanceRouter);
 app.use('/hr/leaves', hrLeaveRouter);
 app.use('/hr/payroll', hrPayrollRouter);
 app.use('/hr/shifts', hrShiftsRouter);
+
+app.use('/reset-password', passwordResetRouter);
 
 app.listen(PORT, () => console.log(`Server listening on ${PORT}`));

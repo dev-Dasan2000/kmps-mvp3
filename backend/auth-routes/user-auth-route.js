@@ -120,7 +120,6 @@ router.get('/refresh_token', (req, res) => {
   }
 });
 
-
 router.delete('/delete_token', (req, res) => {
   try {
     res.clearCookie('refreshToken', {

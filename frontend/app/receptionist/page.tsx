@@ -41,7 +41,7 @@ interface Appointment {
 }
 
 export default function ReceptionistDashboard() {
-  const { user, isLoadingAuth, isLoggedIn } = useContext(AuthContext);
+  const { user, isLoadingAuth, isLoggedIn, accessToken } = useContext(AuthContext);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
 
@@ -57,7 +57,13 @@ export default function ReceptionistDashboard() {
     setLoading(true);
     try {
       const todayCount = await axios.get(
-        `${backendURL}/appointments/count/today`
+        `${backendURL}/appointments/count/today`,
+        {
+          withCredentials: true,
+          headers:{
+            "bearer":accessToken
+          }
+        }
       );
       if (todayCount.status == 500) {
         throw new Error("Error Counting Todays Appointments");
