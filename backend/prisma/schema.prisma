@@ -311,7 +311,7 @@ model lab {
   password       String?
   contact_person String?
   contact_number String?
-  email          String?
+  email          String?  @unique
   address        String?
   specialties    String?
 
