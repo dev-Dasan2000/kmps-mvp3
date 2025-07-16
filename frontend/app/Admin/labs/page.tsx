@@ -703,6 +703,28 @@ const DentalLabModule = () => {
     }
   };
 
+  const deleteLab = async (labId: string) => {
+    try {
+      await axios.delete(`${backendURL}/labs/${labId}`);
+      setLabs(labs.filter(lab => lab.lab_id !== labId));
+      setToast({
+        show: true,
+        message: 'Lab deleted successfully',
+        type: 'success'
+      });
+    } catch (err: any) {
+      const status = err.response?.status;
+
+    setToast({
+      show: true,
+      message: status === 409 
+        ? 'This Lab has associated orders. Please delete them before deleting the lab.' 
+        : err.message || 'Failed to delete lab',
+      type: 'error'
+    });
+  }
+  };
+
   // ======================== SUBCOMPONENTS ========================
 
   const OrdersList = () => {
@@ -1177,6 +1199,16 @@ const DentalLabModule = () => {
                 <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 border-b border-gray-200">
                   <div className="flex justify-between items-start">
                     <h3 className="text-lg font-bold text-gray-900 truncate">{lab.name}</h3>
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Are you sure you want to delete this lab?')) {
+                          deleteLab(lab.lab_id);
+                        }
+                      }}
+                      className="text-red-500 hover:text-red-700 transition-colors"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">{lab.contact_person}</p>
                 </div>

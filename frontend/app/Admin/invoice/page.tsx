@@ -794,7 +794,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       onClick={(e) => handleViewInvoice(e, invoice)}
                       disabled={viewLoading === invoice.invoice_id}
                     >
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4 text-blue-600" />
                       {viewLoading === invoice.invoice_id && (
                         <span className="absolute inset-0 flex items-center justify-center">
                           <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
@@ -809,7 +809,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         onClick={(e) => handleEditInvoice(e, invoice)}
                         disabled={editLoading === invoice.invoice_id}
                       >
-                        <Edit size={16} />
+                        <Edit size={16} className="text-blue-600" />
                         {editLoading === invoice.invoice_id && (
                           <span className="absolute inset-0 flex items-center justify-center">
                             <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
@@ -825,7 +825,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
                         disabled={deleteLoading === invoice.invoice_id}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} className='text-red-500'/>
                         {deleteLoading === invoice.invoice_id && (
                           <span className="absolute inset-0 flex items-center justify-center">
                             <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
@@ -884,7 +884,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       onClick={(e) => handleViewInvoice(e, invoice)}
                       disabled={viewLoading === invoice.invoice_id}
                     >
-                      <Eye size={16} />
+                      <Eye size={16} className='text-blue-600'/>
                       {viewLoading === invoice.invoice_id && (
                         <span className="absolute inset-0 flex items-center justify-center">
                           <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
@@ -899,7 +899,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         onClick={(e) => handleEditInvoice(e, invoice)}
                         disabled={editLoading === invoice.invoice_id}
                       >
-                        <Edit size={16} />
+                        <Edit size={16} className="text-blue-600" />
                         {editLoading === invoice.invoice_id && (
                           <span className="absolute inset-0 flex items-center justify-center">
                             <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
@@ -915,7 +915,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
                         disabled={deleteLoading === invoice.invoice_id}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} className="text-red-500" />
                         {deleteLoading === invoice.invoice_id && (
                           <span className="absolute inset-0 flex items-center justify-center">
                             <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
