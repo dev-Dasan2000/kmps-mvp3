@@ -789,58 +789,62 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="text-sm text-gray-900">{formatDate(invoice.date)}</div>
                   <div className="flex items-center justify-end gap-1 min-w-[120px]">
                     <ActionButton
-                      className="p-1 h-8 w-8"
+                      className="p-1 h-8 w-8 relative"
                       title="View Invoice"
                       onClick={(e) => handleViewInvoice(e, invoice)}
                       disabled={viewLoading === invoice.invoice_id}
                     >
-                      {viewLoading === invoice.invoice_id ? (
-                        <span className="h-3 w-3 rounded-full animate-spin text-black" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
+                      <Eye className="h-4 w-4" />
+                      {viewLoading === invoice.invoice_id && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                        </span>
                       )}
                     </ActionButton>
                     {canEdit && (
                       <ActionButton
                         size="sm"
-                        className="p-1 h-8 w-8"
+                        className="p-1 h-8 w-8 relative"
                         title="Edit Invoice"
                         onClick={(e) => handleEditInvoice(e, invoice)}
                         disabled={editLoading === invoice.invoice_id}
                       >
-                        {editLoading === invoice.invoice_id ? (
-                          <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
-                        ) : (
-                          <Edit size={16} />
+                        <Edit size={16} />
+                        {editLoading === invoice.invoice_id && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                          </span>
                         )}
                       </ActionButton>
                     )}
                     {canDelete && (
                       <ActionButton
                         size="sm"
-                        className="p-1 h-8 w-8 hover:text-red-600"
+                        className="p-1 h-8 w-8 hover:text-red-600 relative"
                         title="Delete Invoice"
                         onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
                         disabled={deleteLoading === invoice.invoice_id}
                       >
-                        {deleteLoading === invoice.invoice_id ? (
-                          <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
-                        ) : (
-                          <Trash2 size={16} />
+                        <Trash2 size={16} />
+                        {deleteLoading === invoice.invoice_id && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                          </span>
                         )}
                       </ActionButton>
                     )}
                     <ActionButton
                       size="sm"
-                      className="p-1 h-8 w-8"
+                      className="p-1 h-8 w-8 relative"
                       title="Download Invoice"
                       onClick={(e) => handleDownload(e, invoice.invoice_id)}
                       disabled={downloadLoading === invoice.invoice_id}
                     >
-                      {downloadLoading === invoice.invoice_id ? (
-                        <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
-                      ) : (
-                        <Download size={16} />
+                      <Download size={16} />
+                      {downloadLoading === invoice.invoice_id && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                        </span>
                       )}
                     </ActionButton>
                   </div>
@@ -875,44 +879,47 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="flex items-center gap-1">
                     <ActionButton
                       size="sm"
-                      className="p-2 h-8 w-8"
+                      className="p-2 h-8 w-8 relative"
                       title="View Invoice"
                       onClick={(e) => handleViewInvoice(e, invoice)}
                       disabled={viewLoading === invoice.invoice_id}
                     >
-                      {viewLoading === invoice.invoice_id ? (
-                        <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
-                      ) : (
-                        <Eye size={16} />
+                      <Eye size={16} />
+                      {viewLoading === invoice.invoice_id && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                        </span>
                       )}
                     </ActionButton>
                     {canEdit && (
                       <ActionButton
                         size="sm"
-                        className="p-2 h-8 w-8"
+                        className="p-2 h-8 w-8 relative"
                         title="Edit Invoice"
                         onClick={(e) => handleEditInvoice(e, invoice)}
                         disabled={editLoading === invoice.invoice_id}
                       >
-                        {editLoading === invoice.invoice_id ? (
-                          <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
-                        ) : (
-                          <Edit size={16} />
+                        <Edit size={16} />
+                        {editLoading === invoice.invoice_id && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                          </span>
                         )}
                       </ActionButton>
                     )}
                     {canDelete && (
                       <ActionButton
                         size="sm"
-                        className="p-2 h-8 w-8 hover:text-red-600"
+                        className="p-2 h-8 w-8 hover:text-red-600 relative"
                         title="Delete Invoice"
                         onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
                         disabled={deleteLoading === invoice.invoice_id}
                       >
-                        {deleteLoading === invoice.invoice_id ? (
-                          <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
-                        ) : (
-                          <Trash2 size={16} />
+                        <Trash2 size={16} />
+                        {deleteLoading === invoice.invoice_id && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                          </span>
                         )}
                       </ActionButton>
                     )}
@@ -942,17 +949,16 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <ActionButton
                     variant="outline"
                     size="sm"
-                    className="text-xs flex items-center gap-1 h-8"
+                    className="text-xs flex items-center gap-1 h-8 relative"
                     onClick={(e) => handleDownload(e, invoice.invoice_id)}
                     disabled={downloadLoading === invoice.invoice_id}
                   >
-                    {downloadLoading === invoice.invoice_id ? (
-                      <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
-                    ) : (
-                      <>
-                        <Download size={14} />
-                        Download
-                      </>
+                    <Download size={14} />
+                    Download
+                    {downloadLoading === invoice.invoice_id && (
+                      <span className="absolute right-2 flex items-center justify-center">
+                        <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent ml-1" />
+                      </span>
                     )}
                   </ActionButton>
                 </div>
@@ -1463,12 +1469,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 >
                   Cancel
                 </ActionButton>
-                <ActionButton
-                  type="submit"
-                  variant="default"
-                  className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto px-6"
-                  disabled={formSubmitting}
-                >
+                <Button type="submit" disabled={formSubmitting}>
                   {formSubmitting ? (
                     <>
                       <span className="mr-2 h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
@@ -1477,7 +1478,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   ) : (
                     'Update Invoice'
                   )}
-                </ActionButton>
+                </Button>
               </div>
             </form>
           </DialogContent>
