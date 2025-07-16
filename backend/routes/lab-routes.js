@@ -50,6 +50,7 @@ router.get('/profile/:lab_id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { password, email, ...rest } = req.body;
+    console.log(req.body);
 
     const existingLab = await prisma.lab.findUnique({
       where: { email },
@@ -118,13 +119,24 @@ router.put('/:lab_id', async (req, res) => {
   }
 });
 
+
 router.delete('/:lab_id', async (req, res) => {
   try {
     await prisma.lab.delete({
       where: { lab_id: req.params.lab_id },
     });
     res.json({ message: 'Deleted' });
-  } catch {
+  } catch (error) {
+    console.error('Error deleting lab:', error);
+    
+    // P2003 is Prisma's error code for foreign key constraint violations
+    if (error.code === 'P2003') {
+      return res.status(409).json({
+        error: 'Cannot delete lab because it has associated orders',
+        message: 'This lab has existing orders and cannot be deleted. Please remove the associated orders first.'
+      });
+    }
+    
     res.status(500).json({ error: 'Failed to delete lab' });
   }
 });
