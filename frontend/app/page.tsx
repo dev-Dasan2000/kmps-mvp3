@@ -175,7 +175,7 @@ export default function LoginPage() {
               </Label>
             </div>
             <Link
-              href={""}
+              href={"/passwordReset"}
               className="text-sm text-[#12D598] hover:text-[#0eb882]"
               onClick={handleForgotPassword}
             >
