@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,6 +99,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<number | null>(null);
   const router = useRouter();
 
   const [formData, setFormData] = useState<InvoiceFormData>({
@@ -120,38 +122,45 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
   // Fetch data from backend
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
+      if (!isMounted) return;
+      
       setIsLoading(true);
       try {
-        // Fetch all invoices with patient and dentist details
-        const invoicesRes = await axios.get(`${backendUrl}/invoices`);
-        const invoicesData = invoicesRes.data;
-
-        // Fetch all services
-        const servicesRes = await axios.get(`${backendUrl}/invoice-services`);
-        const servicesData = servicesRes.data;
-
-        // Fetch all patients
-        const patientsRes = await axios.get(`${backendUrl}/patients`);
-        const patientsData = patientsRes.data;
-
-        // Fetch all dentists
-        const dentistsRes = await axios.get(`${backendUrl}/dentists`);
-        const dentistsData = dentistsRes.data;
-
-        setInvoices(invoicesData);
-        setAvailableServices(servicesData);
-        setPatients(patientsData);
-        setDentists(dentistsData);
+        // Fetch all data in parallel to speed things up
+        const [invoicesRes, servicesRes, patientsRes, dentistsRes] = await Promise.all([
+          axios.get(`${backendUrl}/invoices`),
+          axios.get(`${backendUrl}/invoice-services`),
+          axios.get(`${backendUrl}/patients`),
+          axios.get(`${backendUrl}/dentists`)
+        ]);
+        
+        if (!isMounted) return;
+        
+        setInvoices(invoicesRes.data);
+        setAvailableServices(servicesRes.data);
+        setPatients(patientsRes.data);
+        setDentists(dentistsRes.data);
       } catch (error) {
         console.error('Error fetching data:', error);
+        if (isMounted) {
+          toast.error("Data Loading Error", {description: "Failed to load invoice data. Please refresh the page."});
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, []);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [backendUrl]);
 
   useEffect(() => {
     // Set the date in the form data when the date state changes
@@ -229,6 +238,24 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    // Validate required fields
+    if (!formData.patient_id) {
+      toast.error("Validation Error", {description: "Please select a patient"});
+      return;
+    }
+    
+    if (!formData.payment_type) {
+      toast.error("Validation Error", {description: "Please select a payment type"});
+      return;
+    }
+    
+    if (formData.services.length === 0) {
+      toast.error("Validation Error", {description: "Please select at least one service"});
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -276,14 +303,22 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         note: '',
         services: []
       });
+      
+      toast.success("Invoice Created", {description: "Invoice has been created successfully"});
     } catch (error) {
       console.error('Error creating invoice:', error);
+      toast.error("Creation Failed", {description: "Failed to create invoice. Please try again."});
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleViewInvoice = async (invoice: Invoice) => {
+  // Memoize the action handlers to prevent unnecessary re-renders
+  const handleViewInvoice = useCallback(async (e: React.MouseEvent, invoice: Invoice) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     try {
       setIsLoading(true);
 
@@ -294,14 +329,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       const invoiceWithServices = {
         ...invoice,
         // Map the response to match our expected structure
-        services: response.data.map(item => ({
+        services: response.data.map((item: any) => ({
           ...item,
           services: item.service // Map the service property to services to match our interface
         }))
       };
-
-      console.log('Fetched invoice services:', response.data);
-      console.log('Updated invoice with services:', invoiceWithServices);
 
       setSelectedInvoice(invoiceWithServices);
       setViewInvoiceDialogOpen(true);
@@ -310,12 +342,17 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       // Still show the invoice even if there's an error fetching services
       setSelectedInvoice(invoice);
       setViewInvoiceDialogOpen(true);
+      toast.error("Service Loading Error", {description: "Some invoice services could not be loaded"});
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [backendUrl]);
 
-  const handleEditInvoice = async (invoice: Invoice) => {
+  const handleEditInvoice = useCallback(async (e: React.MouseEvent, invoice: Invoice) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     try {
       setIsLoading(true);
 
@@ -324,13 +361,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       console.log('Fetched service assignments for edit:', response.data);
 
       // Extract service IDs from the response
-      const services = response.data.map(item => item.service_id);
+      const services = response.data.map((item: any) => item.service_id);
       console.log('Extracted service IDs for edit:', services);
 
       // Create a copy of the invoice with updated services
       const invoiceWithServices = {
         ...invoice,
-        services: response.data.map(item => ({
+        services: response.data.map((item: any) => ({
           ...item,
           services: item.service // Map the service property to services to match our interface
         }))
@@ -369,14 +406,32 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
       setSelectedInvoice(invoice);
       setIsEditingInvoice(true);
+      toast.error("Service Loading Error", {description: "Some invoice services could not be loaded"});
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [backendUrl]);
 
   const handleUpdateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!selectedInvoice) return;
+    
+    // Validate required fields
+    if (!formData.patient_id) {
+      toast.error("Validation Error", {description: "Please select a patient"});
+      return;
+    }
+    
+    if (!formData.payment_type) {
+      toast.error("Validation Error", {description: "Please select a payment type"});
+      return;
+    }
+    
+    if (formData.services.length === 0) {
+      toast.error("Validation Error", {description: "Please select at least one service"});
+      return;
+    }
 
     setIsLoading(true);
 
@@ -398,14 +453,19 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
       // First delete all existing service assignments
       // We need to manually keep track of existing services since they might be removed
+      const deletePromises = [];
       for (const existingService of selectedInvoice.services) {
-        await axios.delete(`${backendUrl}/invoice-service-assign`, {
-          data: {
-            invoice_id: selectedInvoice.invoice_id,
-            service_id: existingService.service_id
-          }
-        });
+        deletePromises.push(
+          axios.delete(`${backendUrl}/invoice-service-assign`, {
+            data: {
+              invoice_id: selectedInvoice.invoice_id,
+              service_id: existingService.service_id
+            }
+          })
+        );
       }
+      
+      await Promise.all(deletePromises);
 
       // Then re-assign services to the invoice
       const serviceAssignPromises = formData.services.map(serviceId => {
@@ -437,46 +497,66 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       });
 
       setSelectedInvoice(null);
+      
+      toast.success("Invoice Updated", {description: "Invoice has been updated successfully"});
     } catch (error) {
       console.error('Error updating invoice:', error);
+      toast.error("Update Failed", {description: "Failed to update invoice. Please try again."});
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeleteInvoice = async (invoiceId: number) => {
-    if (window.confirm('Are you sure you want to delete this invoice?')) {
-      setIsLoading(true);
-
-      try {
-        await axios.delete(`${backendUrl}/invoices/${invoiceId}`);
-
-        // Remove the deleted invoice from the state
-        setInvoices(invoices.filter(invoice => invoice.invoice_id !== invoiceId));
-      } catch (error) {
-        console.error('Error deleting invoice:', error);
-      } finally {
-        setIsLoading(false);
-      }
+  const handleDeleteInvoice = useCallback(async (e: React.MouseEvent, invoiceId: number) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
     }
-  };
+    // Open the delete confirmation dialog and set the invoice to delete
+    setInvoiceToDelete(invoiceId);
+    setDeleteDialogOpen(true);
+  }, []);
 
-  const filteredInvoices = invoices.filter(invoice =>
-    invoice.patients.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.invoice_id.toString().includes(searchTerm.toLowerCase()) ||
-    (invoice.dentists?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleDownload = async (invoice_id: number) => {
+  const confirmDelete = useCallback(async () => {
+    if (!invoiceToDelete) return;
+    
+    setIsLoading(true);
     try {
+      await axios.delete(`${backendUrl}/invoices/${invoiceToDelete}`);
+
+      // Remove the deleted invoice from the state
+      setInvoices(prevInvoices => prevInvoices.filter(invoice => invoice.invoice_id !== invoiceToDelete));
+      toast.success("Invoice Deleted", {description: "Invoice has been deleted successfully"});
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      toast.error("Deletion Failed", {description: "Failed to delete invoice. Please try again."});
+    } finally {
+      setIsLoading(false);
+      setDeleteDialogOpen(false);
+      setInvoiceToDelete(null);
+    }
+  }, [backendUrl, invoiceToDelete]);
+
+  const handleDownload = useCallback(async (e: React.MouseEvent, invoice_id: number) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    try {
+      // Show loading toast
+      toast.loading("Generating PDF...");
+      
       // First, get the invoice
       const invoice = invoices.find((inv) => inv.invoice_id === invoice_id);
-      if (!invoice) return;
+      if (!invoice) {
+        toast.error("Download Failed", {description: "Invoice not found"});
+        return;
+      }
       
       // Fetch the services directly from the API to ensure we have the latest data
       const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice_id}`);
       
-      const servicesWithDetails = response.data.map(item => ({
+      const servicesWithDetails = response.data.map((item: any) => ({
         ...item,
         // Access the service property which contains the service details
         service: item.service
@@ -500,7 +580,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       doc.text(`Note: ${invoice.note || '-'}`, 14, 78);
 
       // Services Table
-      const serviceRows = servicesWithDetails.map((item, i) => {
+      const serviceRows = servicesWithDetails.map((item: any, i: number) => {
         // Access the service details through the service property
         const service = item.service;
         const serviceName = service?.service_name || 'Unknown Service';
@@ -528,10 +608,23 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
       // Save the PDF
       doc.save(`Invoice_${invoice.invoice_id}.pdf`);
+      
+      // Dismiss loading toast and show success
+      toast.dismiss();
+      toast.success("Download Complete", {description: "Invoice has been downloaded successfully"});
     } catch (error) {
       console.error('Error generating PDF:', error);
+      // Dismiss loading toast and show error
+      toast.dismiss();
+      toast.error("Download Failed", {description: "Failed to download invoice. Please try again."});
     }
-  };
+  }, [backendUrl, invoices]);
+
+  const filteredInvoices = invoices.filter(invoice =>
+    invoice.patients.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.invoice_id.toString().includes(searchTerm.toLowerCase()) ||
+    (invoice.dentists?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const canCreate = true;
   const canEdit = userRole === 'admin' || userRole === 'dentist';
@@ -550,16 +643,27 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const pendingInvoices = invoices.filter(invoice => invoice.payment_type === 'pending').length;
 
   useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn){
-      toast.error("Login Error", {description:"Please Login"});
-      router.push("/");
-    }
-    else if(user.role != "admin"){
-      toast.error("Access Denied", {description:"You do not have admin priviledges"});
-      router.push("/");
-    }
-  },[isLoadingAuth]);
+    let isMounted = true;
+    
+    const checkAuth = async () => {
+      if(!isLoadingAuth && isMounted) {
+        if(!isLoggedIn){
+          toast.error("Login Error", {description:"Please Login"});
+          router.push("/");
+        }
+        else if(user.role != "admin"){
+          toast.error("Access Denied", {description:"You do not have admin priviledges"});
+          router.push("/");
+        }
+      }
+    };
+    
+    checkAuth();
+    
+    return () => {
+      isMounted = false;
+    };
+  },[isLoadingAuth, isLoggedIn, user, router]);
 
   if (isLoading) {
     return (
@@ -568,6 +672,42 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       </div>
     );
   }
+
+  // Create a safe action button component to prevent page reloads
+  const ActionButton: React.FC<{
+    onClick?: (e: React.MouseEvent) => void;
+    children: React.ReactNode;
+    className?: string;
+    title?: string;
+    variant?: 'link' | 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost';
+    size?: 'default' | 'sm' | 'lg' | 'icon';
+    disabled?: boolean;
+    type?: 'button' | 'submit' | 'reset';
+  }> = ({ onClick, children, className, title, variant = 'ghost', size, disabled, type = 'button' }) => {
+    const handleClick = (e: React.MouseEvent) => {
+      if (type !== 'submit') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (onClick) {
+        onClick(e);
+      }
+    };
+
+    return (
+      <Button
+        type={type}
+        variant={variant}
+        size={size}
+        className={className}
+        title={title}
+        onClick={handleClick}
+        disabled={disabled}
+      >
+        {children}
+      </Button>
+    );
+  };
 
   return (
     <div className="flex-1 min-h-screen bg-gray-50 p-6 overflow-auto">
@@ -583,13 +723,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
             </p>
           </div>
           {canCreate && (
-            <Button
+            <ActionButton
               onClick={() => setIsCreatingInvoice(true)}
               className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center justify-center gap-2 w-full sm:w-auto"
             >
               <Plus size={20} />
               Create Invoice
-            </Button>
+            </ActionButton>
           )}
         </div>
 
@@ -623,7 +763,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
           <div className="divide-y divide-gray-200">
             {filteredInvoices.map((invoice) => (
-              <div key={invoice.invoice_id} className="px-6 py-4 hover:bg-gray-50">
+              <div 
+                key={invoice.invoice_id} 
+                className="px-6 py-4 hover:bg-gray-50"
+                onClick={(e) => e.preventDefault()}
+              >
                 <div className="grid grid-cols-[80px_minmax(120px,1fr)_minmax(140px,1fr)_100px_120px_100px_100px] gap-4 items-center">
                   <div className="text-sm text-gray-900">#{invoice.invoice_id}</div>
                   <div className="text-sm font-medium text-gray-900">{invoice.patients.name}</div>
@@ -636,45 +780,41 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   </div>
                   <div className="text-sm text-gray-900">{formatDate(invoice.date)}</div>
                   <div className="flex items-center justify-end gap-1 min-w-[120px]">
-                    <Button
-                      variant="ghost"
+                    <ActionButton
                       className="p-1 h-8 w-8"
                       title="View Invoice"
-                      onClick={() => handleViewInvoice(invoice)}
+                      onClick={(e) => handleViewInvoice(e, invoice)}
                     >
                       <Eye className="h-4 w-4" />
-                    </Button>
+                    </ActionButton>
                     {canEdit && (
-                      <Button
-                        variant="ghost"
+                      <ActionButton
                         size="sm"
                         className="p-1 h-8 w-8"
                         title="Edit Invoice"
-                        onClick={() => handleEditInvoice(invoice)}
+                        onClick={(e) => handleEditInvoice(e, invoice)}
                       >
                         <Edit size={16} />
-                      </Button>
+                      </ActionButton>
                     )}
                     {canDelete && (
-                      <Button
-                        variant="ghost"
+                      <ActionButton
                         size="sm"
                         className="p-1 h-8 w-8 hover:text-red-600"
                         title="Delete Invoice"
-                        onClick={() => handleDeleteInvoice(invoice.invoice_id)}
+                        onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
                       >
                         <Trash2 size={16} />
-                      </Button>
+                      </ActionButton>
                     )}
-                    <Button
-                      variant="ghost"
+                    <ActionButton
                       size="sm"
                       className="p-1 h-8 w-8"
                       title="Download Invoice"
-                      onClick={() => { handleDownload(invoice.invoice_id) }}
+                      onClick={(e) => handleDownload(e, invoice.invoice_id)}
                     >
                       <Download size={16} />
-                    </Button>
+                    </ActionButton>
                   </div>
                 </div>
               </div>
@@ -690,7 +830,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         {/* Mobile Card View */}
         <div className="lg:hidden space-y-4">
           {filteredInvoices.map((invoice) => (
-            <div key={invoice.invoice_id} className="bg-white rounded-lg shadow p-4">
+            <div 
+              key={invoice.invoice_id} 
+              className="bg-white rounded-lg shadow p-4"
+              onClick={(e) => e.preventDefault()}
+            >
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-semibold text-gray-900">#{invoice.invoice_id}</h3>
@@ -701,36 +845,33 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     {invoice.payment_type.replace('_', ' ').toUpperCase()}
                   </Badge>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
+                    <ActionButton
                       size="sm"
                       className="p-2 h-8 w-8"
                       title="View Invoice"
-                      onClick={() => handleViewInvoice(invoice)}
+                      onClick={(e) => handleViewInvoice(e, invoice)}
                     >
                       <Eye size={16} />
-                    </Button>
+                    </ActionButton>
                     {canEdit && (
-                      <Button
-                        variant="ghost"
+                      <ActionButton
                         size="sm"
                         className="p-2 h-8 w-8"
                         title="Edit Invoice"
-                        onClick={() => handleEditInvoice(invoice)}
+                        onClick={(e) => handleEditInvoice(e, invoice)}
                       >
                         <Edit size={16} />
-                      </Button>
+                      </ActionButton>
                     )}
                     {canDelete && (
-                      <Button
-                        variant="ghost"
+                      <ActionButton
                         size="sm"
                         className="p-2 h-8 w-8 hover:text-red-600"
                         title="Delete Invoice"
-                        onClick={() => handleDeleteInvoice(invoice.invoice_id)}
+                        onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
                       >
                         <Trash2 size={16} />
-                      </Button>
+                      </ActionButton>
                     )}
                   </div>
                 </div>
@@ -755,14 +896,15 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
                     <span>Rs. {invoice.total_amount.toFixed(2)}</span>
                   </div>
-                  <Button
+                  <ActionButton
                     variant="outline"
                     size="sm"
                     className="text-xs flex items-center gap-1 h-8"
+                    onClick={(e) => handleDownload(e, invoice.invoice_id)}
                   >
                     <Download size={14} />
                     Download
-                  </Button>
+                  </ActionButton>
                 </div>
               </div>
             </div>
@@ -775,12 +917,26 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         </div>
 
         {/* Invoice Form Dialog */}
-        <Dialog open={isCreatingInvoice} onOpenChange={setIsCreatingInvoice}>
+        <Dialog 
+          open={isCreatingInvoice} 
+          onOpenChange={(open) => {
+            // Prevent closing during loading
+            if (isLoading && !open) return;
+            setIsCreatingInvoice(open);
+          }}
+        >
           <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl sm:text-2xl font-bold text-emerald-700">Create New Invoice</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation(); 
+                handleSubmit(e);
+              }} 
+              className="space-y-6 pt-4"
+            >
               {/* Client Information Section */}
               <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
                 <div className="bg-emerald-50 border-b border-emerald-100 px-5 py-3">
@@ -1012,33 +1168,50 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
-                <Button
-                  type="button"
+                <ActionButton
                   variant="outline"
                   onClick={() => setIsCreatingInvoice(false)}
                   className="w-full sm:w-auto px-6"
                 >
                   Cancel
-                </Button>
-                <Button
+                </ActionButton>
+                <ActionButton
                   type="submit"
+                  variant="default"
                   className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto px-6"
                 >
                   {isLoading ? 'Creating...' : 'Create Invoice'}
-                </Button>
+                </ActionButton>
               </div>
             </form>
           </DialogContent>
         </Dialog>
 
         {/* Edit Invoice Dialog */}
-        <Dialog open={isEditingInvoice} onOpenChange={setIsEditingInvoice}>
+        <Dialog 
+          open={isEditingInvoice} 
+          onOpenChange={(open) => {
+            // Prevent closing during loading
+            if (isLoading && !open) return;
+            setIsEditingInvoice(open);
+            if (!open) {
+              setSelectedInvoice(null);
+            }
+          }}
+        >
           <DialogContent className="w-[95vw] max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-emerald-700">Edit Invoice #{selectedInvoice?.invoice_id}</DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={handleUpdateInvoice} className="space-y-5">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleUpdateInvoice(e);
+              }} 
+              className="space-y-5"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-5">
                   <div className="space-y-2">
@@ -1222,8 +1395,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
               </div>
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
-                <Button
-                  type="button"
+                <ActionButton
                   variant="outline"
                   onClick={() => {
                     setIsEditingInvoice(false);
@@ -1233,21 +1405,32 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   disabled={isLoading}
                 >
                   Cancel
-                </Button>
-                <Button
+                </ActionButton>
+                <ActionButton
                   type="submit"
+                  variant="default"
                   className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto px-6"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Updating...' : 'Update Invoice'}
-                </Button>
+                </ActionButton>
               </div>
             </form>
           </DialogContent>
         </Dialog>
 
         {/* Invoice Detail View Dialog */}
-        <Dialog open={viewInvoiceDialogOpen} onOpenChange={setViewInvoiceDialogOpen}>
+        <Dialog 
+          open={viewInvoiceDialogOpen} 
+          onOpenChange={(open) => {
+            // Prevent closing during loading
+            if (isLoading && !open) return;
+            setViewInvoiceDialogOpen(open);
+            if (!open) {
+              setSelectedInvoice(null);
+            }
+          }}
+        >
           <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <div className="flex items-center justify-between">
@@ -1440,24 +1623,62 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
                 <DialogFooter className="pt-2">
                   <div className="flex flex-col sm:flex-row gap-3 w-full sm:justify-end">
-                    <Button
+                    <ActionButton
                       variant="outline"
                       onClick={() => setViewInvoiceDialogOpen(false)}
                       className="px-5"
                     >
                       Close
-                    </Button>
-                    <Button
+                    </ActionButton>
+                    <ActionButton
                       className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2 px-5"
-                      onClick={() => handleDownload(selectedInvoice.invoice_id)}
+                      onClick={(e) => handleDownload(e, selectedInvoice.invoice_id)}
                     >
                       <Download size={16} />
                       Download Invoice
-                    </Button>
+                    </ActionButton>
                   </div>
                 </DialogFooter>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            if (isLoading && !open) return;
+            setDeleteDialogOpen(open);
+            if (!open) {
+              setInvoiceToDelete(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900">Confirm Deletion</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-700">Are you sure you want to delete this invoice? This action cannot be undone.</p>
+            </div>
+            <DialogFooter className="flex space-x-2 justify-end">
+              <ActionButton
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+                className="px-4"
+              >
+                Cancel
+              </ActionButton>
+              <ActionButton
+                variant="destructive"
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700 text-white px-4"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Deleting...' : 'Delete Invoice'}
+              </ActionButton>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
