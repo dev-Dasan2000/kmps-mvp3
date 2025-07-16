@@ -23,6 +23,7 @@ import {
   Menu,
   X,
   Image as ImageIcon,
+  MonitorSmartphone,
 } from "lucide-react";
 import Image from "next/image";
 import axios from "axios";
@@ -34,18 +35,17 @@ const RadiologistSidebar = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [radiologistId,setRadiologistId] = useState("");
-  const {isLoggedIn, isLoadingAuth, user} = useContext(AuthContext);
+  const [radiologistId, setRadiologistId] = useState("");
+  const { isLoggedIn, isLoadingAuth, user } = useContext(AuthContext);
 
-  useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn) return;
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) return;
     setRadiologistId(user.id);
-  },[isLoadingAuth]);
+  }, [isLoadingAuth, isLoggedIn, user]);
 
   // Build menu items
   const items = useMemo(() => {
-    if (!radiologistId) return [];
     return [
       {
         title: "Dashboard",
@@ -54,16 +54,16 @@ const RadiologistSidebar = () => {
       },
       {
         title: "Studies",
-        url: `/radiologist`,
-        icon: LayoutGrid,
+        url: `/radiologist/studies`,
+        icon: MonitorSmartphone,
       },
       {
-        title: "Dashboard",
-        url: `/radiologist`,
-        icon: LayoutGrid,
+        title: "Reports",
+        url: `/radiologist/reports`,
+        icon: FileText,
       },
     ];
-  }, [radiologistId]);
+  }, []);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -83,7 +83,7 @@ const RadiologistSidebar = () => {
     }
   };
 
-  if (!radiologistId) return null;
+  if (!user) return null;
 
   return (
     <>
@@ -117,7 +117,11 @@ const RadiologistSidebar = () => {
             <SidebarGroupContent>
               <SidebarMenu className="space-y-5">
                 {items.map((item) => {
-                  const isActive = pathname === item.url;
+                  // Check if the current path starts with the menu item URL
+                  const isActive = pathname === item.url || 
+                                   (pathname.startsWith(item.url) && item.url !== '/radiologist') || 
+                                   (pathname === '/radiologist' && item.url === '/radiologist');
+                  
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
@@ -166,7 +170,10 @@ const RadiologistSidebar = () => {
 
         <div className="flex-1 p-3 overflow-y-auto space-y-1">
           {items.map((item) => {
-            const isActive = pathname === item.url;
+            // Check if the current path starts with the menu item URL for mobile sidebar too
+            const isActive = pathname === item.url || 
+                           (pathname.startsWith(item.url) && item.url !== '/radiologist') || 
+                           (pathname === '/radiologist' && item.url === '/radiologist');
             return (
               <a
                 key={item.title}
