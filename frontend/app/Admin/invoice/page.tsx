@@ -673,7 +673,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     };
   }, [isLoadingAuth, isLoggedIn, user, router]);
 
-  if (formSubmitting) {
+  if (formSubmitting || isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
