@@ -82,6 +82,10 @@ interface NewAppointmentFormProps {
   handleAppointmentCreation: () => void;
   creatingAppointment: boolean;
   isTimeSlotAvailable: (time: string) => boolean;
+  patientValidated: boolean;
+  setPatientValidated: (value: boolean) => void;
+  patientErrorMessage: string;
+  setPatientErrorMessage: (value: string) => void;
 }
 
 const NewAppointmentForm = ({
@@ -102,7 +106,11 @@ const NewAppointmentForm = ({
   timeSlots,
   handleAppointmentCreation,
   creatingAppointment,
-  isTimeSlotAvailable
+  isTimeSlotAvailable,
+  patientValidated,
+  setPatientValidated,
+  patientErrorMessage,
+  setPatientErrorMessage
 }: NewAppointmentFormProps) => (
   <DialogContent className=" max-h-screen overflow-y-auto">
     <DialogHeader>
@@ -110,7 +118,7 @@ const NewAppointmentForm = ({
     </DialogHeader>
     <div className="space-y-4">
       <div className="relative">
-        <Label className='mb-2' htmlFor="patient">Patient</Label>
+        <Label className='mb-2' htmlFor="patient">Patient <span className="text-red-500">*</span></Label>
         <Input
           id="patient"
           placeholder="Search by patient name or ID..."
@@ -118,10 +126,36 @@ const NewAppointmentForm = ({
           onChange={(e) => {
             const value = e.target.value;
             setPatientSearchTerm(value);
+            
+            // Reset patientId if the input field is cleared or modified
+            if (!value || (patient_id && !value.includes(patient_id))) {
+              setPatient_id('');
+              setPatientValidated(false);
+              if (value.length > 0) {
+                setPatientErrorMessage('Please select a patient from the dropdown list');
+              } else {
+                setPatientErrorMessage('');
+              }
+            }
+            
             setShowPatientDropdown(true);
           }}
-          onFocus={() => setShowPatientDropdown(true)}
-          onBlur={() => setTimeout(() => setShowPatientDropdown(false), 200)}
+          onFocus={() => {
+            setShowPatientDropdown(true);
+            if (!patient_id && patientSearchTerm.length > 0) {
+              setPatientValidated(false);
+              setPatientErrorMessage('Please select a patient from the dropdown list');
+            }
+          }}
+          onBlur={() => setTimeout(() => {
+            setShowPatientDropdown(false);
+            // Check if a valid patient was selected
+            if (!patient_id && patientSearchTerm.length > 0) {
+              setPatientValidated(false);
+              setPatientErrorMessage('Please select a patient from the dropdown list');
+            }
+          }, 200)}
+          className={`w-full ${!patientValidated && patientSearchTerm ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'}`}
         />
         {showPatientDropdown && patientSearchResults.length > 0 && (
           <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
@@ -132,8 +166,10 @@ const NewAppointmentForm = ({
                 onMouseDown={(e) => {
                   e.preventDefault();
                   setPatient_id(patient.patient_id);
-                  setPatientSearchTerm(`${patient.patient_id}`);
+                  setPatientSearchTerm(`${patient.name} (${patient.patient_id})`);
                   setShowPatientDropdown(false);
+                  setPatientValidated(true);
+                  setPatientErrorMessage('');
                 }}
               >
                 <div className="font-medium">{patient.name}</div>
@@ -143,9 +179,12 @@ const NewAppointmentForm = ({
             ))}
           </div>
         )}
+        {!patientValidated && patientErrorMessage && (
+          <div className="text-red-500 text-xs mt-1">{patientErrorMessage}</div>
+        )}
       </div>
       <div>
-        <Label className='mb-2' htmlFor="date">Date</Label>
+        <Label className='mb-2' htmlFor="date">Date <span className="text-red-500">*</span></Label>
         <Input
           id="date"
           type="date"
@@ -155,7 +194,7 @@ const NewAppointmentForm = ({
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label className='mb-2' htmlFor="time_from">Time</Label>
+          <Label className='mb-2' htmlFor="time_from">Time <span className="text-red-500">*</span></Label>
           <Select value={time_from} onValueChange={(value) => setTimeFrom(value)}>
             <SelectTrigger>
               <SelectValue placeholder="Start time" />
@@ -309,6 +348,10 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const [dentistWorkInfo, setDentistWorkInfo] = useState<DentistWorkInfo>();
   const [unavailableSlots, setUnavailableSlots] = useState<{ start: string; end: string }[]>([]);
 
+  // Patient validation states
+  const [patientValidated, setPatientValidated] = useState(true);
+  const [patientErrorMessage, setPatientErrorMessage] = useState('');
+
   const router = useRouter();
 
   // States for creating new appointment
@@ -331,7 +374,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
 
   // Search patients function
   const searchPatients = async (term: string) => {
-    if (term.length < 2) {
+    if (!term || term.length < 2) {
       setPatientSearchResults([]);
       return;
     }
@@ -340,6 +383,12 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
       if (response.ok) {
         const data = await response.json();
         setPatientSearchResults(data);
+        
+        // If no patients were found matching the search term
+        if (data.length === 0 && term.length > 2) {
+          setPatientValidated(false);
+          setPatientErrorMessage('No matching patients found. Please select a patient from the dropdown.');
+        }
       }
     } catch (err) {
       console.error('Error searching patients:', err);
@@ -374,6 +423,12 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
       setPatientSearchTerm("");
       setPatientSearchResults([]);
       setShowPatientDropdown(false);
+      setPatient_id("");
+      setDate("");
+      setTimeFrom("");
+      setNote("");
+      setPatientValidated(true);
+      setPatientErrorMessage("");
     }
   }, [isNewAppointmentOpen]);
 
@@ -622,6 +677,19 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   };
 
   const handleAppointmentCreation = async () => {
+    // Validate that a patient was properly selected
+    if (!patient_id) {
+      setPatientValidated(false);
+      setPatientErrorMessage('Please select a patient from the dropdown');
+      toast.error('Patient selection required');
+      return;
+    }
+
+    if (!date || !time_from) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
     setCreatingAppointment(true);
     try {
       const timeTo = addMinutesToTime(time_from, dentistWorkInfo?.appointment_duration || "0");
@@ -682,6 +750,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
         setDate("");
         setTimeFrom("");
         setNote("");
+        setPatientValidated(true);
+        setPatientErrorMessage("");
       }
     } catch (err: any) {
       toast.error(err.message);
@@ -1028,6 +1098,10 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
                 handleAppointmentCreation={handleAppointmentCreation}
                 creatingAppointment={creatingAppointment}
                 isTimeSlotAvailable={isTimeSlotAvailable}
+                patientValidated={patientValidated}
+                setPatientValidated={setPatientValidated}
+                patientErrorMessage={patientErrorMessage}
+                setPatientErrorMessage={setPatientErrorMessage}
                 patientSearchTerm={patientSearchTerm}
                 setPatientSearchTerm={setPatientSearchTerm}
                 patientSearchResults={patientSearchResults}
