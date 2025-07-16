@@ -201,7 +201,7 @@ const LabSignupForm: React.FC = () => {
   const handleSecurityQuestionChange = (index: number, field: keyof SecurityQuestionAnswer, value: string) => {
     setFormData(prev => ({
       ...prev,
-      securityQuestions: prev.securityQuestions.map((sq, i) => 
+      securityQuestions: prev.securityQuestions.map((sq, i) =>
         i === index ? { ...sq, [field]: value } : sq
       )
     }));
@@ -248,7 +248,7 @@ const LabSignupForm: React.FC = () => {
     } else {
       // Only set errors if validation fails
       const newErrors: FormErrors = {};
-      
+
       // Lab name validation
       if (!formData.name.trim()) {
         newErrors.name = 'Laboratory name is required';
@@ -306,7 +306,7 @@ const LabSignupForm: React.FC = () => {
       if (formData.specialties.length === 0) {
         newErrors.specialties = 'Please select at least one specialty';
       }
-      
+
       setErrors(newErrors);
     }
   };
@@ -319,7 +319,7 @@ const LabSignupForm: React.FC = () => {
     const selectedIds = formData.securityQuestions
       .map((sq, index) => index !== currentIndex ? sq.questionId : null)
       .filter((id): id is string => id !== null && id !== '');
-    
+
     return securityQuestions.filter(q => !selectedIds.includes(q.security_question_id.toString()));
   };
 
@@ -333,7 +333,7 @@ const LabSignupForm: React.FC = () => {
 
     try {
       const { securityQuestions: securityAnswers, ...labData } = formData;
-      
+
       const submissionData = {
         name: labData.name.trim(),
         password: labData.password,
@@ -345,7 +345,20 @@ const LabSignupForm: React.FC = () => {
       };
 
       // Create lab account
-      const response = await axios.post(`${backendURL}/labs`, submissionData);
+      const response = await axios.post(`${backendURL}/labs`, {
+        name: submissionData.name,
+        password: submissionData.password,
+        contact_person: submissionData.contact_person,
+        email: submissionData.email,
+        address: submissionData.address,
+        specialties: submissionData.specialties
+      },
+        {
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      );
 
       if (response.status !== 201) {
         throw new Error(response.data.error || 'Failed to create lab account');
@@ -366,9 +379,9 @@ const LabSignupForm: React.FC = () => {
         });
 
       await Promise.all(securityPromises);
-      
+
       setSubmitSuccess(true);
-      
+
       // Clear form
       setFormData({
         name: '',
@@ -385,13 +398,16 @@ const LabSignupForm: React.FC = () => {
           { questionId: '', answer: '' }
         ]
       });
-      
+
       toast.success("Account Creation Successful");
-      
+
     } catch (error) {
       console.error('Registration error:', error);
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 409) {
+          toast.error("Registration Failed", {
+            description: "This email is already registered. Please use a different email."
+          });
           setErrors(prev => ({ ...prev, email: 'This email is already registered' }));
         } else {
           const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to create lab account';
@@ -434,7 +450,7 @@ const LabSignupForm: React.FC = () => {
             Please check your inbox and keep your ID safe.
           </p>
           <div className="mt-6">
-            <Button 
+            <Button
               onClick={() => router.push('/')}
               className="w-full bg-green-600 hover:bg-green-700"
             >
@@ -509,7 +525,7 @@ const LabSignupForm: React.FC = () => {
 
                   <div className="space-y-4 mt-4">
                     <h3 className="text-sm font-medium">Contact Information</h3>
-                    
+
                     {/* Email and Phone in one row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -568,7 +584,7 @@ const LabSignupForm: React.FC = () => {
 
                   <div className="space-y-4 mt-4">
                     <h3 className="text-sm font-medium">Security</h3>
-                    
+
                     {/* Password and Confirm Password in one row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -696,7 +712,7 @@ const LabSignupForm: React.FC = () => {
                   <Lock className="h-5 w-5 mr-2 text-green-600" />
                   <span className="font-medium">Security Questions</span>
                 </div>
-                
+
                 <p className="text-sm text-gray-600 mb-6">
                   Please select and answer three security questions to help protect your account
                 </p>
@@ -714,8 +730,8 @@ const LabSignupForm: React.FC = () => {
                           <Label className="text-xs">
                             Select a security question <span className="text-red-500 ml-1">*</span>
                           </Label>
-                          <Select 
-                            value={securityQuestion.questionId} 
+                          <Select
+                            value={securityQuestion.questionId}
                             onValueChange={(value) => handleSecurityQuestionChange(index, 'questionId', value)}
                           >
                             <SelectTrigger className="focus:ring-green-500 border-gray-300 text-sm">
@@ -763,7 +779,7 @@ const LabSignupForm: React.FC = () => {
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       Back
                     </Button>
-                    
+
                     <Button
                       onClick={handleSubmit}
                       disabled={isSubmitting}
@@ -777,7 +793,7 @@ const LabSignupForm: React.FC = () => {
             )}
           </CardContent>
         </Card>
-        
+
         <div className="text-center mt-4 text-sm text-gray-600">
           Already have an account? <a href="/" className="text-green-600 hover:underline">Sign in here</a>
         </div>

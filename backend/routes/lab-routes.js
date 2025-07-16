@@ -50,6 +50,7 @@ router.get('/profile/:lab_id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { password, email, ...rest } = req.body;
+    console.log(req.body);
 
     const existingLab = await prisma.lab.findUnique({
       where: { email },
