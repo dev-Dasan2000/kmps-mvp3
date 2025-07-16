@@ -52,6 +52,16 @@ const RadiologistSidebar = () => {
         url: `/radiologist`,
         icon: LayoutGrid,
       },
+      {
+        title: "Studies",
+        url: `/radiologist`,
+        icon: LayoutGrid,
+      },
+      {
+        title: "Dashboard",
+        url: `/radiologist`,
+        icon: LayoutGrid,
+      },
     ];
   }, [radiologistId]);
 
