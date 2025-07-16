@@ -94,6 +94,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [viewLoading, setViewLoading] = useState<number | null>(null);
+  const [editLoading, setEditLoading] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  const [downloadLoading, setDownloadLoading] = useState<number | null>(null);
+  const [formSubmitting, setFormSubmitting] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [viewInvoiceDialogOpen, setViewInvoiceDialogOpen] = useState(false);
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
@@ -239,24 +244,24 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Validate required fields
     if (!formData.patient_id) {
-      toast.error("Validation Error", {description: "Please select a patient"});
+      toast.error("Validation Error", { description: "Please select a patient" });
       return;
     }
-    
+
     if (!formData.payment_type) {
-      toast.error("Validation Error", {description: "Please select a payment type"});
+      toast.error("Validation Error", { description: "Please select a payment type" });
       return;
     }
-    
+
     if (formData.services.length === 0) {
-      toast.error("Validation Error", {description: "Please select at least one service"});
+      toast.error("Validation Error", { description: "Please select at least one service" });
       return;
     }
-    
-    setIsLoading(true);
+
+    setFormSubmitting(true);
 
     try {
       // First create the invoice
@@ -303,13 +308,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         note: '',
         services: []
       });
-      
-      toast.success("Invoice Created", {description: "Invoice has been created successfully"});
+
+      toast.success("Invoice Created", { description: "Invoice has been created successfully" });
     } catch (error) {
       console.error('Error creating invoice:', error);
-      toast.error("Creation Failed", {description: "Failed to create invoice. Please try again."});
+      toast.error("Creation Failed", { description: "Failed to create invoice. Please try again." });
     } finally {
-      setIsLoading(false);
+      setFormSubmitting(false);
     }
   };
 
@@ -320,7 +325,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       e.stopPropagation();
     }
     try {
-      setIsLoading(true);
+      setViewLoading(invoice.invoice_id);
 
       // Fetch the services directly from the invoice-service-assign endpoint
       const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice.invoice_id}`);
@@ -342,9 +347,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       // Still show the invoice even if there's an error fetching services
       setSelectedInvoice(invoice);
       setViewInvoiceDialogOpen(true);
-      toast.error("Service Loading Error", {description: "Some invoice services could not be loaded"});
+      toast.error("Service Loading Error", { description: "Some invoice services could not be loaded" });
     } finally {
-      setIsLoading(false);
+      setViewLoading(null);
     }
   }, [backendUrl]);
 
@@ -354,7 +359,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       e.stopPropagation();
     }
     try {
-      setIsLoading(true);
+      setEditLoading(invoice.invoice_id);
 
       // Fetch the services directly from the invoice-service-assign endpoint
       const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice.invoice_id}`);
@@ -369,7 +374,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         ...invoice,
         services: response.data.map((item: any) => ({
           ...item,
-          services: item.service // Map the service property to services to match our interface
+          services: item.service // Map the service property to services to match the interface
         }))
       };
 
@@ -406,9 +411,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
       setSelectedInvoice(invoice);
       setIsEditingInvoice(true);
-      toast.error("Service Loading Error", {description: "Some invoice services could not be loaded"});
+      toast.error("Service Loading Error", { description: "Some invoice services could not be loaded" });
     } finally {
-      setIsLoading(false);
+      setEditLoading(null);
     }
   }, [backendUrl]);
 
@@ -416,24 +421,24 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     e.preventDefault();
     e.stopPropagation();
     if (!selectedInvoice) return;
-    
+
     // Validate required fields
     if (!formData.patient_id) {
-      toast.error("Validation Error", {description: "Please select a patient"});
-      return;
-    }
-    
-    if (!formData.payment_type) {
-      toast.error("Validation Error", {description: "Please select a payment type"});
-      return;
-    }
-    
-    if (formData.services.length === 0) {
-      toast.error("Validation Error", {description: "Please select at least one service"});
+      toast.error("Validation Error", { description: "Please select a patient" });
       return;
     }
 
-    setIsLoading(true);
+    if (!formData.payment_type) {
+      toast.error("Validation Error", { description: "Please select a payment type" });
+      return;
+    }
+
+    if (formData.services.length === 0) {
+      toast.error("Validation Error", { description: "Please select at least one service" });
+      return;
+    }
+
+    setFormSubmitting(true);
 
     try {
       // Update the invoice
@@ -464,7 +469,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
           })
         );
       }
-      
+
       await Promise.all(deletePromises);
 
       // Then re-assign services to the invoice
@@ -497,13 +502,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       });
 
       setSelectedInvoice(null);
-      
-      toast.success("Invoice Updated", {description: "Invoice has been updated successfully"});
+
+      toast.success("Invoice Updated", { description: "Invoice has been updated successfully" });
     } catch (error) {
       console.error('Error updating invoice:', error);
-      toast.error("Update Failed", {description: "Failed to update invoice. Please try again."});
+      toast.error("Update Failed", { description: "Failed to update invoice. Please try again." });
     } finally {
-      setIsLoading(false);
+      setFormSubmitting(false);
     }
   };
 
@@ -519,19 +524,19 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
   const confirmDelete = useCallback(async () => {
     if (!invoiceToDelete) return;
-    
-    setIsLoading(true);
+
+    setDeleteLoading(invoiceToDelete);
     try {
       await axios.delete(`${backendUrl}/invoices/${invoiceToDelete}`);
 
       // Remove the deleted invoice from the state
       setInvoices(prevInvoices => prevInvoices.filter(invoice => invoice.invoice_id !== invoiceToDelete));
-      toast.success("Invoice Deleted", {description: "Invoice has been deleted successfully"});
+      toast.success("Invoice Deleted", { description: "Invoice has been deleted successfully" });
     } catch (error) {
       console.error('Error deleting invoice:', error);
-      toast.error("Deletion Failed", {description: "Failed to delete invoice. Please try again."});
+      toast.error("Deletion Failed", { description: "Failed to delete invoice. Please try again." });
     } finally {
-      setIsLoading(false);
+      setDeleteLoading(null);
       setDeleteDialogOpen(false);
       setInvoiceToDelete(null);
     }
@@ -543,25 +548,26 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       e.stopPropagation();
     }
     try {
+      setDownloadLoading(invoice_id);
       // Show loading toast
       toast.loading("Generating PDF...");
-      
+
       // First, get the invoice
       const invoice = invoices.find((inv) => inv.invoice_id === invoice_id);
       if (!invoice) {
-        toast.error("Download Failed", {description: "Invoice not found"});
+        toast.error("Download Failed", { description: "Invoice not found" });
         return;
       }
-      
+
       // Fetch the services directly from the API to ensure we have the latest data
       const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice_id}`);
-      
+
       const servicesWithDetails = response.data.map((item: any) => ({
         ...item,
         // Access the service property which contains the service details
         service: item.service
       }));
-      
+
       const doc = new jsPDF();
 
       // Header
@@ -586,12 +592,12 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         const serviceName = service?.service_name || 'Unknown Service';
         const description = service?.description || '-';
         let amount = 'Rs. 0.00';
-        
+
         // Safely handle amount if it exists and is a number
         if (service?.amount !== undefined && service?.amount !== null) {
           amount = `Rs. ${service.amount.toFixed(2)}`;
         }
-        
+
         return [i + 1, serviceName, description, amount];
       });
 
@@ -608,15 +614,17 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
       // Save the PDF
       doc.save(`Invoice_${invoice.invoice_id}.pdf`);
-      
+
       // Dismiss loading toast and show success
       toast.dismiss();
-      toast.success("Download Complete", {description: "Invoice has been downloaded successfully"});
+      toast.success("Download Complete", { description: "Invoice has been downloaded successfully" });
+      setDownloadLoading(null);
     } catch (error) {
       console.error('Error generating PDF:', error);
       // Dismiss loading toast and show error
       toast.dismiss();
-      toast.error("Download Failed", {description: "Failed to download invoice. Please try again."});
+      toast.error("Download Failed", { description: "Failed to download invoice. Please try again." });
+      setDownloadLoading(null);
     }
   }, [backendUrl, invoices]);
 
@@ -642,30 +650,30 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.total_amount, 0);
   const pendingInvoices = invoices.filter(invoice => invoice.payment_type === 'pending').length;
 
-  useEffect(()=>{
+  useEffect(() => {
     let isMounted = true;
-    
+
     const checkAuth = async () => {
-      if(!isLoadingAuth && isMounted) {
-        if(!isLoggedIn){
-          toast.error("Login Error", {description:"Please Login"});
+      if (!isLoadingAuth && isMounted) {
+        if (!isLoggedIn) {
+          toast.error("Login Error", { description: "Please Login" });
           router.push("/");
         }
-        else if(user.role != "admin"){
-          toast.error("Access Denied", {description:"You do not have admin priviledges"});
+        else if (user.role != "admin") {
+          toast.error("Access Denied", { description: "You do not have admin priviledges" });
           router.push("/");
         }
       }
     };
-    
+
     checkAuth();
-    
+
     return () => {
       isMounted = false;
     };
-  },[isLoadingAuth, isLoggedIn, user, router]);
+  }, [isLoadingAuth, isLoggedIn, user, router]);
 
-  if (isLoading) {
+  if (formSubmitting) {
     return (
       <div className="flex justify-center items-center h-full">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -763,8 +771,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
           <div className="divide-y divide-gray-200">
             {filteredInvoices.map((invoice) => (
-              <div 
-                key={invoice.invoice_id} 
+              <div
+                key={invoice.invoice_id}
                 className="px-6 py-4 hover:bg-gray-50"
                 onClick={(e) => e.preventDefault()}
               >
@@ -784,8 +792,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       className="p-1 h-8 w-8"
                       title="View Invoice"
                       onClick={(e) => handleViewInvoice(e, invoice)}
+                      disabled={viewLoading === invoice.invoice_id}
                     >
-                      <Eye className="h-4 w-4" />
+                      {viewLoading === invoice.invoice_id ? (
+                        <span className="h-3 w-3 rounded-full animate-spin text-black" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </ActionButton>
                     {canEdit && (
                       <ActionButton
@@ -793,8 +806,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         className="p-1 h-8 w-8"
                         title="Edit Invoice"
                         onClick={(e) => handleEditInvoice(e, invoice)}
+                        disabled={editLoading === invoice.invoice_id}
                       >
-                        <Edit size={16} />
+                        {editLoading === invoice.invoice_id ? (
+                          <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                        ) : (
+                          <Edit size={16} />
+                        )}
                       </ActionButton>
                     )}
                     {canDelete && (
@@ -803,8 +821,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         className="p-1 h-8 w-8 hover:text-red-600"
                         title="Delete Invoice"
                         onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
+                        disabled={deleteLoading === invoice.invoice_id}
                       >
-                        <Trash2 size={16} />
+                        {deleteLoading === invoice.invoice_id ? (
+                          <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
                       </ActionButton>
                     )}
                     <ActionButton
@@ -812,8 +835,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       className="p-1 h-8 w-8"
                       title="Download Invoice"
                       onClick={(e) => handleDownload(e, invoice.invoice_id)}
+                      disabled={downloadLoading === invoice.invoice_id}
                     >
-                      <Download size={16} />
+                      {downloadLoading === invoice.invoice_id ? (
+                        <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                      ) : (
+                        <Download size={16} />
+                      )}
                     </ActionButton>
                   </div>
                 </div>
@@ -830,8 +858,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         {/* Mobile Card View */}
         <div className="lg:hidden space-y-4">
           {filteredInvoices.map((invoice) => (
-            <div 
-              key={invoice.invoice_id} 
+            <div
+              key={invoice.invoice_id}
               className="bg-white rounded-lg shadow p-4"
               onClick={(e) => e.preventDefault()}
             >
@@ -850,8 +878,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       className="p-2 h-8 w-8"
                       title="View Invoice"
                       onClick={(e) => handleViewInvoice(e, invoice)}
+                      disabled={viewLoading === invoice.invoice_id}
                     >
-                      <Eye size={16} />
+                      {viewLoading === invoice.invoice_id ? (
+                        <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                      ) : (
+                        <Eye size={16} />
+                      )}
                     </ActionButton>
                     {canEdit && (
                       <ActionButton
@@ -859,8 +892,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         className="p-2 h-8 w-8"
                         title="Edit Invoice"
                         onClick={(e) => handleEditInvoice(e, invoice)}
+                        disabled={editLoading === invoice.invoice_id}
                       >
-                        <Edit size={16} />
+                        {editLoading === invoice.invoice_id ? (
+                          <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                        ) : (
+                          <Edit size={16} />
+                        )}
                       </ActionButton>
                     )}
                     {canDelete && (
@@ -869,8 +907,13 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         className="p-2 h-8 w-8 hover:text-red-600"
                         title="Delete Invoice"
                         onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
+                        disabled={deleteLoading === invoice.invoice_id}
                       >
-                        <Trash2 size={16} />
+                        {deleteLoading === invoice.invoice_id ? (
+                          <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
                       </ActionButton>
                     )}
                   </div>
@@ -901,9 +944,16 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     size="sm"
                     className="text-xs flex items-center gap-1 h-8"
                     onClick={(e) => handleDownload(e, invoice.invoice_id)}
+                    disabled={downloadLoading === invoice.invoice_id}
                   >
-                    <Download size={14} />
-                    Download
+                    {downloadLoading === invoice.invoice_id ? (
+                      <span className="h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                    ) : (
+                      <>
+                        <Download size={14} />
+                        Download
+                      </>
+                    )}
                   </ActionButton>
                 </div>
               </div>
@@ -917,11 +967,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         </div>
 
         {/* Invoice Form Dialog */}
-        <Dialog 
-          open={isCreatingInvoice} 
+        <Dialog
+          open={isCreatingInvoice}
           onOpenChange={(open) => {
-            // Prevent closing during loading
-            if (isLoading && !open) return;
+            // Prevent closing during form submission
+            if (formSubmitting && !open) return;
             setIsCreatingInvoice(open);
           }}
         >
@@ -929,12 +979,12 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
             <DialogHeader>
               <DialogTitle className="text-xl sm:text-2xl font-bold text-emerald-700">Create New Invoice</DialogTitle>
             </DialogHeader>
-            <form 
+            <form
               onSubmit={(e) => {
                 e.preventDefault();
-                e.stopPropagation(); 
+                e.stopPropagation();
                 handleSubmit(e);
-              }} 
+              }}
               className="space-y-6 pt-4"
             >
               {/* Client Information Section */}
@@ -1180,7 +1230,14 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   variant="default"
                   className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto px-6"
                 >
-                  {isLoading ? 'Creating...' : 'Create Invoice'}
+                  {formSubmitting ? (
+                    <>
+                      <span className="mr-2 h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Invoice'
+                  )}
                 </ActionButton>
               </div>
             </form>
@@ -1188,11 +1245,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         </Dialog>
 
         {/* Edit Invoice Dialog */}
-        <Dialog 
-          open={isEditingInvoice} 
+        <Dialog
+          open={isEditingInvoice}
           onOpenChange={(open) => {
-            // Prevent closing during loading
-            if (isLoading && !open) return;
+            // Prevent closing during form submission
+            if (formSubmitting && !open) return;
             setIsEditingInvoice(open);
             if (!open) {
               setSelectedInvoice(null);
@@ -1204,12 +1261,12 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
               <DialogTitle className="text-xl font-bold text-emerald-700">Edit Invoice #{selectedInvoice?.invoice_id}</DialogTitle>
             </DialogHeader>
 
-            <form 
+            <form
               onSubmit={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 handleUpdateInvoice(e);
-              }} 
+              }}
               className="space-y-5"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1219,7 +1276,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     <Select
                       value={formData.patient_id}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, patient_id: value }))}
-                      disabled={isLoading}
+                      disabled={formSubmitting}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select patient" />
@@ -1239,7 +1296,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     <Select
                       value={formData.dentist_id || 'none'}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, dentist_id: value === 'none' ? null : value }))}
-                      disabled={isLoading}
+                      disabled={formSubmitting}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select dentist" />
@@ -1267,7 +1324,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                               checked={formData.services.includes(services.service_id)}
                               onChange={() => handleServiceToggle(services.service_id)}
                               className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                              disabled={isLoading}
+                              disabled={formSubmitting}
                             />
                             <label htmlFor={`service-${services.service_id}`} className="text-sm">
                               {services.service_name}
@@ -1286,7 +1343,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       value={formData.note}
                       onChange={(e) => setFormData(prev => ({ ...prev, note: e.target.value }))}
                       rows={3}
-                      disabled={isLoading}
+                      disabled={formSubmitting}
                     />
                   </div>
                 </div>
@@ -1302,7 +1359,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         value={formData.lab_cost}
                         onChange={(e) => setFormData(prev => ({ ...prev, lab_cost: parseFloat(e.target.value) || 0 }))}
                         className="pl-8"
-                        disabled={isLoading}
+                        disabled={formSubmitting}
                       />
                     </div>
                   </div>
@@ -1317,7 +1374,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         value={formData.discount}
                         onChange={(e) => setFormData(prev => ({ ...prev, discount: parseFloat(e.target.value) || 0 }))}
                         className="pl-8"
-                        disabled={isLoading}
+                        disabled={formSubmitting}
                       />
                     </div>
                   </div>
@@ -1330,7 +1387,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       step="0.01"
                       value={formData.tax_rate}
                       onChange={(e) => setFormData(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))}
-                      disabled={isLoading}
+                      disabled={formSubmitting}
                     />
                   </div>
 
@@ -1339,7 +1396,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     <Select
                       value={formData.payment_type}
                       onValueChange={(value) => setFormData(prev => ({ ...prev, payment_type: value }))}
-                      disabled={isLoading}
+                      disabled={formSubmitting}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select payment type" />
@@ -1361,7 +1418,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       type="date"
                       value={formData.date}
                       onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                      disabled={isLoading}
+                      disabled={formSubmitting}
                     />
                   </div>
                 </div>
@@ -1402,7 +1459,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     setSelectedInvoice(null);
                   }}
                   className="w-full sm:w-auto px-6"
-                  disabled={isLoading}
+                  disabled={formSubmitting}
                 >
                   Cancel
                 </ActionButton>
@@ -1410,9 +1467,16 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   type="submit"
                   variant="default"
                   className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto px-6"
-                  disabled={isLoading}
+                  disabled={formSubmitting}
                 >
-                  {isLoading ? 'Updating...' : 'Update Invoice'}
+                  {formSubmitting ? (
+                    <>
+                      <span className="mr-2 h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                      Updating...
+                    </>
+                  ) : (
+                    'Update Invoice'
+                  )}
                 </ActionButton>
               </div>
             </form>
@@ -1420,11 +1484,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         </Dialog>
 
         {/* Invoice Detail View Dialog */}
-        <Dialog 
-          open={viewInvoiceDialogOpen} 
+        <Dialog
+          open={viewInvoiceDialogOpen}
           onOpenChange={(open) => {
             // Prevent closing during loading
-            if (isLoading && !open) return;
+            if (viewLoading !== null && !open) return;
             setViewInvoiceDialogOpen(open);
             if (!open) {
               setSelectedInvoice(null);
@@ -1648,7 +1712,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         <Dialog
           open={deleteDialogOpen}
           onOpenChange={(open) => {
-            if (isLoading && !open) return;
+            if (deleteLoading !== null && !open) return;
             setDeleteDialogOpen(open);
             if (!open) {
               setInvoiceToDelete(null);
@@ -1674,9 +1738,16 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 variant="destructive"
                 onClick={confirmDelete}
                 className="bg-red-600 hover:bg-red-700 text-white px-4"
-                disabled={isLoading}
+                disabled={deleteLoading !== null}
               >
-                {isLoading ? 'Deleting...' : 'Delete Invoice'}
+                {deleteLoading !== null ? (
+                  <>
+                    <span className="mr-2 h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Invoice'
+                )}
               </ActionButton>
             </DialogFooter>
           </DialogContent>
