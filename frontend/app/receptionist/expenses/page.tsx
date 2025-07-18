@@ -190,42 +190,43 @@ export default function ExpenseManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    let uploadedUrl = ''
-    if (file) {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await axios.post(`${backendURL}/files`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-        withCredentials: true
-      });
-  
-      uploadedUrl = res.data.url;
-      handleInputChange('receipt_url', uploadedUrl);
-    }
+
+    let uploadedUrl = formData.receipt_url ?? ''; // Preserve old receipt URL
     try {
+      // Upload file if a new one is selected
+      if (file) {
+        const fileForm = new FormData();
+        fileForm.append('file', file);
+        const res = await axios.post(`${backendURL}/files`, fileForm, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          withCredentials: true,
+        });
+
+        uploadedUrl = res.data.url;
+      }
+
       const expenseData = {
-        expence_id: (expenses.length+1),
         date: new Date(formData.date).toISOString(),
         title: formData.title,
         description: formData.description,
         amount: parseFloat(formData.amount),
         receipt_url: uploadedUrl,
         dentist_id: formData.dentist_id,
-        status: formData.status
+        status: formData.status,
       };
 
       if (editingExpense) {
+        // PUT: Update existing expense
         const res = await axios.put(
           `${backendURL}/expense/${editingExpense.expence_id}`,
+          expenseData,
           {
-            ...expenseData,
+            withCredentials: true,
+            headers: { 'Content-Type': 'application/json' },
           }
         );
-        if (res.status != 202) {
-          throw new Error("Error Updating Expense Record");
-        }
+
+        if (res.status !== 202) throw new Error("Error updating expense");
         const updatedExpense: Expense = {
           ...editingExpense,
           ...expenseData
