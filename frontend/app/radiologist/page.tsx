@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useContext } from 'react';
-import { Calendar, Clock, Plus, Search, MoreHorizontal, CheckCircle, X, Upload, FileText, Edit, Trash2, UserPlus, User, Users, Check, FileUp, ChevronDown, ChevronRight, Eye, File, ScanLine } from 'lucide-react';
+import { Calendar, Clock, Plus, Search, MoreHorizontal, CheckCircle, X, Upload, FileText, Edit, Trash2, UserPlus, User, Users, Check, FileUp, ChevronDown, ChevronRight, Eye, File, ScanLine, AlertCircle } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -36,6 +36,26 @@ interface Study {
   dicom_file_url?: string;
   body_part?: string;
   reason?: string;
+  status?: string;
+  report?: {
+    status?: string;
+    report_file_url?: string;
+  };
+  patient?: {
+    name?: string;
+    email?: string;
+    patient_id?: string;
+  };
+}
+
+// New interface for recent studies from the API
+interface RecentStudy {
+  study_id: number;
+  patient_id: string;
+  patient_name: string;
+  date: string;
+  modality: string;
+  source: string;
 }
 
 interface NewStudyForm {
@@ -55,7 +75,6 @@ interface AssignmentForm {
 }
 
 const MedicalStudyInterface: React.FC = () => {
-
   const [radiologistID, setRadiologistID] = useState("");
   const [isAddStudyOpen, setIsAddStudyOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -69,7 +88,6 @@ const MedicalStudyInterface: React.FC = () => {
   const [expandedStudyId, setExpandedStudyId] = useState<number | null>(null);
   const dicomurlx = process.env.DICOM_URL;
   
-
   const {user, isLoadingAuth, isLoggedIn, accessToken} = useContext(AuthContext);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL; 
 
@@ -186,6 +204,7 @@ const MedicalStudyInterface: React.FC = () => {
   });
 
   const [studies, setStudies] = useState<Study[]>([]);
+  const [recentStudies, setRecentStudies] = useState<RecentStudy[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [todayCount, setTodayCount] = useState<number>(0);
@@ -195,6 +214,11 @@ const MedicalStudyInterface: React.FC = () => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [patients, setPatients] = useState<Record<string, any>>({});
   const router = useRouter();
+
+  // New state variables for report counts by status
+  const [notReportedCount, setNotReportedCount] = useState<number>(0);
+  const [draftCount, setDraftCount] = useState<number>(0);
+  const [finalizedCount, setFinalizedCount] = useState<number>(0);
 
   // Helper to convert API study payload into UI-friendly shape
   const normalizeStudy = (raw: any): Study => {
@@ -258,8 +282,33 @@ const MedicalStudyInterface: React.FC = () => {
       toast.error("Access Denied");
       router.push("/")
     }
-    setRadiologistID(user.id)
-  },[isLoadingAuth]);
+    if (user && user.id) {
+      setRadiologistID(user.id);
+    }
+  },[isLoadingAuth, user, isLoggedIn]);
+
+  // New effect to fetch report counts by status
+  useEffect(() => {
+    const fetchReportCounts = async () => {
+      if (!radiologistID) return;
+      
+      try {
+        const response = await fetch(`${backendURL}/radiologists/${radiologistID}/study-counts`);
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        
+        const counts = await response.json();
+        setNotReportedCount(counts.notReported);
+        setDraftCount(counts.draft);
+        setFinalizedCount(counts.finalized);
+      } catch (err) {
+        console.error('Failed to fetch report counts:', err);
+      }
+    };
+
+    fetchReportCounts();
+  }, [radiologistID]);
 
   // Function to fetch patient data
   const fetchPatients = async (patientIds: string[]) => {
@@ -303,8 +352,16 @@ const MedicalStudyInterface: React.FC = () => {
         setStudies(filtered);
         
         // Extract unique patient IDs and fetch their details
-        const patientIds = Array.from(new Set(normalized.map((s: Study) => s.patient_id)));
-        fetchPatients(patientIds);
+        const patientIdsSet = new Set<string>();
+        normalized.forEach((s: Study) => {
+          if (s.patient_id) {
+            patientIdsSet.add(s.patient_id);
+          }
+        });
+        const patientIds = Array.from(patientIdsSet);
+        if (patientIds.length > 0) {
+          fetchPatients(patientIds);
+        }
       } catch (err) {
         console.error('Failed to fetch studies:', err);
         setError('Failed to load studies. Please try again later.');
@@ -314,6 +371,31 @@ const MedicalStudyInterface: React.FC = () => {
     };
 
     fetchStudies();
+  }, [radiologistID]);
+
+  // Fetch recent studies from the backend
+  useEffect(() => {
+    const fetchRecentStudies = async () => {
+      if (!radiologistID) return;
+      
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${backendURL}/radiologists/${radiologistID}/recent-studies`);
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        const data = await response.json();
+        setRecentStudies(data);
+      } catch (err) {
+        console.error('Failed to fetch recent studies:', err);
+        setError('Failed to load recent studies. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecentStudies();
   }, [radiologistID]);
 
   useEffect(() => {
@@ -402,7 +484,6 @@ const MedicalStudyInterface: React.FC = () => {
     try {
       const payload: any = {
         radiologist_id: assignmentForm.radiologist_id,
-        //radiologist_id: assignmentForm.radiologist_id ? parseInt(assignmentForm.radiologist_id) : null,
         doctor_ids: assignmentForm.doctor_ids
       };
 
@@ -438,12 +519,6 @@ const MedicalStudyInterface: React.FC = () => {
     }
   };
 
-  {/*const handleDeleteStudy = (studyId: number) => {
-    if (confirm('Are you sure you want to delete this study?')) {
-      setStudies(prev => prev.filter(study => study.study_id !== studyId));
-    }
-  };*/}
-
   const handleEditStudy = (studyId: number) => {
     const study = studies.find(s => s.study_id === studyId);
     if (!study) return;
@@ -451,12 +526,12 @@ const MedicalStudyInterface: React.FC = () => {
     setStudyToEdit(study);
     setIsEditMode(true);
     setNewStudy({
-      patient_id: study.patient_id,
-      //patient_name: '', // Assuming we don't have this in the Study type yet
-      modality: study.modality,
-      server_type: study.source,
-      assertion_number: study.assertion_number?.toString(),
-      description: study.description,
+      patient_id: study.patient_id || '',
+      patient_name: '',
+      modality: study.modality || '',
+      server_type: study.source || '',
+      assertion_number: study.assertion_number?.toString() || '',
+      description: study.description || '',
       dicom_files: [], // Cannot pre-fill file inputs due to security restrictions
       report_files: []
     });
@@ -625,44 +700,21 @@ const MedicalStudyInterface: React.FC = () => {
     }));
   };
 
-  // Filter studies based on time period, modality, and search term
-  const filteredStudies = studies.filter(study => {
-    // Filter by time period based on selected tab
-    const studyDate = new Date(study.date);
-    const now = new Date();
-    let dateMatch = true;
-    if (activeTab !== 'ALL') {
-      const diffMs = now.getTime() - studyDate.getTime();
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      if (activeTab.endsWith('D')) {
-        const days = parseInt(activeTab, 10);
-        dateMatch = diffDays <= days;
-      } else if (activeTab.endsWith('W')) {
-        const weeks = parseInt(activeTab, 10);
-        dateMatch = diffDays <= weeks * 7;
-      } else if (activeTab.endsWith('M')) {
-        const months = parseInt(activeTab, 10);
-        dateMatch = diffDays <= months * 30;
-      } else if (activeTab.endsWith('Y')) {
-        const years = parseInt(activeTab, 10);
-        dateMatch = diffDays <= years * 365;
-      }
-    }
-
+  // Filter recent studies based on search term and modality
+  const filteredRecentStudies = recentStudies.filter(study => {
     // Filter by modality if not 'All'
     const modalityMatch = activeModality === 'All' || study.modality === activeModality;
 
     // Filter by search term
     const searchMatch = searchTerm === '' ||
-      (study.patient_id && study.patient_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (study.description && study.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (study.assertion_number && study.assertion_number.toString().includes(searchTerm));
+      study.patient_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      study.patient_name.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return dateMatch && modalityMatch && searchMatch;
+    return modalityMatch && searchMatch;
   });
 
-  const displayedStudies = filteredStudies.slice((currentPage - 1) * 10, currentPage * 10);
-  const totalPages = Math.ceil(filteredStudies.length / 10);
+  const displayedRecentStudies = filteredRecentStudies.slice((currentPage - 1) * 10, currentPage * 10);
+  const totalPages = Math.ceil(filteredRecentStudies.length / 10);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 overflow-auto">
@@ -672,72 +724,42 @@ const MedicalStudyInterface: React.FC = () => {
         </div>
       )}
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        {/*<div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl mt-6 md:mt-0 font-bold tracking-tight text-gray-900">
-              DICOM studies
-            </h1>
-            <p className="text-gray-600 mt-2">
-              Welcome back! Here's what's happening with DICOM studies.
-            </p>
-          </div>
-        </div>*/}
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <div className="flex justify-between items-start">
               <div>
-                <div className="text-sm font-medium text-gray-600 mb-1">Assigned Today</div>
-                <div className="text-3xl font-bold text-gray-900">{assignedTodayCount}</div>
+                <div className="text-sm font-medium text-gray-600 mb-1">Not Reported</div>
+                <div className="text-3xl font-bold text-gray-900">{notReportedCount}</div>
               </div>
-              <Calendar className="w-8 h-8 text-blue-500" />
+              <AlertCircle className="w-8 h-8 text-red-500" />
             </div>
           </div>
 
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <div className="flex justify-between items-start">
               <div>
-                <div className="text-sm font-medium text-gray-600 mb-1">Pending Review</div>
-                <div className="text-3xl font-bold text-gray-900">{todayCount}</div>
+                <div className="text-sm font-medium text-gray-600 mb-1">Draft Reports</div>
+                <div className="text-3xl font-bold text-gray-900">{draftCount}</div>
               </div>
-              <Clock className="w-8 h-8 text-yellow-500" />
+              <Edit className="w-8 h-8 text-orange-500" />
             </div>
           </div>
 
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <div className="flex justify-between items-start">
               <div>
-                <div className="text-sm font-medium text-gray-600 mb-1">Reported Today</div>
-                <div className="text-3xl font-bold text-gray-900">{reportedTodayCount}</div>
+                <div className="text-sm font-medium text-gray-600 mb-1">Finalized Reports</div>
+                <div className="text-3xl font-bold text-gray-900">{finalizedCount}</div>
               </div>
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
           </div>
         </div>
 
-
         {/* Filters and Search */}
         <div className="bg-white rounded-lg shadow-sm mb-6">
           <div className="p-4">
-            {/* Time Period Tabs */}
-            <div className="flex flex-wrap gap-2 items-center mb-4">
-              <Calendar className="w-5 h-5 text-emerald-700 mr-2" />
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${activeTab === tab
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
-                    }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
             {/* Modality Filters */}
             <div className="flex flex-wrap gap-2 items-center mb-4">
               <span className="text-sm text-emerald-600 mr-2">Modality:</span>
@@ -781,13 +803,6 @@ const MedicalStudyInterface: React.FC = () => {
                 <button className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600">
                   Search
                 </button>
-                {/*<button
-                  onClick={() => setIsAddStudyOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600"
-                >
-                  <Plus className="w-4 h-4" />
-                  New Study
-                </button>*/}
               </div>
             </div>
           </div>
@@ -798,226 +813,155 @@ const MedicalStudyInterface: React.FC = () => {
           <div className="p-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <FileText className="w-5 h-5 text-teal-600" />
-              Patient Studies
+              Recent Patient Studies
             </h2>
           </div>
 
           {/* Desktop Table */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-green-50 border-b">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium">ID</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Name</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Accession</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Modality</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Description</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Time</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Report</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Source AE</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Doctors</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modality</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
-                {displayedStudies.map((study) => (
-                  <React.Fragment key={study.study_id}>
-                    <tr
-                      className={`hover:bg-gray-50 cursor-pointer ${expandedStudyId === study.study_id ? 'bg-gray-50' : ''}`}
-                      onClick={() => setExpandedStudyId(expandedStudyId === study.study_id ? null : study.study_id)}
-                    >
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        <div className="flex items-center">
-                          {expandedStudyId === study.study_id ?
-                            <ChevronDown className="w-4 h-4 mr-1 text-gray-500" /> :
-                            <ChevronRight className="w-4 h-4 mr-1 text-gray-500" />
-                          }
-                          {study.patient_id}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">
-                        {study.patient?.name || patients[study.patient_id]?.name || 'Unknown Patient'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.status}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">ACC-{study.assertion_number}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.modality}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.description}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{formatDate(study.date)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.time}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.report?.status ?? 'No status'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900">{study.source}</td>
-                      <td className="px-4 py-3 text-sm">
-                        {study.doctors && study.doctors.length > 0 ? (
-                          <div className="flex items-center gap-1 text-blue-600">
-                            <Users className="w-3 h-3" />
-                            <span className="text-xs">{study.doctors.length} doctor(s)</span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-xs">Not assigned</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleEditStudy(study.study_id)}
-                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                            title="upload a Report"
-                          >
-                            <FileUp className="w-4 h-4" />
-                          </button>
-                          {/*<button
-                            onClick={() => handleDeleteStudy(study.study_id)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded"
-                            title="Delete Study"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>*/}
-                          <button
-                            onClick={() => openAssignModal(study.study_id)}
-                            className="p-1 text-green-600 hover:bg-green-50 rounded"
-                            title="Assign Staff"
-                          >
-                            <UserPlus className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {expandedStudyId === study.study_id && (
-                      <tr className="bg-gray-50 border-b">
-                        <td colSpan={13} className="p-4">
-                          <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {/* Study Details */}
-                              <div className="space-y-2">
-                                <h4 className="font-medium text-sm text-gray-700">Study Details</h4>
-                                <div className="rounded-md bg-green-50 p-3">
-                                  <p className="text-xs text-gray-600"><span className="font-medium">Status:</span> {study.status || 'Unknown'}</p>
-                                  <p className="text-xs text-gray-600"><span className="font-medium">Report Status:</span> {study.report?.status || 'No Report'}</p>
-                                  <p className="text-xs text-gray-600"><span className="font-medium">Description:</span> {study.description || 'No description'}</p>
-                                </div>
-                              </div>
-                    
-                              {/* Staff Assignment */}
-                              <div className="space-y-2">
-                                <h4 className="font-medium text-sm text-gray-700">Staff Assignment</h4>
-                                <div className="rounded-md bg-blue-50 p-3">
-                                  <p className="text-xs text-gray-600">
-                                    <span className="font-medium">Radiologist:</span> {study.radiologist ? study.radiologist.name : 'Not assigned'}
-                                  </p>
-                                  <p className="text-xs text-gray-600">
-                                    <span className="font-medium">Doctors:</span> {study.doctors && study.doctors.length > 0
-                                      ? study.doctors.map(d => d.name).join(', ')
-                                      : 'None assigned'}
-                                  </p>
-                                </div>
-                              </div>
-                    
-                              {/* Actions */}
-                              <div className="space-y-2">
-                                <h4 className="font-medium text-sm text-gray-700">Actions</h4>
-                                <div className="flex flex-col space-y-2">
-                                  {study.dicom_file_url && (
-                                    <button
-                                      onClick={() => {
-                                        openDicomInNewTab(study.dicom_file_url!);
-                                      }}
-                                      className="flex items-center justify-center gap-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded transition-colors"
-                                    >
-                                      <ScanLine className="w-3 h-3" /> View DICOM
-                                    </button>
-                                  )}
-                    
-                                  {study.report_id && (
-                                    <button
-                                      onClick={() => {
-                                        openReportFile(study.report_id!);
-                                      }}
-                                      className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
-                                      <File className="w-3 h-3" /> Open Report
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>                                    
-                    )}
-                  </React.Fragment>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {displayedRecentStudies.map((study) => (
+                  <tr key={study.study_id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {study.patient_id}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <div className="flex items-center">
+                        <User className="flex-shrink-0 h-4 w-4 text-gray-500 mr-2" />
+                        {study.patient_name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${study.modality === 'CT' ? 'bg-purple-100 text-purple-800' : 
+                          study.modality === 'MRI' ? 'bg-indigo-100 text-indigo-800' : 
+                          'bg-green-100 text-green-800'}`}>
+                        {study.modality}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <File className="flex-shrink-0 h-4 w-4 text-gray-500 mr-2" />
+                        {study.source}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center">
+                        <Calendar className="flex-shrink-0 h-4 w-4 text-gray-500 mr-2" />
+                        {formatDate(study.date)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => router.push(`/radiologist/studies?search=${encodeURIComponent(study.patient_id)}`)}
+                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
+                      >
+                        <Eye className="-ml-0.5 mr-1.5 h-4 w-4" />
+                        View Details
+                      </button>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
           {/* Mobile Cards */}
-          <div className="lg:hidden divide-y divide-gray-200">
-            {displayedStudies.map((study) => (
-              <div key={study.study_id} className="p-4">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="font-medium text-gray-900">
-                    {study.patient_id} - {study.patient?.name || patients[study.patient_id]?.name || 'Unknown Patient'}
+          <div className="lg:hidden space-y-4 p-4">
+            {displayedRecentStudies.map((study) => (
+              <div key={study.study_id} className="bg-white shadow overflow-hidden rounded-lg">
+                <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <User className="h-5 w-5 text-gray-500 mr-2" />
+                      <h3 className="text-lg leading-6 font-medium text-gray-900">{study.patient_name}</h3>
+                    </div>
+                    <span className={`px-2.5 py-0.5 inline-flex text-xs leading-4 font-medium rounded-full 
+                      ${study.modality === 'CT' ? 'bg-purple-100 text-purple-800' : 
+                        study.modality === 'MRI' ? 'bg-indigo-100 text-indigo-800' : 
+                        'bg-green-100 text-green-800'}`}>
+                      {study.modality}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleEditStudy(study.study_id)}
-                      className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    {/*<button
-                      onClick={() => handleDeleteStudy(study.study_id)}
-                      className="p-1 text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>*/}
-                    <button
-                      onClick={() => openAssignModal(study.study_id)}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                    </button>
+                  <div className="mt-1 text-sm text-gray-500">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {study.patient_id}
+                    </span>
                   </div>
                 </div>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <div>Modality: {study.modality}</div>
-                  <div>Description: {study.description}</div>
-                  <div>Date: {formatDate(study.date)} at {study.time}</div>
-                  <div>Accession: ACC-{study.assertion_number}</div>
-                  <div className="text-blue-600 underline cursor-pointer">Report_001.pdf</div>
-                  {study.radiologist && (
-                    <div className="text-green-600">Radiologist: {study.radiologist.name}</div>
-                  )}
-                  {study.doctors && study.doctors.length > 0 && (
-                    <div className="text-blue-600">Doctors: {study.doctors.map(d => d.name).join(', ')}</div>
-                  )}
-                  <div className="flex flex-col space-y-2">
-                    {study.dicom_file_url && (
-                      <button
-                        onClick={() => {
-                          openDicomInNewTab(study.dicom_file_url!);
-                        }}
-                        className="flex items-center justify-center gap-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded transition-colors"
-                      >
-                        <ScanLine className="w-3 h-3" /> View DICOM
-                      </button>
-                    )}
-      
-                    {study.report_id && (
-                      <button
-                        onClick={() => {
-                          openReportFile(study.report_id!);
-                        }}
-                      className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
-                        <File className="w-3 h-3" /> Open Report
-                      </button>
-                    )}
+                <div className="px-4 py-5 sm:p-6">
+                  <dl className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                    <div className="sm:col-span-1">
+                      <dt className="text-sm font-medium text-gray-500 flex items-center">
+                        <File className="h-4 w-4 text-gray-400 mr-2" />
+                        Source
+                      </dt>
+                      <dd className="mt-1 text-sm text-gray-900">{study.source}</dd>
+                    </div>
+                    <div className="sm:col-span-1">
+                      <dt className="text-sm font-medium text-gray-500 flex items-center">
+                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                        Date
+                      </dt>
+                      <dd className="mt-1 text-sm text-gray-900">{formatDate(study.date)}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-6">
+                    <button
+                      onClick={() => router.push(`/radiologist/studies?search=${encodeURIComponent(study.patient_id)}`)}
+                      className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+                    >
+                      <Eye className="-ml-1 mr-2 h-4 w-4" />
+                      View Details
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, filteredRecentStudies.length)} of {filteredRecentStudies.length} results
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-3 py-1 text-sm text-gray-700">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1258,35 +1202,6 @@ const MedicalStudyInterface: React.FC = () => {
               </div>
 
               <div className="space-y-6">
-                {/* Radiologist Selection */}
-                {/*<div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    <User className="w-4 h-4 inline mr-2" />
-                    Assign Radiologist (Required - One Only)
-                  </label>
-                  <div className="space-y-2">
-                    {radiologists.map((radiologist) => (
-                      <label key={radiologist.id} className="flex items-center p-3 border rounded-lg hover:bg-gray-50">
-                        <input
-                          type="radio"
-                          name="radiologist"
-                          value={radiologist.id.toString()}
-                          checked={assignmentForm.radiologist_id === radiologist.id.toString()}
-                          onChange={(e) => setAssignmentForm(prev => ({
-                            ...prev,
-                            radiologist_id: e.target.value
-                          }))}
-                          className="mr-3"
-                        />
-                        <div>
-                          <div className="font-medium text-gray-900">{radiologist.name}</div>
-                          <div className="text-sm text-gray-600">{radiologist.specialization}</div>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
-                </div>*/}
-
                 {/* Doctor Selection */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
