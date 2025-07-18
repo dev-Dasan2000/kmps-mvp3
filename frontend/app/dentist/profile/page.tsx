@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { Carattere } from 'next/font/google';
 
 interface DentistData {
-  ID: string;
+  dentist_id: string;
   email: string;
   name: string;
   phone_number: string;
@@ -23,7 +23,7 @@ const ProfilePage = () => {
   const [DentistData, setDentistData] = useState<DentistData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  
+
   const [editedData, setEditedData] = useState({
     firstName: '',
     lastName: '',
@@ -33,29 +33,29 @@ const ProfilePage = () => {
   });
   const router = useRouter();
 
-  useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn){
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
       toast.error("Please Log in");
       router.push("/");
       return;
     }
-    else if(user.role !== "dentist"){
+    else if (user.role !== "dentist") {
       toast.error("Access Denied");
       router.push("/");
       return;
     }
     fetchDentistData();
   }, [isLoadingAuth]);
-  
+
   const fetchDentistData = async () => {
     try {
       const response = await axios.get(
         `${backendURL}/dentists/${user?.id}`
       );
-  
+
       setDentistData(response.data);
-  
+
       const [firstName, ...lastNameParts] = response.data.name.split(" ");
       setEditedData({
         firstName,
@@ -72,7 +72,7 @@ const ProfilePage = () => {
       setIsLoading(false);
     }
   };
-  
+
   const handleEdit = () => {
     setIsEditing(true);
   };
@@ -210,7 +210,7 @@ const ProfilePage = () => {
               <div className="relative mx-auto h-24 w-24 rounded-full border-2 border-emerald-500 overflow-hidden group">
                 {(editedData.newProfilePicturePreview || DentistData.profile_picture) ? (
                   <>
-                    <img 
+                    <img
                       src={editedData.newProfilePicturePreview || `${process.env.NEXT_PUBLIC_BACKEND_URL}${DentistData.profile_picture}`}
                       alt={DentistData.name}
                       className="w-full h-full object-cover"
@@ -223,7 +223,7 @@ const ProfilePage = () => {
                         }
                       }}
                     />
-                    <div 
+                    <div
                       className="initials-fallback w-full h-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-medium text-2xl hidden"
                     >
                       {DentistData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
@@ -234,7 +234,7 @@ const ProfilePage = () => {
                     <User className="h-12 w-12 text-emerald-700" />
                   </div>
                 )}
-                
+
                 {isEditing && (
                   <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <label htmlFor="profile-picture" className="cursor-pointer p-2 rounded-full bg-white bg-opacity-90 hover:bg-opacity-100">
@@ -260,11 +260,14 @@ const ProfilePage = () => {
                   <span>Remove new image</span>
                 </button>
               )}
-              
+
               {/* Name and Email */}
               <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">
                 {DentistData.name}
               </h1>
+              <p className="text-sm sm:text-base text-gray-700 font-medium mb-1">
+                <span className="text-gray-800">{DentistData.dentist_id}</span>
+              </p>
               <p className="text-sm sm:text-base text-gray-500">
                 {DentistData.email}
               </p>
@@ -276,7 +279,7 @@ const ProfilePage = () => {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-medium text-gray-900">Personal Information</h2>
               {!isEditing ? (
-                <Button 
+                <Button
                   onClick={handleEdit}
                   variant="outline"
                   className="text-sm text-teal-600 hover:text-teal-700 font-medium"
@@ -285,14 +288,14 @@ const ProfilePage = () => {
                 </Button>
               ) : (
                 <div className="space-x-2">
-                  <Button 
+                  <Button
                     onClick={handleSave}
                     variant="default"
                     className="text-sm bg-teal-600 hover:bg-teal-700 text-white"
                   >
                     Save
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleCancel}
                     variant="outline"
                     className="text-sm"
@@ -316,11 +319,9 @@ const ProfilePage = () => {
                     value={isEditing ? editedData.firstName : firstName}
                     onChange={(e) => setEditedData({ ...editedData, firstName: e.target.value })}
                     readOnly={!isEditing}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${
-                      isEditing ? 'bg-white' : 'bg-gray-50'
-                    } text-gray-900 text-sm sm:text-base ${
-                      isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
-                    }`}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
+                      } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
+                      }`}
                   />
                 </div>
 
@@ -334,11 +335,9 @@ const ProfilePage = () => {
                     value={isEditing ? editedData.lastName : lastName}
                     onChange={(e) => setEditedData({ ...editedData, lastName: e.target.value })}
                     readOnly={!isEditing}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${
-                      isEditing ? 'bg-white' : 'bg-gray-50'
-                    } text-gray-900 text-sm sm:text-base ${
-                      isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
-                    }`}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
+                      } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
+                      }`}
                   />
                 </div>
               </div>
@@ -368,11 +367,9 @@ const ProfilePage = () => {
                     value={isEditing ? editedData.phone_number : DentistData.phone_number}
                     onChange={(e) => setEditedData({ ...editedData, phone_number: e.target.value })}
                     readOnly={!isEditing}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${
-                      isEditing ? 'bg-white' : 'bg-gray-50'
-                    } text-gray-900 text-sm sm:text-base ${
-                      isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
-                    }`}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
+                      } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
+                      }`}
                   />
                 </div>
               </div>
@@ -383,14 +380,14 @@ const ProfilePage = () => {
           <div className="border-t border-gray-200 px-6 py-6 sm:px-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">Password</h2>
-              <button 
+              <button
                 onClick={handleChangePassword}
                 className="text-sm text-teal-600 hover:text-teal-700 font-medium"
               >
                 Change Password
               </button>
             </div>
-            
+
             <div className="flex items-center space-x-3">
               <Lock className="h-5 w-5 text-gray-400" />
               <div className="flex-1">
