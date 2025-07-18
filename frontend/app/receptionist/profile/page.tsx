@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { ChangePasswordDialog } from "@/Components/ChangePasswordDialog";
 
 interface ReceptionistProfile {
   receptionist_id: string;
@@ -65,9 +66,37 @@ export default function ReceptionistProfile() {
     }));
   };
 
+  const startEditing = () => {
+    // Ensure formData is in sync with profile before editing
+    if (profile) {
+      setFormData({
+        name: profile.name,
+        phone_number: profile.phone_number
+      });
+    }
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    // Reset form data to profile data
+    if (profile) {
+      setFormData({
+        name: profile.name,
+        phone_number: profile.phone_number
+      });
+    }
+    setIsEditing(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Only send the fields that can be updated
+      const updateData = {
+        name: formData.name,
+        phone_number: formData.phone_number
+      };
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/receptionists/${user?.id}`,
         {
@@ -76,21 +105,24 @@ export default function ReceptionistProfile() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify(updateData),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Failed to update profile");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update profile");
       }
       
       const updatedProfile = await response.json();
       setProfile(updatedProfile);
+      setFormData(updatedProfile);
       setIsEditing(false);
       toast.success("Profile updated successfully");
+     
     } catch (error) {
       console.error("Profile update error:", error);
-      toast.error("Failed to update profile");
+      toast.error(error instanceof Error ? error.message : "Failed to update profile");
     }
   };
 
@@ -126,78 +158,116 @@ export default function ReceptionistProfile() {
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">ID</label>
-              <Input
-                value={profile.receptionist_id}
-                disabled
-                className="bg-gray-50"
-              />
-            </div>
+        <CardContent className="space-y-4">
+          {/* Move form fields into a div when not editing */}
+          {!isEditing ? (
+            <>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">ID</label>
+                  <Input
+                    value={profile.receptionist_id}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input
-                value={profile.email}
-                disabled
-                className="bg-gray-50"
-              />
-            </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email</label>
+                  <Input
+                    value={profile.email}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Name</label>
-              <Input
-                name="name"
-                value={formData.name || ""}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className={!isEditing ? "bg-gray-50" : ""}
-              />
-            </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Name</label>
+                  <Input
+                    value={profile.name}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Phone Number</label>
-              <Input
-                name="phone_number"
-                value={formData.phone_number || ""}
-                onChange={handleInputChange}
-                disabled={!isEditing}
-                className={!isEditing ? "bg-gray-50" : ""}
-              />
-            </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Phone Number</label>
+                  <Input
+                    value={profile.phone_number || ""}
+                    disabled
+                    className="bg-gray-50"
+                  />
+                </div>
 
-            <div className="flex justify-end space-x-2 pt-4">
-              {!isEditing ? (
-                <Button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
-                >
-                  Edit Profile
-                </Button>
-              ) : (
-                <>
+                <div className="flex justify-end space-x-2 pt-4">
+                  <ChangePasswordDialog userType="receptionist" />
                   <Button
                     type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setIsEditing(false);
-                      setFormData(profile);
-                    }}
-                    
+                    onClick={startEditing}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
                   >
-                    Cancel
+                    Edit Profile
                   </Button>
-                  <Button type="submit"
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white">
-                    Save Changes
-                  </Button>
-                </>
-              )}
-            </div>
-          </form>
+                </div>
+              </div>
+            </>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">ID</label>
+                <Input
+                  value={profile.receptionist_id}
+                  disabled
+                  className="bg-gray-50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email</label>
+                <Input
+                  value={profile.email}
+                  disabled
+                  className="bg-gray-50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Name</label>
+                <Input
+                  name="name"
+                  value={formData.name || ""}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Phone Number</label>
+                <Input
+                  name="phone_number"
+                  value={formData.phone_number || ""}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={cancelEditing}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
