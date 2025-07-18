@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Carattere } from 'next/font/google';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 interface DentistData {
   dentist_id: string;
@@ -15,6 +17,12 @@ interface DentistData {
   name: string;
   phone_number: string;
   profile_picture: string | null;
+  appointment_fee: number;
+  appointment_duration: string;
+  work_days_from: string;
+  work_days_to: string;
+  work_time_from: string;
+  work_time_to: string
 }
 
 const ProfilePage = () => {
@@ -24,12 +32,20 @@ const ProfilePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
   const [editedData, setEditedData] = useState({
     firstName: '',
     lastName: '',
     phone_number: '',
     newProfilePicture: null as File | null,
-    newProfilePicturePreview: '' as string
+    newProfilePicturePreview: '' as string,
+    appointment_fee: 0,
+    appointment_duration: '',
+    work_days_from: '',
+    work_days_to: '',
+    work_time_from: '',
+    work_time_to: ''
   });
   const router = useRouter();
 
@@ -62,7 +78,13 @@ const ProfilePage = () => {
         lastName: lastNameParts.join(" "),
         phone_number: response.data.phone_number,
         newProfilePicture: null,
-        newProfilePicturePreview: ''
+        newProfilePicturePreview: '',
+        appointment_fee: response.data.appointment_fee,
+        appointment_duration: response.data.appointment_duration,
+        work_days_from: response.data.work_days_from,
+        work_days_to: response.data.work_days_to,
+        work_time_from: response.data.work_time_from,
+        work_time_to: response.data.work_time_to
       });
     } catch (error: any) {
       toast.error("Failed to fetch profile data", {
@@ -85,7 +107,13 @@ const ProfilePage = () => {
         lastName: lastNameParts.join(" "),
         phone_number: DentistData.phone_number,
         newProfilePicture: null,
-        newProfilePicturePreview: ''
+        newProfilePicturePreview: '',
+        appointment_fee: DentistData.appointment_fee,
+        appointment_duration: DentistData.appointment_duration,
+        work_days_from: DentistData.work_days_from,
+        work_days_to: DentistData.work_days_to,
+        work_time_from: DentistData.work_time_from,
+        work_time_to: DentistData.work_time_to
       });
     }
     setIsEditing(false);
@@ -160,7 +188,13 @@ const ProfilePage = () => {
       const response = await axios.put(`${backendURL}/dentists/${user.id}`, {
         name: `${editedData.firstName} ${editedData.lastName}`.trim(),
         phone_number: editedData.phone_number,
-        profile_picture: profilePicturePath
+        profile_picture: profilePicturePath,
+        appointment_fee: editedData.appointment_fee,
+        appointment_duration: editedData.appointment_duration,
+        work_days_from: editedData.work_days_from,
+        work_days_to: editedData.work_days_to,
+        work_time_from: editedData.work_time_from,
+        work_time_to: editedData.work_time_to
       });
 
       setDentistData(response.data);
@@ -370,6 +404,143 @@ const ProfilePage = () => {
                     className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
                       } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
                       }`}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Work Information Section */}
+          <div className="border-t border-gray-200 px-6 py-6 sm:px-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-medium text-gray-900">Work Information</h2>
+            </div>
+
+            {/* Form Fields */}
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                {/* Appointment Fee */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Appointment Fee
+                  </label>
+                  <input
+                    type="text"
+                    value={isEditing ? editedData.appointment_fee : DentistData.appointment_fee}
+                    onChange={(e) => setEditedData({ ...editedData, appointment_fee: Number(e.target.value) })}
+                    readOnly={!isEditing}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
+                      } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
+                      }`}
+                  />
+                </div>
+
+                {/* Appointment Duration */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Appointment Duration
+                  </label>
+                  <input
+                    type="text"
+                    value={isEditing ? editedData.appointment_duration : DentistData.appointment_duration}
+                    onChange={(e) => setEditedData({ ...editedData, appointment_duration: e.target.value })}
+                    readOnly={!isEditing}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
+                      } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
+                      }`}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                {/* Work Days From */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Work Days - From
+                  </label>
+                  <Select
+                    disabled={!isEditing}
+                    value={editedData.work_days_from}
+                    onValueChange={(value) =>
+                      setEditedData({ ...editedData, work_days_from: value })
+                    }
+                  >
+                    <SelectTrigger className="focus:ring-emerald-200">
+                      <SelectValue placeholder="Select Day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {daysOfWeek
+                        .filter((d) => !editedData.work_days_to || d !== editedData.work_days_to)
+                        .map((day) => (
+                          <SelectItem key={day} value={day}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+
+                {/* Work Days To */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Work Days - To
+                  </label>
+                  <Select
+                    disabled={!isEditing}
+                    value={editedData.work_days_to}
+                    onValueChange={(value) =>
+                      setEditedData({ ...editedData, work_days_to: value })
+                    }
+                  >
+                    <SelectTrigger className="focus:ring-emerald-200">
+                      <SelectValue placeholder="Select Day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {daysOfWeek
+                        .filter((d) => !editedData.work_days_from || d !== editedData.work_days_from)
+                        .map((day) => (
+                          <SelectItem key={day} value={day}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                {/* Work Hours From */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Work Hours - From
+                  </label>
+                  <Input
+                    readOnly={!isEditing}
+                    id="workTimeFrom"
+                    type="time"
+                    value={editedData.work_time_from}
+                    onChange={(e) => setEditedData({ ...editedData, work_time_from: e.target.value })}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
+                    } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
+                    }`}
+                  />
+                </div>
+
+                {/* Work Hours To */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Work Hours - To
+                  </label>
+                  <Input
+                    readOnly={!isEditing}
+                    id="workTimeFrom"
+                    type="time"
+                    value={editedData.work_time_to}
+                    onChange={(e) => setEditedData({ ...editedData, work_time_to: e.target.value })}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
+                    } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
+                    }`}
                   />
                 </div>
               </div>

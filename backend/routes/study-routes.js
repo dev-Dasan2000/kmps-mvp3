@@ -305,6 +305,61 @@ router.get('/today/count', async (req, res) => {
   }
 });
 
+// Search studies by patient name or ID (filtered by radiologist)
+router.get('/search/radiologist/:radiologist_id', /* authenticateToken, */ async (req, res) => {
+  try {
+    const searchTerm = req.query.term;
+    const radiologistId = req.params.radiologist_id;
+    
+    if (!searchTerm || typeof searchTerm !== 'string') {
+      return res.status(400).json({ error: 'Search term is required' });
+    }
+
+    const studies = await prisma.study.findMany({
+      where: {
+        // Filter by radiologist ID
+        radiologist_id: radiologistId,
+        // And by search term (patient name or ID)
+        OR: [
+          {
+            patient_id: {
+              contains: searchTerm,
+              mode: 'insensitive'
+            }
+          },
+          {
+            patient: {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive'
+              }
+            }
+          }
+        ]
+      },
+      include: {
+        patient: true,
+        radiologist: true,
+        report: true,
+        dentistAssigns: {
+          include: {
+            dentist: true
+          }
+        }
+      },
+      orderBy: [
+        { date: 'desc' },
+        { time: 'desc' }
+      ],
+      take: 10 // Limit results for performance
+    });
+
+    res.json(studies);
+  } catch (error) {
+    console.error('Error searching radiologist studies:', error);
+    res.status(500).json({ error: 'Failed to search radiologist studies' });
+  }
+});
 
 
 export default router;

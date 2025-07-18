@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useContext } from 'react';
 import { Calendar, Clock, Plus, Search, MoreHorizontal, CheckCircle, X, Upload, FileText, Edit, Trash2, UserPlus, User, Users, Check, FileUp, ChevronDown, ChevronRight, Eye, File, ScanLine } from 'lucide-react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -72,6 +72,7 @@ const MedicalStudyInterface: React.FC = () => {
 
   const {user, isLoadingAuth, isLoggedIn, accessToken} = useContext(AuthContext);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL; 
+  const searchParams = useSearchParams();
 
   const openDicomInNewTab = (dicomUrl: string) => {
     if (!dicomUrl) return;
@@ -260,6 +261,14 @@ const MedicalStudyInterface: React.FC = () => {
     }
     setRadiologistID(user.id)
   },[isLoadingAuth]);
+
+  useEffect(() => {
+    const searchFromQuery = searchParams?.get('search');
+    if (searchFromQuery && searchTerm !== searchFromQuery) {
+      setSearchTerm(searchFromQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Function to fetch patient data
   const fetchPatients = async (patientIds: string[]) => {
