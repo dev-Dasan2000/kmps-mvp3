@@ -71,7 +71,7 @@ const ReceptionistHeader = () => {
   // Handle profile navigation
   const handleProfileClick = () => {
     if (user.id) {
-      router.push(`#`);
+      router.push(`/receptionist/profile`);
     }
   };
 
