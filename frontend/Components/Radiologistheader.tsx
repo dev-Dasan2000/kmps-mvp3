@@ -72,9 +72,7 @@ const RadiologistHeader = () => {
   }, [radiologistId]);
 
   const handleProfileClick = () => {
-    if (radiologistId) {
-      router.push(`#`);
-    }
+    router.push("/radiologist/profile");
   };
 
   const handleNotificationClick = () => {
