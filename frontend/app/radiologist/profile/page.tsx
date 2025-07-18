@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { ChangePasswordDialog } from '@/Components/ChangePasswordDialog';
 
-interface DentistData {
-  dentist_id: string;
+interface radiologistData {
+  radiologist_id: string;
   email: string;
   name: string;
   phone_number: string;
@@ -29,7 +29,7 @@ interface DentistData {
 const ProfilePage = () => {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const { user, isLoadingAuth, accessToken, isLoggedIn } = useContext(AuthContext);
-  const [DentistData, setDentistData] = useState<DentistData | null>(null);
+  const [radiologistData, setradiologistData] = useState<radiologistData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -51,27 +51,28 @@ const ProfilePage = () => {
   const router = useRouter();
 
   useEffect(() => {
+    console.log(user);
     if (isLoadingAuth) return;
     if (!isLoggedIn) {
       toast.error("Please Log in");
       router.push("/");
       return;
     }
-    else if (user.role !== "dentist") {
+    else if (user.role != "radiologist") {
       toast.error("Access Denied");
       router.push("/");
       return;
     }
-    fetchDentistData();
+    fetchradiologistData();
   }, [isLoadingAuth]);
 
-  const fetchDentistData = async () => {
+  const fetchradiologistData = async () => {
     try {
       const response = await axios.get(
-        `${backendURL}/dentists/${user?.id}`
+        `${backendURL}/radiologists/${user?.id}`
       );
 
-      setDentistData(response.data);
+      setradiologistData(response.data);
 
       const [firstName, ...lastNameParts] = response.data.name.split(" ");
       setEditedData({
@@ -101,20 +102,20 @@ const ProfilePage = () => {
   };
 
   const handleCancel = () => {
-    if (DentistData) {
-      const [firstName, ...lastNameParts] = DentistData.name.split(" ");
+    if (radiologistData) {
+      const [firstName, ...lastNameParts] = radiologistData.name.split(" ");
       setEditedData({
         firstName,
         lastName: lastNameParts.join(" "),
-        phone_number: DentistData.phone_number,
+        phone_number: radiologistData.phone_number,
         newProfilePicture: null,
         newProfilePicturePreview: '',
-        appointment_fee: DentistData.appointment_fee,
-        appointment_duration: DentistData.appointment_duration,
-        work_days_from: DentistData.work_days_from,
-        work_days_to: DentistData.work_days_to,
-        work_time_from: DentistData.work_time_from,
-        work_time_to: DentistData.work_time_to
+        appointment_fee: radiologistData.appointment_fee,
+        appointment_duration: radiologistData.appointment_duration,
+        work_days_from: radiologistData.work_days_from,
+        work_days_to: radiologistData.work_days_to,
+        work_time_from: radiologistData.work_time_from,
+        work_time_to: radiologistData.work_time_to
       });
     }
     setIsEditing(false);
@@ -160,10 +161,10 @@ const ProfilePage = () => {
   };
 
   const handleSave = async () => {
-    if (!DentistData || !user?.id) return;
+    if (!radiologistData || !user?.id) return;
 
     try {
-      let profilePicturePath = DentistData.profile_picture;
+      let profilePicturePath = radiologistData.profile_picture;
 
       // If there's a new profile picture, upload it first
       if (editedData.newProfilePicture) {
@@ -186,7 +187,7 @@ const ProfilePage = () => {
       }
 
       // Update client information
-      const response = await axios.put(`${backendURL}/dentists/${user.id}`, {
+      const response = await axios.put(`${backendURL}/radiologists/${user.id}`, {
         name: `${editedData.firstName} ${editedData.lastName}`.trim(),
         phone_number: editedData.phone_number,
         profile_picture: profilePicturePath,
@@ -198,19 +199,13 @@ const ProfilePage = () => {
         work_time_to: editedData.work_time_to
       });
 
-      setDentistData(response.data);
+      setradiologistData(response.data);
       setIsEditing(false);
       toast.success("Profile updated successfully");
     } catch (error: any) {
       toast.error("Failed to update profile", {
         description: error.response?.data?.error || "An error occurred"
       });
-    }
-  };
-
-  const handleChangePassword = () => {
-    if (DentistData?.email) {
-      router.push(`/changepassword?email=${encodeURIComponent(DentistData.email)}`);
     }
   };
 
@@ -222,7 +217,7 @@ const ProfilePage = () => {
     );
   }
 
-  if (!DentistData) {
+  if (!radiologistData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">No profile data found</div>
@@ -231,7 +226,7 @@ const ProfilePage = () => {
   }
 
   // Split the full name into first and last name for display
-  const [firstName, ...lastNameParts] = DentistData.name.split(" ");
+  const [firstName, ...lastNameParts] = radiologistData.name.split(" ");
   const lastName = lastNameParts.join(" ");
 
   return (
@@ -243,11 +238,11 @@ const ProfilePage = () => {
             <div className="text-center">
               {/* Profile Avatar */}
               <div className="relative mx-auto h-24 w-24 rounded-full border-2 border-emerald-500 overflow-hidden group">
-                {(editedData.newProfilePicturePreview || DentistData.profile_picture) ? (
+                {(editedData.newProfilePicturePreview || radiologistData.profile_picture) ? (
                   <>
                     <img
-                      src={editedData.newProfilePicturePreview || `${process.env.NEXT_PUBLIC_BACKEND_URL}${DentistData.profile_picture}`}
-                      alt={DentistData.name}
+                      src={editedData.newProfilePicturePreview || `${process.env.NEXT_PUBLIC_BACKEND_URL}${radiologistData.profile_picture}`}
+                      alt={radiologistData.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
@@ -261,7 +256,7 @@ const ProfilePage = () => {
                     <div
                       className="initials-fallback w-full h-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-medium text-2xl hidden"
                     >
-                      {DentistData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {radiologistData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </div>
                   </>
                 ) : (
@@ -298,13 +293,13 @@ const ProfilePage = () => {
 
               {/* Name and Email */}
               <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">
-                {DentistData.name}
+                {radiologistData.name}
               </h1>
               <p className="text-sm sm:text-base text-gray-700 font-medium mb-1">
-                <span className="text-gray-800">{DentistData.dentist_id}</span>
+                <span className="text-gray-800">{radiologistData.radiologist_id}</span>
               </p>
               <p className="text-sm sm:text-base text-gray-500">
-                {DentistData.email}
+                {radiologistData.email}
               </p>
             </div>
           </div>
@@ -385,7 +380,7 @@ const ProfilePage = () => {
                   </label>
                   <input
                     type="email"
-                    value={DentistData.email}
+                    value={radiologistData.email}
                     readOnly
                     className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-900 text-sm sm:text-base"
                   />
@@ -399,7 +394,7 @@ const ProfilePage = () => {
                   </label>
                   <input
                     type="tel"
-                    value={isEditing ? editedData.phone_number : DentistData.phone_number}
+                    value={isEditing ? editedData.phone_number : radiologistData.phone_number}
                     onChange={(e) => setEditedData({ ...editedData, phone_number: e.target.value })}
                     readOnly={!isEditing}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
@@ -427,7 +422,7 @@ const ProfilePage = () => {
                   </label>
                   <input
                     type="text"
-                    value={isEditing ? editedData.appointment_fee : DentistData.appointment_fee}
+                    value={isEditing ? editedData.appointment_fee : radiologistData.appointment_fee}
                     onChange={(e) => setEditedData({ ...editedData, appointment_fee: Number(e.target.value) })}
                     readOnly={!isEditing}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
@@ -443,7 +438,7 @@ const ProfilePage = () => {
                   </label>
                   <input
                     type="text"
-                    value={isEditing ? editedData.appointment_duration : DentistData.appointment_duration}
+                    value={isEditing ? editedData.appointment_duration : radiologistData.appointment_duration}
                     onChange={(e) => setEditedData({ ...editedData, appointment_duration: e.target.value })}
                     readOnly={!isEditing}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
@@ -553,7 +548,7 @@ const ProfilePage = () => {
           <div className="border-t border-gray-200 px-6 py-6 sm:px-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">Password</h2>
-              <ChangePasswordDialog userType="dentist" />
+              <ChangePasswordDialog userType="radiologist" />
             </div>
 
             <div className="flex items-center space-x-3">
