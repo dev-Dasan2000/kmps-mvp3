@@ -259,7 +259,7 @@ export default function ExpenseManagement() {
           throw new Error("Error Creating New Expense");
         }
         const newExpense: Expense = {
-          expence_id: expenses.length + 1,
+          expence_id: res.data.expence_id,
           date: expenseData.date,
           title: expenseData.title,
           description: expenseData.description,
