@@ -24,6 +24,7 @@ import {
   X,
   Image as ImageIcon,
   MonitorSmartphone,
+  FolderKanban,
 } from "lucide-react";
 import Image from "next/image";
 import axios from "axios";
@@ -58,9 +59,9 @@ const RadiologistSidebar = () => {
         icon: MonitorSmartphone,
       },
       {
-        title: "Reports",
-        url: `/radiologist/reports`,
-        icon: FileText,
+        title: "Workspace",
+        url: `/radiologist/workspace`,
+        icon: FolderKanban,
       },
     ];
   }, []);
