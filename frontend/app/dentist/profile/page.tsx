@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Carattere } from 'next/font/google';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 interface DentistData {
   dentist_id: string;
@@ -29,6 +31,8 @@ const ProfilePage = () => {
   const [DentistData, setDentistData] = useState<DentistData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   const [editedData, setEditedData] = useState({
     firstName: '',
@@ -454,31 +458,54 @@ const ProfilePage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Work Days - From
                   </label>
-                  <input
-                    type="text"
-                    value={isEditing ? editedData.work_days_from : DentistData.work_days_from}
-                    onChange={(e) => setEditedData({ ...editedData, work_days_from: e.target.value })}
-                    readOnly={!isEditing}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
-                    } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
-                    }`}
-                  />
+                  <Select
+                    disabled={!isEditing}
+                    value={editedData.work_days_from}
+                    onValueChange={(value) =>
+                      setEditedData({ ...editedData, work_days_from: value })
+                    }
+                  >
+                    <SelectTrigger className="focus:ring-emerald-200">
+                      <SelectValue placeholder="Select Day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {daysOfWeek
+                        .filter((d) => !editedData.work_days_to || d !== editedData.work_days_to)
+                        .map((day) => (
+                          <SelectItem key={day} value={day}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+
 
                 {/* Work Days To */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Work Days - To
                   </label>
-                  <input
-                    type="text"
-                    value={isEditing ? editedData.work_days_to : DentistData.work_days_to}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
-                    } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
-                    }`}
-                    onChange={(e) => setEditedData({ ...editedData, work_days_to: e.target.value })}
-                    readOnly={!isEditing}
-                  />
+                  <Select
+                    disabled={!isEditing}
+                    value={editedData.work_days_to}
+                    onValueChange={(value) =>
+                      setEditedData({ ...editedData, work_days_to: value })
+                    }
+                  >
+                    <SelectTrigger className="focus:ring-emerald-200">
+                      <SelectValue placeholder="Select Day" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {daysOfWeek
+                        .filter((d) => !editedData.work_days_from || d !== editedData.work_days_from)
+                        .map((day) => (
+                          <SelectItem key={day} value={day}>
+                            {day}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -488,14 +515,15 @@ const ProfilePage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Work Hours - From
                   </label>
-                  <input
-                    type="text"
-                    value={isEditing ? editedData.work_time_from : DentistData.work_time_from}
+                  <Input
+                    readOnly={!isEditing}
+                    id="workTimeFrom"
+                    type="time"
+                    value={editedData.work_time_from}
+                    onChange={(e) => setEditedData({ ...editedData, work_time_from: e.target.value })}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
                     } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
                     }`}
-                    onChange={(e) => setEditedData({ ...editedData, work_time_from: e.target.value })}
-                    readOnly={!isEditing}
                   />
                 </div>
 
@@ -504,14 +532,15 @@ const ProfilePage = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Work Hours - To
                   </label>
-                  <input
-                    type="text"
-                    value={isEditing ? editedData.work_time_to : DentistData.work_time_to}
+                  <Input
+                    readOnly={!isEditing}
+                    id="workTimeFrom"
+                    type="time"
+                    value={editedData.work_time_to}
+                    onChange={(e) => setEditedData({ ...editedData, work_time_to: e.target.value })}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
                     } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
                     }`}
-                    onChange={(e) => setEditedData({ ...editedData, work_time_to: e.target.value })}
-                    readOnly={!isEditing}
                   />
                 </div>
               </div>
