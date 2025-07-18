@@ -33,13 +33,25 @@ interface StaffStats {
   };
 }
 
+interface PendingEmployeesCount {
+  dentistCount: number;
+  receptionistCount: number;
+  radiologistCount: number;
+  totalCount: number;
+}
+
 export default function PIMPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const {isLoadingAuth, isLoggedIn, user, accessToken} = useContext(AuthContext);
   const router = useRouter();
-
+  const [pendingEmployees, setPendingEmployees] = useState<PendingEmployeesCount>({
+    dentistCount: 0,
+    receptionistCount: 0,
+    radiologistCount: 0,
+    totalCount: 0
+  });
 
   const [staffStats, setStaffStats] = useState<StaffStats>({
     totalStaff: 0,
@@ -67,6 +79,15 @@ export default function PIMPage() {
     return stats;
   };
 
+  const fetchPendingEmployees = useCallback(async () => {
+    try {
+      const response = await axios.get(`${backendUrl}/hr/employees/new/count`);
+      setPendingEmployees(response.data);
+    } catch (err) {
+      console.error('Error fetching pending employees:', err);
+    }
+  }, []);
+
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
@@ -83,11 +104,13 @@ export default function PIMPage() {
 
   useEffect(() => {
     fetchEmployees();
-  }, [fetchEmployees]);
+    fetchPendingEmployees();
+  }, [fetchEmployees, fetchPendingEmployees]);
 
   const handleEmployeeAdded = useCallback(() => {
     fetchEmployees();
-  }, [fetchEmployees]);
+    fetchPendingEmployees();
+  }, [fetchEmployees, fetchPendingEmployees]);
 
   useEffect(()=>{
     if(isLoadingAuth) return;
@@ -122,7 +145,7 @@ export default function PIMPage() {
       {/*<QuickActions />*/}
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Staff Overview */}
         <Card>
           <CardHeader>
@@ -168,6 +191,35 @@ export default function PIMPage() {
                 <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
                   {staffStats.onLeave}
                 </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Pending Employees */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Staff Registration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Total Pending:</span>
+                <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                  {pendingEmployees.totalCount}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Dentists:</span>
+                <span className="font-semibold">{pendingEmployees.dentistCount}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Receptionists:</span>
+                <span className="font-semibold">{pendingEmployees.receptionistCount}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Radiologists:</span>
+                <span className="font-semibold">{pendingEmployees.radiologistCount}</span>
               </div>
             </div>
           </CardContent>
