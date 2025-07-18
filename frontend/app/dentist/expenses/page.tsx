@@ -98,7 +98,7 @@ export default function ExpenseManagement() {
   const { isLoadingAuth, isLoggedIn, user, accessToken } = useContext(AuthContext);
 
   useEffect(() => {
-    if(!user) return;
+    if (!user) return;
     fetchExpenses();
   }, [user]);
 
@@ -108,17 +108,17 @@ export default function ExpenseManagement() {
     }
   }, [expenses])
 
-  useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn){
-      toast.error("Login Error", {description:"Please Login"});
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
+      toast.error("Login Error", { description: "Please Login" });
       router.push("/");
     }
-    else if(user.role != "dentist"){
-      toast.error("Access Denied", {description:"You do not have admin priviledges"});
+    else if (user.role != "dentist") {
+      toast.error("Access Denied", { description: "You do not have admin priviledges" });
       router.push("/");
     }
-  },[isLoadingAuth]);
+  }, [isLoadingAuth]);
 
   const fetchExpenses = async () => {
     setIsLoadingExpenses(true);
@@ -173,86 +173,68 @@ export default function ExpenseManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    let uploadedUrl = ''
-    if (file) {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await axios.post(`${backendURL}/files`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-        withCredentials: true
-      });
-  
-      uploadedUrl = res.data.url;
-      handleInputChange('receipt_url', uploadedUrl);
-    }
+
+    let uploadedUrl = formData.receipt_url ?? ''; // Preserve old receipt URL
     try {
+      // Upload file if a new one is selected
+      if (file) {
+        const fileForm = new FormData();
+        fileForm.append('file', file);
+        const res = await axios.post(`${backendURL}/files`, fileForm, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+          withCredentials: true,
+        });
+
+        uploadedUrl = res.data.url;
+      }
+
       const expenseData = {
-        expence_id: (expenses.length+1),
         date: new Date(formData.date).toISOString(),
         title: formData.title,
         description: formData.description,
         amount: parseFloat(formData.amount),
         receipt_url: uploadedUrl,
         dentist_id: user.id,
-        status: formData.status
+        status: formData.status,
       };
 
       if (editingExpense) {
+        // PUT: Update existing expense
         const res = await axios.put(
           `${backendURL}/expense/${editingExpense.expence_id}`,
-          {
-            ...expenseData,
-          }
-        );
-        if (res.status != 202) {
-          throw new Error("Error Updating Expense Record");
-        }
-        const updatedExpense: Expense = {
-          ...editingExpense,
-          ...expenseData
-        };
-
-        setExpenses(expenses.map(expense =>
-          expense.expence_id === editingExpense.expence_id ? updatedExpense : expense
-        ));
-      } else {
-        const res = await axios.post(
-          `${backendURL}/expense`,
-          {
-            date: expenseData.date,
-            title: expenseData.title,
-            description: expenseData.description,
-            amount: expenseData.amount,
-            receipt_url: expenseData.receipt_url,
-            dentist_id: user.id,
-            status: "pending",
-            reciept_url:expenseData.receipt_url
-          },
+          expenseData,
           {
             withCredentials: true,
-            headers: {
-              "content-type": "application/json"
-            }
+            headers: { 'Content-Type': 'application/json' },
           }
         );
-        if (res.status != 201) {
-          throw new Error("Error Creating New Expense");
-        }
-        const newExpense: Expense = {
-          expence_id: expenses.length + 1,
-          date: expenseData.date,
-          title: expenseData.title,
-          description: expenseData.description,
-          amount: expenseData.amount,
-          receipt_url: expenseData.receipt_url,
-          dentists: {
-            dentist_id: expenseData.dentist_id,
-            name: ""
-          },
-          status: "pending"
+
+        if (res.status !== 202) throw new Error("Error updating expense");
+
+        const updatedExpense: Expense = {
+          ...editingExpense,
+          ...expenseData,
         };
+
+        setExpenses(expenses.map(exp =>
+          exp.expence_id === editingExpense.expence_id ? updatedExpense : exp
+        ));
+
+        toast.success("Expense updated successfully");
+      } else {
+        // POST: Create new expense
+        const res = await axios.post(
+          `${backendURL}/expense`,
+          expenseData,
+          {
+            withCredentials: true,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+
+        if (res.status !== 201) throw new Error("Error creating expense");
+
+        const newExpense: Expense = res.data; // Use backend response
 
         setExpenses([...expenses, newExpense]);
         toast.success("Expense added successfully");
@@ -268,6 +250,7 @@ export default function ExpenseManagement() {
       setIsSubmitting(false);
     }
   };
+
 
   const handleInputChange = (field: keyof ExpenseFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -464,7 +447,7 @@ export default function ExpenseManagement() {
                     {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
                   </Badge>
                   <div className="flex items-center gap-1">
-                    
+
                     <Button
                       variant="ghost"
                       size="sm"
