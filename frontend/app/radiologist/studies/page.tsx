@@ -19,9 +19,23 @@ interface Radiologist {
   specialization: string;
 }
 
+interface Patient {
+  patient_id: string;
+  name: string;
+  email?: string;
+  phone_number?: string;
+}
+
+interface Report {
+  report_id: number;
+  status: string;
+  report_file_url?: string;
+}
+
 interface Study {
   study_id: number;
   patient_id: string;
+  patient?: Patient;
   radiologist_id?: number;
   radiologist?: Radiologist;
   doctors?: Doctor[];
@@ -29,6 +43,7 @@ interface Study {
   time: string;
   modality?: string;
   report_id?: number;
+  report?: Report;
   assertion_number?: number;
   description?: string;
   source?: string;
@@ -36,14 +51,15 @@ interface Study {
   dicom_file_url?: string;
   body_part?: string;
   reason?: string;
+  status?: string;
 }
 
 interface NewStudyForm {
   patient_id: string;
   patient_name: string;
-  modality?: string;
-  server_type?: string;
-  assertion_number?: string;
+  modality: string;
+  server_type: string;
+  assertion_number: string;
   description: string;
   dicom_files: File[];
   report_files: File[];
@@ -170,6 +186,7 @@ const MedicalStudyInterface: React.FC = () => {
     }
   };
 
+  // Update the initial value to match the required non-optional types
   const [newStudy, setNewStudy] = useState<NewStudyForm>({
     patient_id: '',
     patient_name: '',
@@ -208,7 +225,11 @@ const MedicalStudyInterface: React.FC = () => {
     }));
     return {
       ...raw,
-      doctors: doctorsList.length ? doctorsList : undefined
+      doctors: doctorsList.length ? doctorsList : undefined,
+      // Ensure these properties exist
+      patient: raw.patient || undefined,
+      report: raw.report || undefined,
+      status: raw.status || undefined
     } as Study;
   };
 
@@ -312,8 +333,15 @@ const MedicalStudyInterface: React.FC = () => {
         setStudies(filtered);
         
         // Extract unique patient IDs and fetch their details
-        const patientIds = Array.from(new Set(normalized.map((s: Study) => s.patient_id)));
-        fetchPatients(patientIds);
+        const studyPatientIds: string[] = [];
+        normalized.forEach((s: Study) => {
+          if (s.patient_id && typeof s.patient_id === 'string') {
+            studyPatientIds.push(s.patient_id);
+          }
+        });
+        
+        const uniquePatientIds = Array.from(new Set(studyPatientIds));
+        fetchPatients(uniquePatientIds);
       } catch (err) {
         console.error('Failed to fetch studies:', err);
         setError('Failed to load studies. Please try again later.');
@@ -461,11 +489,11 @@ const MedicalStudyInterface: React.FC = () => {
     setIsEditMode(true);
     setNewStudy({
       patient_id: study.patient_id,
-      //patient_name: '', // Assuming we don't have this in the Study type yet
-      modality: study.modality,
-      server_type: study.source,
-      assertion_number: study.assertion_number?.toString(),
-      description: study.description,
+      patient_name: study.patient?.name || '',
+      modality: study.modality || '',
+      server_type: study.source || '',
+      assertion_number: study.assertion_number?.toString() || '',
+      description: study.description || '',
       dicom_files: [], // Cannot pre-fill file inputs due to security restrictions
       report_files: []
     });
@@ -672,6 +700,11 @@ const MedicalStudyInterface: React.FC = () => {
 
   const displayedStudies = filteredStudies.slice((currentPage - 1) * 10, currentPage * 10);
   const totalPages = Math.ceil(filteredStudies.length / 10);
+
+  // Add a function to navigate to workspace with study
+  const openInWorkspace = (studyId: number) => {
+    router.push(`/radiologist/workspace?study_id=${studyId}`);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 overflow-auto">
@@ -938,13 +971,32 @@ const MedicalStudyInterface: React.FC = () => {
                                     </button>
                                   )}
                     
-                                  {study.report_id && (
+                                  {/* Modified button for report or workspace */}
+                                  {study.report_id ? (
                                     <button
                                       onClick={() => {
-                                        openReportFile(study.report_id!);
+                                        if (study.report?.status === 'finalized') {
+                                          openReportFile(study.report_id!);
+                                        } else {
+                                          openInWorkspace(study.study_id);
+                                        }
                                       }}
                                       className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
-                                      <File className="w-3 h-3" /> Open Report
+                                      {study.report?.status === 'finalized' ? (
+                                        <>
+                                          <File className="w-3 h-3" /> View Report
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Eye className="w-3 h-3" /> Open in Workspace
+                                        </>
+                                      )}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => openInWorkspace(study.study_id)}
+                                      className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
+                                      <Eye className="w-3 h-3" /> Open in Workspace
                                     </button>
                                   )}
                                 </div>
@@ -1013,13 +1065,32 @@ const MedicalStudyInterface: React.FC = () => {
                       </button>
                     )}
       
-                    {study.report_id && (
+                    {/* Modified mobile button for report or workspace */}
+                    {study.report_id ? (
                       <button
                         onClick={() => {
-                          openReportFile(study.report_id!);
+                          if (study.report?.status === 'finalized') {
+                            openReportFile(study.report_id!);
+                          } else {
+                            openInWorkspace(study.study_id);
+                          }
                         }}
-                      className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
-                        <File className="w-3 h-3" /> Open Report
+                        className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
+                        {study.report?.status === 'finalized' ? (
+                          <>
+                            <File className="w-3 h-3" /> View Report
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-3 h-3" /> Open in Workspace
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => openInWorkspace(study.study_id)}
+                        className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
+                        <Eye className="w-3 h-3" /> Open in Workspace
                       </button>
                     )}
                   </div>
