@@ -43,8 +43,8 @@ const RadiologistHeader = () => {
   useEffect(() => {
     if(isLoadingAuth) return;
     if(!isLoggedIn) return;
-    setRadiologistId(user.id);
-  },[isLoadingAuth]);
+    setRadiologistId(user?.id || "");
+  },[isLoadingAuth, isLoggedIn, user]);
 
   const fetchRadiologist = async () => {
     setIsLoading(true);
@@ -83,7 +83,8 @@ const RadiologistHeader = () => {
     }
   };
 
-  if (!radiologistId) return null;
+  // Remove this conditional return that causes the header to disappear during navigation
+  // if (!radiologistId) return null;
 
   return (
     <header className="flex items-center justify-between px-4 sm:px-6 py-4 bg-white">
@@ -93,7 +94,7 @@ const RadiologistHeader = () => {
           {isLoading ? (
             <span className="animate-pulse h-8 w-64 bg-gray-200 rounded" />
           ) : (
-            `Welcome back, ${radiologistInfo?.name.split(" ")[0] || "Radiologist"}`
+            `Welcome back, ${radiologistInfo?.name?.split(" ")[0] || "Radiologist"}`
           )}
         </h1>
         <p className="text-sm text-gray-500">{getCurrentDate()}</p>
@@ -121,7 +122,7 @@ const RadiologistHeader = () => {
               {radiologistInfo?.avatar ? (
                 <img
                   src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${radiologistInfo.avatar}`}
-                  alt={radiologistInfo.name}
+                  alt={radiologistInfo?.name || "Radiologist"}
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
@@ -148,7 +149,7 @@ const RadiologistHeader = () => {
             ) : (
               <>
                 <p className="text-sm font-medium text-gray-900">
-                  {radiologistInfo?.name.split(" ")[0] || "Radiologist"}
+                  {radiologistInfo?.name?.split(" ")[0] || "Radiologist"}
                 </p>
                 <p className="text-xs text-gray-500">
                   {radiologistInfo?.specialization || "Radiology"}
