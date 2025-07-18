@@ -310,223 +310,225 @@ export function AddStaffDialog({
           {/* Personal Information Section */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="font-medium" htmlFor="staff-select">Select Staff Member *</Label>
-                {loadingStaff ? (
-                  <div className="flex items-center justify-center p-4">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="ml-2">Loading staff members...</span>
-                  </div>
-                ) : isEditing ? (
+            <div className="space-y-4">
+              {/* Staff Selection Dropdown */}
+              {!isEditing && (
+                <div className="space-y-2">
+                  <Label className="font-medium" htmlFor="staff-select">Select Staff Member *</Label>
+                  {loadingStaff ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="ml-2">Loading staff members...</span>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <Select
+                        value={selectedStaff ? `${selectedStaff.role}_${selectedStaff.id}` : ''}
+                        onValueChange={(value) => {
+                          if (!value) {
+                            console.log('Clearing selection');
+                            setSelectedStaff(null);
+                            setFormData(prev => ({
+                              ...prev,
+                              name: '',
+                              email: '',
+                              phone: '',
+                              job_title: ''
+                            }));
+                            return;
+                          }
+                          
+                          const [role, id] = value.split('_') as [string, string];
+                          const staffList = availableStaff[`${role}s` as keyof AvailableStaff] as Array<{id: string | number, name: string, email: string, phone_number: string}>;
+                          const staff = staffList.find(s => String(s.id) === id);
+                          
+                          if (staff) {
+                            // Create a new staff member object with the correct role
+                            const selectedStaffMember: StaffMember = {
+                              id: staff.id,
+                              name: staff.name,
+                              email: staff.email,
+                              phone_number: staff.phone_number,
+                              role: role as 'dentist' | 'receptionist' | 'radiologist'
+                            };
+                            
+                            console.log('Selected staff member:', selectedStaffMember);
+                            handleStaffSelect(selectedStaffMember);
+                          } else {
+                            console.error('Staff not found in list');
+                          }
+                        }}
+                        disabled={loading || loadingStaff}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a staff member" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-96 overflow-y-auto">
+                          {availableStaff.dentists.length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-medium text-gray-500 sticky top-0 bg-white dark:bg-gray-900 z-10">Dentists</div>
+                              {availableStaff.dentists
+                                .filter(dentist => dentist.id !== undefined && dentist.id !== null)
+                                .map((dentist, index) => {
+                                  const key = `dentist_${dentist.id || index}`;
+                                  return (
+                                    <SelectItem key={key} value={key} className="flex flex-col items-start py-2">
+                                      <span className="block truncate max-w-full">{dentist.name}</span>
+                                    </SelectItem>
+                                  );
+                                })}
+                            </>
+                          )}
+                          {availableStaff.receptionists.length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-medium text-gray-500 sticky top-0 bg-white dark:bg-gray-900 z-10">Receptionists</div>
+                              {availableStaff.receptionists
+                                .filter(receptionist => receptionist.id !== undefined && receptionist.id !== null)
+                                .map((receptionist, index) => {
+                                  const key = `receptionist_${receptionist.id || index}`;
+                                  return (
+                                    <SelectItem key={key} value={key} className="flex flex-col items-start py-2">
+                                      <span className="block truncate max-w-full">{receptionist.name}</span>
+                                    </SelectItem>
+                                  );
+                                })}
+                            </>
+                          )}
+                          {availableStaff.radiologists.length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-medium text-gray-500 sticky top-0 bg-white dark:bg-gray-900 z-10">Radiologists</div>
+                              {availableStaff.radiologists
+                                .filter(radiologist => radiologist.id !== undefined && radiologist.id !== null)
+                                .map((radiologist, index) => {
+                                  const key = `radiologist_${radiologist.id || index}`;
+                                  return (
+                                    <SelectItem key={key} value={key} className="flex flex-col items-start py-2">
+                                      <span className="block truncate max-w-full">{radiologist.name}</span>
+                                    </SelectItem>
+                                  );
+                                })}
+                            </>
+                          )}
+                          {availableStaff.dentists.length === 0 && availableStaff.receptionists.length === 0 && availableStaff.radiologists.length === 0 && (
+                            <div className="px-2 py-1.5 text-sm text-gray-500">No staff members available</div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Form Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Name Field */}
+                <div className="space-y-2">
+                  <Label className="font-medium" htmlFor="name">Name *</Label>
                   <Input
                     id="name"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
                     required
-                    disabled={loading}
+                    disabled={loading || (!!selectedStaff && !isEditing)}
+                    readOnly={!!selectedStaff && !isEditing}
+                    className="w-full"
                   />
-                ) : (
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-medium" htmlFor="dob">Date of Birth *</Label>
+                  <Input
+                    id="dob"
+                    name="dob"
+                    type="date"
+                    value={formData.dob}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-medium" htmlFor="gender">Gender *</Label>
                   <Select
-                    value={selectedStaff ? `${selectedStaff.role}_${selectedStaff.id}` : ''}
-                    onValueChange={(value) => {
-                      if (!value) {
-                        console.log('Clearing selection');
-                        setSelectedStaff(null);
-                        setFormData(prev => ({
-                          ...prev,
-                          name: '',
-                          email: '',
-                          phone: '',
-                          job_title: ''
-                        }));
-                        return;
-                      }
-                      
-                      const [role, id] = value.split('_') as [string, string];
-                      const staffList = availableStaff[`${role}s` as keyof AvailableStaff] as Array<{id: string | number, name: string, email: string, phone_number: string}>;
-                      const staff = staffList.find(s => String(s.id) === id);
-                      
-                      if (staff) {
-                        // Create a new staff member object with the correct role
-                        const selectedStaffMember: StaffMember = {
-                          id: staff.id,
-                          name: staff.name,
-                          email: staff.email,
-                          phone_number: staff.phone_number,
-                          role: role as 'dentist' | 'receptionist' | 'radiologist'
-                        };
-                        
-                        console.log('Selected staff member:', selectedStaffMember);
-                        handleStaffSelect(selectedStaffMember);
-                      } else {
-                        console.error('Staff not found in list');
-                      }
-                    }}
-                    disabled={loading || loadingStaff}
+                    value={formData.gender}
+                    onValueChange={(value) => handleSelectChange('gender', value)}
+                    required
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a staff member" />
+                      <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableStaff.dentists.length > 0 && (
-                        <>
-                          <div className="px-2 py-1.5 text-xs font-medium text-gray-500">Dentists</div>
-                          {availableStaff.dentists
-                            .filter(dentist => dentist.id !== undefined && dentist.id !== null)
-                            .map((dentist, index) => {
-                              const key = `dentist_${dentist.id || index}`;
-                              return (
-                                <SelectItem key={key} value={key}>
-                                  {dentist.name}
-                                </SelectItem>
-                              );
-                            })}
-                        </>
-                      )}
-                      {availableStaff.receptionists.length > 0 && (
-                        <>
-                          <div className="px-2 py-1.5 text-xs font-medium text-gray-500">Receptionists</div>
-                          {availableStaff.receptionists
-                            .filter(receptionist => receptionist.id !== undefined && receptionist.id !== null)
-                            .map((receptionist, index) => {
-                              const key = `receptionist_${receptionist.id || index}`;
-                              return (
-                                <SelectItem key={key} value={key}>
-                                  {receptionist.name}
-                                </SelectItem>
-                              );
-                            })}
-                        </>
-                      )}
-                      {availableStaff.radiologists.length > 0 && (
-                        <>
-                          <div className="px-2 py-1.5 text-xs font-medium text-gray-500">Radiologists</div>
-                          {availableStaff.radiologists
-                            .filter(radiologist => radiologist.id !== undefined && radiologist.id !== null)
-                            .map((radiologist, index) => {
-                              const key = `radiologist_${radiologist.id || index}`;
-                              return (
-                                <SelectItem key={key} value={key}>
-                                  {radiologist.name}
-                                </SelectItem>
-                              );
-                            })}
-                        </>
-                      )}
-                      {availableStaff.dentists.length === 0 && availableStaff.receptionists.length === 0 && availableStaff.radiologists.length === 0 && (
-                        <div className="px-2 py-1.5 text-sm text-gray-500">No staff members available</div>
-                      )}
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
                     </SelectContent>
                   </Select>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label className="font-medium" htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  required
-                  disabled={!!selectedStaff || loading}
-                  readOnly={!!selectedStaff}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-medium" htmlFor="dob">Date of Birth *</Label>
-                <Input
-                  id="dob"
-                  name="dob"
-                  type="date"
-                  value={formData.dob}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-medium" htmlFor="gender">Gender *</Label>
-                <Select
-                  value={formData.gender}
-                  onValueChange={(value) => handleSelectChange('gender', value)}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select gender" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="font-medium" htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  disabled={!!selectedStaff || loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-medium" htmlFor="phone">Phone *</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  required
-                  disabled={!!selectedStaff || loading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-medium" htmlFor="employment_status">Employment Status *</Label>
-                <Select
-                  value={formData.employment_status}
-                  onValueChange={(value) => handleSelectChange('employment_status', value)}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full time">Full Time</SelectItem>
-                    <SelectItem value="part time">Part Time</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="font-medium" htmlFor="job_title">Job Title *</Label>
-                <Select
-                  value={formData.job_title}
-                  onValueChange={(value) => handleSelectChange('job_title', value)}
-                  required
-                >
-                  <SelectTrigger id="job_title">
-                    <SelectValue placeholder="Select job title" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dentist">Dentist</SelectItem>
-                    <SelectItem value="receptionist">Receptionist</SelectItem>
-                    <SelectItem value="radiologist">Radiologist</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="font-medium" htmlFor="salary">Salary *</Label>
-                <Input
-                  id="salary"
-                  name="salary"
-                  type="number"
-                  value={formData.salary}
-                  onChange={handleInputChange}
-                  required
-                />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-medium" htmlFor="email">Email *</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    disabled={loading || (!!selectedStaff && !isEditing)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-medium" htmlFor="phone">Phone *</Label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    required
+                    disabled={loading || (!!selectedStaff && !isEditing)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-medium" htmlFor="employment_status">Employment Status *</Label>
+                  <Select
+                    value={formData.employment_status}
+                    onValueChange={(value) => handleSelectChange('employment_status', value)}
+                    required
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full time">Full Time</SelectItem>
+                      <SelectItem value="part time">Part Time</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-medium" htmlFor="job_title">Job Title *</Label>
+                  <Select
+                    value={formData.job_title}
+                    onValueChange={(value) => handleSelectChange('job_title', value)}
+                    required
+                  >
+                    <SelectTrigger id="job_title">
+                      <SelectValue placeholder="Select job title" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dentist">Dentist</SelectItem>
+                      <SelectItem value="receptionist">Receptionist</SelectItem>
+                      <SelectItem value="radiologist">Radiologist</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-medium" htmlFor="salary">Salary *</Label>
+                  <Input
+                    id="salary"
+                    name="salary"
+                    type="number"
+                    value={formData.salary}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
               </div>
             </div>
           </div>
