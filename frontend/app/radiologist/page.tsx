@@ -825,6 +825,8 @@ const MedicalStudyInterface: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modality</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -851,6 +853,17 @@ const MedicalStudyInterface: React.FC = () => {
                           'bg-green-100 text-green-800'}`}>
                         {study.modality}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${study.report?.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                          study.report?.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
+                          'bg-gray-100 text-gray-800'}`}>
+                        {study.report?.status ? study.report.status.replace('_', ' ') : 'Not Started'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                      {study.description || 'No description available'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center">
@@ -896,9 +909,16 @@ const MedicalStudyInterface: React.FC = () => {
                       {study.modality}
                     </span>
                   </div>
-                  <div className="mt-1 text-sm text-gray-500">
+                  <div className="mt-1 text-sm text-gray-500 flex items-center gap-2">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       {study.patient_id}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      study.report?.status === 'completed' ? 'bg-green-100 text-green-800' : 
+                      study.report?.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {study.report?.status ? study.report.status.replace('_', ' ') : 'Not Started'}
                     </span>
                   </div>
                 </div>
@@ -917,6 +937,15 @@ const MedicalStudyInterface: React.FC = () => {
                         Date
                       </dt>
                       <dd className="mt-1 text-sm text-gray-900">{formatDate(study.date)}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-sm font-medium text-gray-500 flex items-center">
+                        <FileText className="h-4 w-4 text-gray-400 mr-2" />
+                        Description
+                      </dt>
+                      <dd className="mt-1 text-sm text-gray-900">
+                        {study.description || 'No description available'}
+                      </dd>
                     </div>
                   </dl>
                   <div className="mt-6">

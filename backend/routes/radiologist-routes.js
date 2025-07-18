@@ -66,20 +66,20 @@ router.get('/:radiologist_id/recent-studies', /* authenticateToken, */ async (re
       return res.status(404).json({ error: 'Radiologist not found' });
     }
 
-    // Get the 10 most recent studies for the radiologist
+    // Get the 10 most recent studies for the radiologist with report details
     const recentStudies = await prisma.study.findMany({
       where: { 
         radiologist_id: radiologistId 
       },
-      select: {
-        study_id: true,
-        patient_id: true,
-        date: true,
-        modality: true,
-        source: true,
+      include: {
         patient: {
           select: {
             name: true
+          }
+        },
+        report: {
+          select: {
+            status: true
           }
         }
       },
@@ -96,7 +96,11 @@ router.get('/:radiologist_id/recent-studies', /* authenticateToken, */ async (re
       patient_name: study.patient.name,
       date: study.date,
       modality: study.modality,
-      source: study.source
+      source: study.source,
+      description: study.description,
+      report: study.report ? {
+        status: study.report.status || null
+      } : null
     }));
 
     res.json(formattedStudies);
