@@ -11,8 +11,6 @@ import axios from 'axios';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -112,6 +110,7 @@ const RadiologistWorkspace: React.FC = () => {
   
   const { user, isLoggedIn, accessToken } = useContext(AuthContext);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const dicomurlx = process.env.NEXT_PUBLIC_DICOM_URL;
   const radiologistId = user?.id;
   
   // Load study if ID is in URL parameters
@@ -230,7 +229,7 @@ const RadiologistWorkspace: React.FC = () => {
 
     try {
       const fullUrl = dicomUrl.startsWith('http') ? dicomUrl : `${backendURL}${dicomUrl}`;
-      const dicomViewerUrl = `${process.env.DICOM_URL || ''}/open-dicom?url=${encodeURIComponent(fullUrl)}`;
+      const dicomViewerUrl = `${dicomurlx || ''}/open-dicom?url=${encodeURIComponent(fullUrl)}`;
       window.open(dicomViewerUrl, '_blank');
     } catch (error) {
       console.error('Error opening DICOM viewer:', error);
@@ -586,7 +585,7 @@ const RadiologistWorkspace: React.FC = () => {
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-medium">Report #{selectedStudy.report_id}</h3>
                     <Button size="sm" variant="outline" onClick={() => {
-                      // View report functionality would be implemented here
+                      // TODO - view report functionality
                       toast.info('Report viewing functionality will be implemented in the future');
                     }}>
                       <Eye className="h-4 w-4 mr-2" />
@@ -599,7 +598,7 @@ const RadiologistWorkspace: React.FC = () => {
                 <div className="text-center py-8">
                   <p className="text-gray-500 mb-4">No report has been created for this study yet.</p>
                   <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={() => {
-                    // Create report functionality would be implemented here
+                    // TODO - create report functionality
                     toast.info('Report creation functionality will be implemented in the future');
                   }}>
                     <FileText className="h-4 w-4 mr-2" />
