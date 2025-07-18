@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import axios from 'axios';
+import { Loader2 } from 'lucide-react';
 
 //backend url
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -25,6 +26,20 @@ interface EmergencyContact {
   relationship: string;
   phone: string;
   email: string;
+}
+
+interface StaffMember {
+  id: string | number;
+  name: string;
+  email: string;
+  phone_number: string;
+  role: 'dentist' | 'receptionist' | 'radiologist';
+}
+
+interface AvailableStaff {
+  dentists: Array<Omit<StaffMember, 'role'>>;
+  receptionists: Array<Omit<StaffMember, 'role'>>;
+  radiologists: Array<Omit<StaffMember, 'role'>>;
 }
 
 interface Employee {
@@ -95,7 +110,21 @@ export function AddStaffDialog({
   isEditing = false 
 }: AddStaffDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [availableStaff, setAvailableStaff] = useState<AvailableStaff>({
+    dentists: [],
+    receptionists: [],
+    radiologists: []
+  });
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [formData, setFormData] = useState(defaultFormData);
+
+  // Fetch available staff when dialog opens for adding new employee
+  useEffect(() => {
+    if (open && !isEditing) {
+      fetchAvailableStaff();
+    }
+  }, [open, isEditing]);
 
   // Populate form data when editing
   useEffect(() => {
@@ -114,8 +143,69 @@ export function AddStaffDialog({
       });
     } else {
       setFormData(defaultFormData);
+      setSelectedStaff(null);
     }
   }, [isEditing, employeeData, open]);
+
+  // Fetch available staff members who are not yet registered as employees
+  const fetchAvailableStaff = async () => {
+    setLoadingStaff(true);
+    try {
+      console.log('Fetching staff from:', `${backendUrl}/hr/employees/new`);
+      const response = await axios.get(`${backendUrl}/hr/employees/new`, {
+        withCredentials: true
+      });
+      
+      console.log('Raw API response:', response.data);
+      
+      // Process the staff data to normalize the ID field
+      const processStaffList = (staffList: any[], idField: string) => {
+        return (staffList || []).map(staff => ({
+          ...staff,
+          id: staff[idField] // Map role-specific ID to generic id field
+        }));
+      };
+      
+      const processedData = {
+        dentists: processStaffList(response.data.dentists, 'dentist_id'),
+        receptionists: processStaffList(response.data.receptionists, 'receptionist_id'),
+        radiologists: processStaffList(response.data.radiologists, 'radiologist_id')
+      };
+      
+      console.log('Processed staff data:', processedData);
+      console.log('Dentists count:', processedData.dentists.length);
+      console.log('Receptionists count:', processedData.receptionists.length);
+      console.log('Radiologists count:', processedData.radiologists.length);
+      
+      setAvailableStaff(processedData);
+    } catch (error) {
+      console.error('Error fetching available staff:', error);
+      toast.error('Failed to load staff members');
+    } finally {
+      setLoadingStaff(false);
+    }
+  };
+
+  // Handle staff member selection
+  const handleStaffSelect = (staff: StaffMember) => {
+    console.log('Selecting staff:', staff);
+    
+    // Create a completely new form data object
+    const newFormData = {
+      ...defaultFormData,  // Start with default values
+      name: staff.name,
+      email: staff.email,
+      phone: staff.phone_number || '', // Ensure we don't pass undefined
+      job_title: staff.role.charAt(0).toUpperCase() + staff.role.slice(1),
+      // Preserve bank info and emergency contact from existing form data
+      bank_info: formData.bank_info,
+      emergency_contact: formData.emergency_contact
+    };
+    
+    console.log('New form data:', newFormData);
+    setSelectedStaff(staff);
+    setFormData(newFormData);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -222,6 +312,117 @@ export function AddStaffDialog({
             <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label className="font-medium" htmlFor="staff-select">Select Staff Member *</Label>
+                {loadingStaff ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="ml-2">Loading staff members...</span>
+                  </div>
+                ) : isEditing ? (
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    required
+                    disabled={loading}
+                  />
+                ) : (
+                  <Select
+                    value={selectedStaff ? `${selectedStaff.role}_${selectedStaff.id}` : ''}
+                    onValueChange={(value) => {
+                      if (!value) {
+                        console.log('Clearing selection');
+                        setSelectedStaff(null);
+                        setFormData(prev => ({
+                          ...prev,
+                          name: '',
+                          email: '',
+                          phone: '',
+                          job_title: ''
+                        }));
+                        return;
+                      }
+                      
+                      const [role, id] = value.split('_') as [string, string];
+                      const staffList = availableStaff[`${role}s` as keyof AvailableStaff] as Array<{id: string | number, name: string, email: string, phone_number: string}>;
+                      const staff = staffList.find(s => String(s.id) === id);
+                      
+                      if (staff) {
+                        // Create a new staff member object with the correct role
+                        const selectedStaffMember: StaffMember = {
+                          id: staff.id,
+                          name: staff.name,
+                          email: staff.email,
+                          phone_number: staff.phone_number,
+                          role: role as 'dentist' | 'receptionist' | 'radiologist'
+                        };
+                        
+                        console.log('Selected staff member:', selectedStaffMember);
+                        handleStaffSelect(selectedStaffMember);
+                      } else {
+                        console.error('Staff not found in list');
+                      }
+                    }}
+                    disabled={loading || loadingStaff}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a staff member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableStaff.dentists.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-medium text-gray-500">Dentists</div>
+                          {availableStaff.dentists
+                            .filter(dentist => dentist.id !== undefined && dentist.id !== null)
+                            .map((dentist, index) => {
+                              const key = `dentist_${dentist.id || index}`;
+                              return (
+                                <SelectItem key={key} value={key}>
+                                  {dentist.name}
+                                </SelectItem>
+                              );
+                            })}
+                        </>
+                      )}
+                      {availableStaff.receptionists.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-medium text-gray-500">Receptionists</div>
+                          {availableStaff.receptionists
+                            .filter(receptionist => receptionist.id !== undefined && receptionist.id !== null)
+                            .map((receptionist, index) => {
+                              const key = `receptionist_${receptionist.id || index}`;
+                              return (
+                                <SelectItem key={key} value={key}>
+                                  {receptionist.name}
+                                </SelectItem>
+                              );
+                            })}
+                        </>
+                      )}
+                      {availableStaff.radiologists.length > 0 && (
+                        <>
+                          <div className="px-2 py-1.5 text-xs font-medium text-gray-500">Radiologists</div>
+                          {availableStaff.radiologists
+                            .filter(radiologist => radiologist.id !== undefined && radiologist.id !== null)
+                            .map((radiologist, index) => {
+                              const key = `radiologist_${radiologist.id || index}`;
+                              return (
+                                <SelectItem key={key} value={key}>
+                                  {radiologist.name}
+                                </SelectItem>
+                              );
+                            })}
+                        </>
+                      )}
+                      {availableStaff.dentists.length === 0 && availableStaff.receptionists.length === 0 && availableStaff.radiologists.length === 0 && (
+                        <div className="px-2 py-1.5 text-sm text-gray-500">No staff members available</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <div className="space-y-2">
                 <Label className="font-medium" htmlFor="name">Name *</Label>
                 <Input
                   id="name"
@@ -229,6 +430,8 @@ export function AddStaffDialog({
                   value={formData.name}
                   onChange={handleInputChange}
                   required
+                  disabled={!!selectedStaff || loading}
+                  readOnly={!!selectedStaff}
                 />
               </div>
               <div className="space-y-2">
@@ -267,6 +470,7 @@ export function AddStaffDialog({
                   value={formData.email}
                   onChange={handleInputChange}
                   required
+                  disabled={!!selectedStaff || loading}
                 />
               </div>
               <div className="space-y-2">
@@ -277,6 +481,7 @@ export function AddStaffDialog({
                   value={formData.phone}
                   onChange={handleInputChange}
                   required
+                  disabled={!!selectedStaff || loading}
                 />
               </div>
               <div className="space-y-2">
