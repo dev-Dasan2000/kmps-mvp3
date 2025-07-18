@@ -888,6 +888,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'checkedin': return 'bg-blue-100 text-blue-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -1054,7 +1056,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => handleAppointmentCancellation(appointment.appointment_id)}
-                      disabled={cancellingAppointment || appointment.status === "cancelled"}
+                      disabled={cancellingAppointment || appointment.status === "cancelled" || appointment.status === "completed"}
                     >
                       {appointment.status === "cancelled" ? "Cancelled" : "Cancel"}
                     </Button>

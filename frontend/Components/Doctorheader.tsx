@@ -72,7 +72,7 @@ const DoctorHeader = () => {
   // Handle profile navigation
   const handleProfileClick = () => {
     if (user.id) {
-      router.push(`#`);
+      router.push(`/dentist/profile`);
     }
   };
 
