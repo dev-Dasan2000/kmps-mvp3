@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Carattere } from 'next/font/google';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { ChangePasswordDialog } from '@/Components/ChangePasswordDialog';
 
 interface DentistData {
   dentist_id: string;
@@ -548,15 +549,11 @@ const ProfilePage = () => {
           </div>
 
           {/* Password Section */}
+          
           <div className="border-t border-gray-200 px-6 py-6 sm:px-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">Password</h2>
-              <button
-                onClick={handleChangePassword}
-                className="text-sm text-teal-600 hover:text-teal-700 font-medium"
-              >
-                Change Password
-              </button>
+              <ChangePasswordDialog userType="dentist" />
             </div>
 
             <div className="flex items-center space-x-3">
