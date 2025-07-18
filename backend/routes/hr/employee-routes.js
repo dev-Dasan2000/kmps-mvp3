@@ -19,6 +19,102 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/new', async (req, res) => {
+  try {
+    const employees = await prisma.employees.findMany({
+      select: { name: true, email: true },
+    });
+
+    const employeeKeySet = new Set(employees.map(emp => `${emp.name.toLowerCase()}|${emp.email.toLowerCase()}`));
+
+    const dentistsRaw = await prisma.dentists.findMany({
+      select: { dentist_id: true, name: true, email: true, phone_number: true },
+    });
+
+    const receptionistsRaw = await prisma.receptionists.findMany({
+      select: { receptionist_id: true, name: true, email: true, phone_number: true },
+    });
+
+    const radiologistsRaw = await prisma.radiologists.findMany({
+      select: { radiologist_id: true, name: true, email: true, phone_number: true },
+    });
+
+    const dentists = dentistsRaw.filter(
+      d => !employeeKeySet.has(`${d.name.toLowerCase()}|${d.email.toLowerCase()}`)
+    );
+
+    const receptionists = receptionistsRaw.filter(
+      r => !employeeKeySet.has(`${r.name.toLowerCase()}|${r.email.toLowerCase()}`)
+    );
+
+    const radiologists = radiologistsRaw.filter(
+      r => !employeeKeySet.has(`${r.name.toLowerCase()}|${r.email.toLowerCase()}`)
+    );
+
+    res.json({
+      dentists,
+      receptionists,
+      radiologists,
+    });
+
+  } catch (error) {
+    console.error('Error fetching filtered data:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+router.get('/new/count', async (req, res) => {
+  try {
+    const employees = await prisma.employees.findMany({
+      select: { name: true, email: true },
+    });
+
+    const employeeKeySet = new Set(
+      employees.map(emp => `${emp.name.toLowerCase()}|${emp.email.toLowerCase()}`)
+    );
+
+    const dentistsRaw = await prisma.dentists.findMany({
+      select: { name: true, email: true },
+    });
+
+    const receptionistsRaw = await prisma.receptionists.findMany({
+      select: { name: true, email: true },
+    });
+
+    const radiologistsRaw = await prisma.radiologists.findMany({
+      select: { name: true, email: true },
+    });
+
+    const dentists = dentistsRaw.filter(
+      d => !employeeKeySet.has(`${d.name.toLowerCase()}|${d.email.toLowerCase()}`)
+    );
+
+    const receptionists = receptionistsRaw.filter(
+      r => !employeeKeySet.has(`${r.name.toLowerCase()}|${r.email.toLowerCase()}`)
+    );
+
+    const radiologists = radiologistsRaw.filter(
+      r => !employeeKeySet.has(`${r.name.toLowerCase()}|${r.email.toLowerCase()}`)
+    );
+
+    const dentistCount = dentists.length;
+    const receptionistCount = receptionists.length;
+    const radiologistCount = radiologists.length;
+    const totalCount = dentistCount + receptionistCount + radiologistCount;
+
+    res.json({
+      dentistCount,
+      receptionistCount,
+      radiologistCount,
+      totalCount,
+    });
+
+  } catch (error) {
+    console.error('Error fetching counts:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // Get employee by ID (used by payroll page)
 router.get('/:id', async (req, res) => {
   try {
