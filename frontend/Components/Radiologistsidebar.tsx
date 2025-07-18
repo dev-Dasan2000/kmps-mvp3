@@ -41,7 +41,7 @@ const RadiologistSidebar = () => {
   useEffect(() => {
     if (isLoadingAuth) return;
     if (!isLoggedIn) return;
-    setRadiologistId(user.id);
+    setRadiologistId(user?.id || "");
   }, [isLoadingAuth, isLoggedIn, user]);
 
   // Build menu items
@@ -51,7 +51,7 @@ const RadiologistSidebar = () => {
         title: "Dashboard",
         url: `/radiologist`,
         icon: LayoutGrid,
-      },/*
+      },
       {
         title: "Studies",
         url: `/radiologist/studies`,
@@ -61,7 +61,7 @@ const RadiologistSidebar = () => {
         title: "Reports",
         url: `/radiologist/reports`,
         icon: FileText,
-      },*/
+      },
     ];
   }, []);
 
@@ -82,8 +82,6 @@ const RadiologistSidebar = () => {
       setIsLoading(false);
     }
   };
-
-  if (!user) return null;
 
   return (
     <>
@@ -146,13 +144,15 @@ const RadiologistSidebar = () => {
         </SidebarContent>
 
         <SidebarFooter className="p-4 border-t border-gray-100">
-          <Button
-            className="cursor-pointer w-full bg-emerald-600 text-white hover:bg-emerald-500 flex items-center justify-center gap-2 py-2.5"
-            onClick={handleLogout}
-            disabled={isLoading}
-          >
-            <LogOut className="w-4 h-4" /> {isLoading ? "Logging out..." : "Logout"}
-          </Button>
+          {user && (
+            <Button
+              className="cursor-pointer w-full bg-emerald-600 text-white hover:bg-emerald-500 flex items-center justify-center gap-2 py-2.5"
+              onClick={handleLogout}
+              disabled={isLoading}
+            >
+              <LogOut className="w-4 h-4" /> {isLoading ? "Logging out..." : "Logout"}
+            </Button>
+          )}
         </SidebarFooter>
       </Sidebar>
 
@@ -192,13 +192,15 @@ const RadiologistSidebar = () => {
         </div>
 
         <div className="p-3 border-t border-gray-100">
-          <Button
-            className="cursor-pointer w-full bg-emerald-600 text-white hover:bg-emerald-500 flex items-center justify-center gap-2 py-2 text-sm"
-            onClick={handleLogout}
-            disabled={isLoading}
-          >
-            <LogOut className="w-3 h-3" /> {isLoading ? "Logging out..." : "Logout"}
-          </Button>
+          {user && (
+            <Button
+              className="cursor-pointer w-full bg-emerald-600 text-white hover:bg-emerald-500 flex items-center justify-center gap-2 py-2 text-sm"
+              onClick={handleLogout}
+              disabled={isLoading}
+            >
+              <LogOut className="w-3 h-3" /> {isLoading ? "Logging out..." : "Logout"}
+            </Button>
+          )}
         </div>
       </div>
     </>
