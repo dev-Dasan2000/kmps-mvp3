@@ -37,7 +37,8 @@ router.get('/:radiologist_id', /* authenticateToken, */ async (req, res) => {
         name: true,
         email: true,
         phone_number: true,
-        profile_picture: true
+        profile_picture: true,
+        signature: true
       }
     });
     
@@ -217,8 +218,8 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
 // Update radiologist
 router.put('/:radiologist_id', /* authenticateToken, */ async (req, res) => {
   try {
-    const { name, email, password, phone_number, profile_picture } = req.body;
-    const radiologistId = parseInt(req.params.radiologist_id);
+    const { name, email, password, phone_number, profile_picture, signature } = req.body;
+    const radiologistId = req.params.radiologist_id;
 
     // Check if radiologist exists
     const existingRadiologist = await prisma.radiologists.findUnique({
@@ -245,7 +246,8 @@ router.put('/:radiologist_id', /* authenticateToken, */ async (req, res) => {
       name: name ?? existingRadiologist.name,
       email: email ?? existingRadiologist.email,
       phone_number: phone_number ?? existingRadiologist.phone_number,
-      profile_picture: profile_picture ?? existingRadiologist.profile_picture
+      profile_picture: profile_picture ?? existingRadiologist.profile_picture,
+      signature: signature ?? existingRadiologist.signature
     };
 
     // Update password if provided
