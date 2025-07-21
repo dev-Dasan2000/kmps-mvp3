@@ -289,7 +289,7 @@ const MedicalStudyInterface: React.FC = () => {
       const idsToFetch = patientIds.filter(id => !patients[id]);
       if (idsToFetch.length === 0) return;
 
-      // Fetch patients one by one to handle potential 404s for individual patients
+      // Fetch patients one by one (can handle potential 404s for individual patients)
       const fetchedPatients: Record<string, Patient> = {};
       
       for (const id of idsToFetch) {
