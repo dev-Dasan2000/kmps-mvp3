@@ -530,104 +530,232 @@ export default function ReportEditorPage() {
     try {
       setExportingPdf(true);
       
-      // First, render our custom PDF component
-      const pdfPreviewDiv = document.getElementById('pdf-preview');
-      if (!pdfPreviewDiv) {
-        toast.error('Report preview not found');
-        return;
-      }
-      
-      // Set active tab to preview to render content
-      setActiveTab('preview');
-      
-      // Replace any oklch colors in the document with standard colors
-      const elementsWithOklch = document.querySelectorAll('[style*="oklch"]');
-      elementsWithOklch.forEach(element => {
-        const el = element as HTMLElement;
-        const style = el.getAttribute('style') || '';
-        // Replace oklch colors with standard teal color
-        if (style.includes('oklch')) {
-          const newStyle = style.replace(/oklch\([^)]+\)/g, '#0d7d85');
-          el.setAttribute('style', newStyle);
-        }
-      });
-      
-      // Wait longer for rendering to ensure all content is properly displayed
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create PDF with A4 dimensions first
+      // Simple approach - create PDF directly without relying on complex color parsing
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
-        compress: true
       });
       
-      // Get total height to determine number of pages
-      const pageHeight = pdf.internal.pageSize.height;
+      // Set basic information
       const pageWidth = pdf.internal.pageSize.width;
-      const margin = 15; // mm, margins on each side
+      const pageHeight = pdf.internal.pageSize.height;
+      const margin = 15;
       const contentWidth = pageWidth - (margin * 2);
       
-      // Use html2canvas with better settings for text rendering
-      const canvas = await html2canvas(pdfPreviewDiv, {
-        scale: 2, // Higher scale for better quality
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        windowWidth: 210 * 3.78, // A4 width in pixels (at 96 DPI)
-        scrollX: 0,
-        scrollY: 0,
+      // Reset cursor position
+      let yPosition = margin;
+      
+      // Add header - simple text version instead of image
+      pdf.setFillColor(13, 125, 133); // #0d7d85 in RGB
+      pdf.rect(0, 0, pageWidth, 25, 'F');
+      
+      // Add DENTAX title
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(16);
+      pdf.text("DENTAX", margin, 15);
+      
+      // Add report title
+      pdf.setFontSize(14);
+      pdf.text("RADIOLOGY REPORT", pageWidth - margin - 45, 15);
+      
+      yPosition = 35; // Move position below header
+      
+      // Add report title
+      pdf.setTextColor(13, 125, 133); // #0d7d85 in RGB
+      pdf.setFontSize(18);
+      pdf.text("RADIOLOGY REPORT", pageWidth / 2, yPosition, { align: 'center' });
+      
+      yPosition += 10;
+      
+      // Draw a separator line
+      pdf.setDrawColor(13, 125, 133); // #0d7d85 in RGB
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+      
+      yPosition += 10;
+      
+      // Patient Information Section
+      pdf.setTextColor(13, 125, 133);
+      pdf.setFontSize(14);
+      pdf.text("Patient Information", margin, yPosition);
+      
+      yPosition += 7;
+      
+      // Reset to normal text
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(11);
+      
+      // Patient details
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Name:", margin, yPosition);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${studyData.patient?.name || 'N/A'}`, margin + 30, yPosition);
+      
+      yPosition += 6;
+      
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Patient ID:", margin, yPosition);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${studyData.patient_id || 'N/A'}`, margin + 30, yPosition);
+      
+      yPosition += 6;
+      
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Date of Birth:", margin, yPosition);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${formatDate(studyData.patient?.date_of_birth) || 'N/A'}`, margin + 30, yPosition);
+      
+      yPosition += 6;
+      
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Gender:", margin, yPosition);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${studyData.patient?.gender || 'N/A'}`, margin + 30, yPosition);
+      
+      // Study Information (right column)
+      const rightColumn = pageWidth / 2 + 10;
+      
+      // Reset y position for the right column
+      let rightColumnY = yPosition - 18;
+      
+      pdf.setTextColor(13, 125, 133);
+      pdf.setFontSize(14);
+      pdf.text("Study Information", rightColumn, rightColumnY);
+      
+      rightColumnY += 7;
+      
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(11);
+      
+      // Study details
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Study ID:", rightColumn, rightColumnY);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${studyData.study_id || 'N/A'}`, rightColumn + 30, rightColumnY);
+      
+      rightColumnY += 6;
+      
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Date:", rightColumn, rightColumnY);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${formatDate(studyData.date) || 'N/A'}`, rightColumn + 30, rightColumnY);
+      
+      rightColumnY += 6;
+      
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Modality:", rightColumn, rightColumnY);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${studyData.modality || 'N/A'}`, rightColumn + 30, rightColumnY);
+      
+      rightColumnY += 6;
+      
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Radiologist:", rightColumn, rightColumnY);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${studyData.radiologist?.name || 'N/A'}`, rightColumn + 30, rightColumnY);
+      
+      // Update position to the maximum of both columns
+      yPosition = Math.max(yPosition, rightColumnY) + 10;
+      
+      // Convert HTML report content to plain text to avoid parsing issues
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = editor.getHTML();
+      
+      // Extract sections
+      const sections = [];
+      const headings = tempDiv.querySelectorAll('h1, h2, h3');
+      
+      headings.forEach(heading => {
+        let section = {
+          title: heading.textContent || '',
+          content: ''
+        };
+        
+        // Get all next siblings until the next heading
+        let nextNode = heading.nextElementSibling;
+        while (nextNode && !['H1', 'H2', 'H3'].includes(nextNode.tagName)) {
+          // If it's a paragraph, add its text content
+          if (nextNode.tagName === 'P') {
+            section.content += nextNode.textContent + '\n\n';
+          }
+          // If it's a list, process its items
+          else if (['UL', 'OL'].includes(nextNode.tagName)) {
+            const items = nextNode.querySelectorAll('li');
+            items.forEach((item, index) => {
+              section.content += `• ${item.textContent}\n`;
+            });
+            section.content += '\n';
+          }
+          nextNode = nextNode.nextElementSibling;
+        }
+        
+        sections.push(section);
       });
       
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      
-      // Calculate image dimensions to fit A4 with margins
-      const imgWidth = contentWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      // Add image to first page
-      pdf.addImage(imgData, 'PNG', margin, margin, imgWidth, imgHeight);
-      
-      // Add more pages if content exceeds the first page
-      let heightLeft = imgHeight;
-      let position = margin;
-      
-      // Remove content from first page that will appear on subsequent pages
-      heightLeft -= (pageHeight - margin * 2);
-      position = heightLeft - margin;
-      
-      // Add new pages while content remains
-      while (heightLeft > 0) {
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, -position, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - margin * 2);
-        position += (pageHeight - margin * 2);
+      // Add sections to PDF
+      for (const section of sections) {
+        // Check if we need a new page
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        
+        // Add section title
+        pdf.setTextColor(13, 125, 133);
+        pdf.setFontSize(14);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(section.title, margin, yPosition);
+        
+        yPosition += 7;
+        
+        // Add section content
+        pdf.setTextColor(0, 0, 0);
+        pdf.setFontSize(12);
+        pdf.setFont("helvetica", "normal");
+        
+        // Split text into lines to manage wrapping
+        const textLines = pdf.splitTextToSize(section.content, contentWidth);
+        pdf.text(textLines, margin, yPosition);
+        
+        // Update position for next section
+        yPosition += textLines.length * 6 + 10;
       }
       
-      // Get total number of pages for page numbering
-      // TypeScript fix: Use internal.pages.length as a workaround
-      const totalPages = pdf.internal.pages.length - 1;
+      // Add footer on each page
+      const totalPages = pdf.internal.getNumberOfPages();
       
-      // Add page numbers to each page
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
-        pdf.setFontSize(10);
+        
+        // Add footer background
+        pdf.setFillColor(241, 245, 249); // #f1f5f9 in RGB
+        pdf.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+        
+        // Add footer text
         pdf.setTextColor(100, 100, 100);
-        pdf.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "normal");
+        
+        // Radiologist info
+        pdf.text(`Radiologist: ${studyData.radiologist?.name || 'N/A'}`, margin, pageHeight - 5);
+        
+        // Page number
+        pdf.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+        
+        // System info
+        pdf.text("Generated by Dentax Imaging System", pageWidth - margin, pageHeight - 5, { align: 'right' });
       }
       
       // Save to server if report exists
       if (reportData?.report_id) {
         try {
-          // Save HTML content to server
           await axios.post(`${backendURL}/reports/export/${reportData.report_id}`, {
             html_content: editor.getHTML()
           });
         } catch (e) {
           console.error('Error saving report to server:', e);
-          // Continue with PDF download even if server save fails
         }
       }
       
