@@ -694,7 +694,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { user, isLoadingAuth, isLoggedIn, accessToken } = useContext(AuthContext);
+  const { user, isLoadingAuth, isLoggedIn, apiClient } = useContext(AuthContext);
 
   const [searchTerm, setSearchTerm] = useState('')
   const [dentist, setDentist] = useState<Dentist | null>(null)
@@ -746,7 +746,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
   // Fetch consent forms
   const fetchConsentForms = useCallback(async (patientId: string) => {
     try {
-      const response = await axios.get(`${backendURL}/consent-forms/patient/${patientId}`);
+      const response = await apiClient.get(`/consent-forms/patient/${patientId}`);
       if (response.status === 200) {
         setConsentForms(response.data);
       }
@@ -762,7 +762,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
 
     setSubmittingConsentForm(true);
     try {
-      const response = await axios.post(`${backendURL}/consent-forms`, {
+      const response = await apiClient.post(`/consent-forms`, {
         patient_id: selectedPatient.patient_id,
         dentist_id: user.id,
         procedure_details: procedureDetails,
@@ -788,7 +788,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
 
     setSigningForm(true);
     try {
-      const response = await axios.put(`${backendURL}/consent-forms/${selectedFormId}`, {
+      const response = await apiClient.put(`/consent-forms/${selectedFormId}`, {
         status: 'signed',
         sign: doctorName,
         signed_date: new Date().toISOString().split('T')[0]
@@ -820,7 +820,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
   const handleViewForm = useCallback(async (form: any) => {
     try {
       // Fetch complete consent form data including patient details
-      const response = await axios.get(`${backendURL}/consent-forms/${form.form_id}`);
+      const response = await apiClient.get(`/consent-forms/${form.form_id}`);
       if (response.status === 200) {
         setSelectedForm(response.data);
         setIsViewFormOpen(true);
@@ -838,7 +838,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
 
     setIsDeletingForm(true);
     try {
-      const response = await axios.delete(`${backendURL}/consent-forms/${formId}`);
+      const response = await apiClient.delete(`/consent-forms/${formId}`);
       if (response.status === 200) {
         toast.success('Consent form deleted successfully');
         if (selectedPatient) {
@@ -868,7 +868,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
 
     setSubmittingConsentForm(true);
     try {
-      const response = await axios.post(`${backendURL}/consent-forms`, {
+      const response = await apiClient.post(`/consent-forms`, {
         patient_id: selectedPatient?.patient_id, // Use selectedPatient?.patient_id
         dentist_id: user?.id,
         procedure_details: newNoteText, // Use newNoteText
@@ -893,8 +893,8 @@ export default function DentistDashboard({ params }: DashboardProps) {
   const fetchPatients = async () => {
     setLoadingPatients(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/appointments/fordentist/patients/${user?.id}`
+      const response = await apiClient.get(
+        `/appointments/fordentist/patients/${user?.id}`
       );
       if (response.status == 500) {
         throw new Error("Internal Server Error");
@@ -917,8 +917,8 @@ export default function DentistDashboard({ params }: DashboardProps) {
   // New function to fetch only critical conditions
   const fetchPatientCriticalConditions = async (patient_id: string) => {
     try {
-      const response = await axios.get(
-        `${backendURL}/medical-history/${patient_id}`
+      const response = await apiClient.get(
+        `/medical-history/${patient_id}`
       );
 
       if (response.status === 200) {
@@ -962,8 +962,8 @@ export default function DentistDashboard({ params }: DashboardProps) {
   const fetchPatientMedicalHistory = async (patient_id: string) => {
     setLoadingMedicalHistory(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/medical-history/${patient_id}`
+      const response = await apiClient.get(
+        `/medical-history/${patient_id}`
       );
       if (response.status == 500) {
         throw new Error("Internal Server Error");
@@ -984,8 +984,8 @@ export default function DentistDashboard({ params }: DashboardProps) {
   const fetchPatientMedicalReports = async (patient_id: string) => {
     setLoadingMedicalReports(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/medical-reports/forpatient/${patient_id}`
+      const response = await apiClient.get(
+        `/medical-reports/forpatient/${patient_id}`
       );
       if (response.status == 500) {
         throw new Error("Internal Server Error");
@@ -1003,8 +1003,8 @@ export default function DentistDashboard({ params }: DashboardProps) {
   const fetchPatientSOAPNotes = async (patient_id: string) => {
     setLoadingSOAPNotes(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/soap-notes/forpatient/${patient_id}`
+      const response = await apiClient.get(
+        `/soap-notes/forpatient/${patient_id}`
       );
       if (response.status == 500) {
         throw new Error("Internal Server Error");
@@ -1035,7 +1035,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
 
     setDeletingNoteId(noteId);
     try {
-      await axios.delete(`${backendURL}/soap-notes/${noteId}`);
+      await apiClient.delete(`/soap-notes/${noteId}`);
       await fetchPatientSOAPNotes(selectedPatient.patient_id);
       toast.success('Note deleted successfully');
     } catch (err: any) {
@@ -1051,7 +1051,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
 
     setDeletingReportId(reportId);
     try {
-      await axios.delete(`${backendURL}/medical-reports/${reportId}`);
+      await apiClient.delete(`/medical-reports/${reportId}`);
       await fetchPatientMedicalReports(selectedPatient.patient_id);
       toast.success('Report deleted successfully');
     } catch (err: any) {
@@ -1073,7 +1073,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
     try {
       if (editingNote) {
         // Update existing note
-        await axios.put(`${backendURL}/soap-notes/${editingNote.note_id}`, {
+        await apiClient.put(`/soap-notes/${editingNote.note_id}`, {
           dentist_id: user?.id,
           patient_id: selectedPatient.patient_id,
           note: newNoteText.trim(),
@@ -1081,7 +1081,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
         toast.success('Note updated successfully');
       } else {
         // Create new note
-        await axios.post(`${backendURL}/soap-notes`, {
+        await apiClient.post(`/soap-notes`, {
           dentist_id: user?.id,
           patient_id: selectedPatient.patient_id,
           note: newNoteText.trim(),
@@ -1126,8 +1126,8 @@ export default function DentistDashboard({ params }: DashboardProps) {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const responseurl = await axios.post(
-        `${backendURL}/files`,
+      const responseurl = await apiClient.post(
+        `/files`,
         formData,
         {
           withCredentials: true,
@@ -1138,8 +1138,8 @@ export default function DentistDashboard({ params }: DashboardProps) {
         throw new Error("Error Uploading File");
       }
 
-      const response = await axios.post(
-        `${backendURL}/medical-reports`,
+      const response = await apiClient.post(
+        `/medical-reports`,
         {
           patient_id: selectedPatient.patient_id,
           record_url: responseurl.data.url,

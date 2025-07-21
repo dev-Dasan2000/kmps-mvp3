@@ -91,7 +91,7 @@ const MedicalStudyInterface: React.FC = () => {
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
   const dicomurlx = process.env.NEXT_PUBLIC_DICOM_URL || 'http://localhost:4000';
 
-  const {isLoadingAuth, user, isLoggedIn} = useContext(AuthContext);
+  const {isLoadingAuth, user, isLoggedIn, apiClient} = useContext(AuthContext);
   const router = useRouter();
 
   // Add these state variables after the other state variables
@@ -102,7 +102,7 @@ const MedicalStudyInterface: React.FC = () => {
   const openReportFile = async (reportId: number) => {
     try {
       // First fetch the report data to get the file URL and determine file type
-      const reportResponse = await axios.get(`${backendUrl}/reports/${reportId}`);
+      const reportResponse = await apiClient.get(`/reports/${reportId}`);
       const reportData = reportResponse.data;
       
       const fileUrl = reportData.report_file_url;
@@ -249,7 +249,7 @@ const MedicalStudyInterface: React.FC = () => {
   useEffect(() => {
     const fetchTodayCount = async () => {
       try {
-        const res = await axios.get(`${backendUrl}/studies/today/count`);
+        const res = await apiClient.get(`/studies/today/count`);
         const data = res.data;
         setTodayCount(data.count);
       } catch (err) {
@@ -267,7 +267,7 @@ const MedicalStudyInterface: React.FC = () => {
     }
     
     try {
-      const response = await axios.get(`${backendUrl}/patients/search?q=${encodeURIComponent(term)}`);
+      const response = await apiClient.get(`/patients/search?q=${encodeURIComponent(term)}`);
       const data = response.data;
       setPatientSearchResults(data);
       
@@ -294,7 +294,7 @@ const MedicalStudyInterface: React.FC = () => {
       
       for (const id of idsToFetch) {
         try {
-          const response = await axios.get(`${backendUrl}/patients/${id}`);
+          const response = await apiClient.get(`/patients/${id}`);
           const patient = response.data;
           fetchedPatients[patient.patient_id || id] = patient;
         } catch (err) {
@@ -317,7 +317,7 @@ const MedicalStudyInterface: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`${backendUrl}/studies`);
+        const response = await apiClient.get(`/studies`);
         const data = response.data;
         const normalized = data.map((s: any) => normalizeStudy(s));
         setStudies(normalized);
@@ -347,7 +347,7 @@ const MedicalStudyInterface: React.FC = () => {
     const fetchStaff = async () => {
       try {
         // Radiologists
-        const radRes = await axios.get(`${backendUrl}/radiologists`);
+        const radRes = await apiClient.get(`/radiologists`);
         const radData = radRes.data;
         const mappedRads = radData.map((r: any) => ({
           id: r.radiologist_id ?? r.id,
@@ -357,7 +357,7 @@ const MedicalStudyInterface: React.FC = () => {
         setRadiologists(mappedRads);
 
         // Doctors (dentists)
-        const docRes = await axios.get(`${backendUrl}/dentists`);
+        const docRes = await apiClient.get(`/dentists`);
         const docData = docRes.data;
         const mappedDocs = docData.map((d: any) => ({
           id: d.dentist_id ?? d.id,
@@ -460,7 +460,7 @@ const MedicalStudyInterface: React.FC = () => {
           const dicomFormData = new FormData();
           dicomFormData.append('file', newStudy.dicom_files[0]);
 
-          const dicomResponse = await axios.post(`${backendUrl}/files`, dicomFormData);
+          const dicomResponse = await apiClient.post(`/files`, dicomFormData);
           const dicomData = dicomResponse.data;
           dicomFileUrl = dicomData.url;
           console.log('DICOM file uploaded successfully:', dicomFileUrl);
@@ -478,7 +478,7 @@ const MedicalStudyInterface: React.FC = () => {
             folderFormData.append('files', file, `${folderPath}|${file.name}`);
           }
 
-          const folderResponse = await axios.post(`${backendUrl}/files/folder`, folderFormData);
+          const folderResponse = await apiClient.post(`/files/folder`, folderFormData);
           const folderData = folderResponse.data;
           // Use the first URL as the main reference URL
           dicomFileUrl = folderData.urls[0] || '';
@@ -486,7 +486,7 @@ const MedicalStudyInterface: React.FC = () => {
         }
       } catch (error) {
         console.error('Error uploading DICOM files:', error);
-        if (axios.isAxiosError(error) && error.response) {
+        if (apiClient.isAxiosError(error) && error.response) {
           setError(`Failed to upload DICOM files: ${error.response.data.message || error.message}`);
         } else {
           setError('Failed to upload DICOM files. Please try again.');
@@ -502,7 +502,7 @@ const MedicalStudyInterface: React.FC = () => {
           const reportFormData = new FormData();
           reportFormData.append('file', newStudy.report_files[0]);
 
-          const reportResponse = await axios.post(`${backendUrl}/files`, reportFormData);
+          const reportResponse = await apiClient.post(`/files`, reportFormData);
           const reportData = reportResponse.data;
           reportFileUrl = reportData.url;
           console.log('Report file uploaded successfully:', reportFileUrl);
@@ -528,7 +528,7 @@ const MedicalStudyInterface: React.FC = () => {
 
       // Step 5: Submit study to backend
       try {
-        const studyResponse = await axios.post(`${backendUrl}/studies`, studyPayload);
+        const studyResponse = await apiClient.post(`/studies`, studyPayload);
         const newStudyData = studyResponse.data;
         console.log('Study created successfully:', newStudyData);
 
@@ -551,7 +551,7 @@ const MedicalStudyInterface: React.FC = () => {
         });
 
         // Step 4: Create new report record in reports table
-        const ReportResponse = await axios.post(`${backendUrl}/reports`, {
+        const ReportResponse = await apiClient.post(`/reports`, {
           report_file_url: reportFileUrl,
           status: 'new',
           study_id: newStudyData.study_id,
@@ -561,7 +561,7 @@ const MedicalStudyInterface: React.FC = () => {
         console.log('Report created successfully:', reportData);
 
         // Step 5: Update study with report ID
-        const updateStudyResponse = await axios.put(`${backendUrl}/studies/${newStudyData.study_id}`, {
+        const updateStudyResponse = await apiClient.put(`/studies/${newStudyData.study_id}`, {
           report_id: reportData.report_id,
         });
 
@@ -570,7 +570,7 @@ const MedicalStudyInterface: React.FC = () => {
         toast.success("Study Updated Successfully");
       } catch (error) {
         console.error('Error creating study:', error);
-        if (axios.isAxiosError(error) && error.response) {
+        if (apiClient.isAxiosError(error) && error.response) {
           setError(`Failed to create study: ${error.response.data.message || error.message}`);
         } else {
           setError('Failed to create study. Please try again.');
@@ -579,7 +579,7 @@ const MedicalStudyInterface: React.FC = () => {
       }
     } catch (error) {
       console.error('Unexpected error in study submission:', error);
-      const errorMessage = axios.isAxiosError(error) && error.response
+      const errorMessage = apiClient.isAxiosError(error) && error.response
         ? `An error occurred: ${error.response.data.message || error.message}`
         : 'An unexpected error occurred. Please try again.';
       setError(errorMessage);
@@ -598,7 +598,7 @@ const MedicalStudyInterface: React.FC = () => {
         doctor_ids: assignmentForm.doctor_ids
       };
 
-      const res = await axios.put(`${backendUrl}/studies/${selectedStudyId}`, payload);
+      const res = await apiClient.put(`/studies/${selectedStudyId}`, payload);
       const updatedRaw = res.data;
       const updatedStudy: Study = normalizeStudy(updatedRaw);
 
@@ -627,7 +627,7 @@ const MedicalStudyInterface: React.FC = () => {
     }
 
     try {
-      await axios.delete(`${backendUrl}/studies/${studyId}`);
+      await apiClient.delete(`/studies/${studyId}`);
 
       // Only update the UI if the backend deletion was successful
       setStudies(prev => prev.filter(study => study.study_id !== studyId));
@@ -736,7 +736,7 @@ const MedicalStudyInterface: React.FC = () => {
               // Extract the file name from the URL
               const fileName = studyToEdit.dicom_file_url.split('/').pop();
               if (fileName) {
-                const deleteResponse = await axios.delete(`${backendUrl}/files/${fileName}`);
+                const deleteResponse = await apiClient.delete(`/files/${fileName}`);
 
                 if (deleteResponse.status !== 200) {
                   console.warn(`Warning: Could not delete old DICOM file: ${deleteResponse.status}`);
@@ -751,7 +751,7 @@ const MedicalStudyInterface: React.FC = () => {
           const dicomFormData = new FormData();
           dicomFormData.append('file', newStudy.dicom_files[0]);
 
-          const dicomResponse = await axios.post(`${backendUrl}/files`, dicomFormData);
+          const dicomResponse = await apiClient.post(`/files`, dicomFormData);
           const dicomData = dicomResponse.data;
           dicomFileUrl = dicomData.url;
           console.log('DICOM file uploaded successfully:', dicomFileUrl);
@@ -770,7 +770,7 @@ const MedicalStudyInterface: React.FC = () => {
               // Extract the file name from the URL
               const fileName = studyToEdit.dicom_file_url.split('/').pop();
               if (fileName) {
-                const deleteResponse = await axios.delete(`${backendUrl}/files/${fileName}`);
+                const deleteResponse = await apiClient.delete(`/files/${fileName}`);
 
                 if (deleteResponse.status !== 200) {
                   console.warn(`Warning: Could not delete old DICOM file: ${deleteResponse.status}`);
@@ -794,7 +794,7 @@ const MedicalStudyInterface: React.FC = () => {
             folderFormData.append('files', file, `${folderPath}|${file.name}`);
           }
 
-          const folderResponse = await axios.post(`${backendUrl}/files/folder`, folderFormData);
+          const folderResponse = await apiClient.post(`/files/folder`, folderFormData);
           const folderData = folderResponse.data;
           // Use the first URL as the main reference URL
           dicomFileUrl = folderData.urls[0] || '';
@@ -812,7 +812,7 @@ const MedicalStudyInterface: React.FC = () => {
       // If there's an existing report, get its file URL
       if (studyToEdit.report_id) {
         try {
-          const reportResponse = await axios.get(`${backendUrl}/reports/${studyToEdit.report_id}`);
+          const reportResponse = await apiClient.get(`/reports/${studyToEdit.report_id}`);
           const reportData = reportResponse.data;
           reportFileUrl = reportData.report_file_url || '';
         } catch (error) {
@@ -827,7 +827,7 @@ const MedicalStudyInterface: React.FC = () => {
             try {
               const fileName = reportFileUrl.split('/').pop();
               if (fileName) {
-                const deleteResponse = await axios.delete(`${backendUrl}/files/${fileName}`);
+                const deleteResponse = await apiClient.delete(`/files/${fileName}`);
 
                 if (deleteResponse.status !== 200) {
                   console.warn(`Warning: Could not delete old report file: ${deleteResponse.status}`);
@@ -842,7 +842,7 @@ const MedicalStudyInterface: React.FC = () => {
           const reportFormData = new FormData();
           reportFormData.append('file', newStudy.report_files[0]);
 
-          const reportResponse = await axios.post(`${backendUrl}/files`, reportFormData);
+          const reportResponse = await apiClient.post(`/files`, reportFormData);
           const reportData = reportResponse.data;
           reportFileUrl = reportData.url;
           console.log('Report file uploaded successfully:', reportFileUrl);
@@ -867,7 +867,7 @@ const MedicalStudyInterface: React.FC = () => {
       };
 
       // Update study via PUT request
-      const studyResponse = await axios.put(`${backendUrl}/studies/${studyToEdit.study_id}`, studyPayload);
+      const studyResponse = await apiClient.put(`/studies/${studyToEdit.study_id}`, studyPayload);
       const updatedStudyData = studyResponse.data;
       console.log('Study updated successfully:', updatedStudyData);
       setisuploading(false);
@@ -888,10 +888,10 @@ const MedicalStudyInterface: React.FC = () => {
 
         const reportMethod = studyToEdit.report_id ? 'PUT' : 'POST';
         const reportEndpoint = studyToEdit.report_id
-          ? `${backendUrl}/reports/${studyToEdit.report_id}`
-          : `${backendUrl}/reports`;
+          ? `/reports/${studyToEdit.report_id}`
+          : `/reports`;
 
-        const reportResponse = await axios.request({
+        const reportResponse = await apiClient.request({
           method: reportMethod,
           url: reportEndpoint,
           data: reportPayload

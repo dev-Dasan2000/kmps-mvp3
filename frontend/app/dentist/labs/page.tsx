@@ -4,9 +4,6 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { Loader, Calendar, Clock, User, MapPin, Phone, Mail, Package, FileText, AlertCircle, CheckCircle, Eye, Edit, Plus, Filter, X, CircleCheckBig } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { DentistLabOrderForm } from '@/components/DentistLabOrderForm';
 import { Search } from '@/components/ui/search';
@@ -127,7 +124,7 @@ const DentalLabModule = () => {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { user, isLoggedIn, isLoadingAuth, accessToken } = useContext(AuthContext);
+  const { user, isLoggedIn, isLoadingAuth, apiClient } = useContext(AuthContext);
 
   const router = useRouter();
 
@@ -190,8 +187,8 @@ const DentalLabModule = () => {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-      const fetchedOrders = await axios.get(
-        `${backendURL}/orders/fordentist/${user.id}`
+      const fetchedOrders = await apiClient.get(
+        `/orders/fordentist/${user.id}`
       );
       if (fetchedOrders.status == 500) {
         throw new Error("Error fetching orders");
@@ -213,8 +210,8 @@ const DentalLabModule = () => {
   const fetchStages = async () => {
     setLoadingStages(true);
     try {
-      const stagesres = await axios.get(
-        `${backendURL}/stages`
+      const stagesres = await apiClient.get(
+        `/stages`
       );
       if (stagesres.status == 500) {
         throw new Error("Internal Server Error");
@@ -236,8 +233,8 @@ const DentalLabModule = () => {
   const fetchStageAssigns = async () => {
     setLoadingStageAssigns(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/stage-assign`
+      const res = await apiClient.get(
+        `/stage-assign`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -259,8 +256,8 @@ const DentalLabModule = () => {
   const fetchLabs = async () => {
     setLoadingLabs(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/labs`
+      const res = await apiClient.get(
+        `/labs`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -282,8 +279,8 @@ const DentalLabModule = () => {
   const fetchWorkTypes = async () => {
     setLoadingWorkTypes(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/work-types`
+      const res = await apiClient.get(
+        `/work-types`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -305,8 +302,8 @@ const DentalLabModule = () => {
   const fetchPatients = async () => {
     setLoadingPatients(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/patients`
+      const res = await apiClient.get(
+        `/patients`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -328,8 +325,8 @@ const DentalLabModule = () => {
   const fetchDentists = async () => {
     setLoadingDentists(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/dentists`
+      const res = await apiClient.get(
+        `/dentists`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -351,8 +348,8 @@ const DentalLabModule = () => {
   const fetchShades = async () => {
     setLoadingShades(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/shades`
+      const res = await apiClient.get(
+        `/shades`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -374,8 +371,8 @@ const DentalLabModule = () => {
   const fetchMaterials = async () => {
     setLoadingMaterials(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/material-types`
+      const res = await apiClient.get(
+        `/material-types`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -1161,8 +1158,8 @@ const DentalLabModule = () => {
               setCreatingOrder(true);
               try {
                 // Create order
-                const orderRes = await axios.post(
-                  `${backendURL}/orders`,
+                const orderRes = await apiClient.post(
+                  `/orders`,
                   {
                     patient_id: data.patient_id,
                     dentist_id: data.dentist_id,
@@ -1193,15 +1190,15 @@ const DentalLabModule = () => {
                   const formData = new FormData();
                   formData.append("file", file);
 
-                  const fileRes = await axios.post(`${backendURL}/files`, formData, {
+                  const fileRes = await apiClient.post(`/files`, formData, {
                     headers: {
                       "Content-Type": "multipart/form-data"
                     },
                     withCredentials: true
                   });
 
-                  await axios.post(
-                    `${backendURL}/order-files`,
+                  await apiClient.post(
+                    `/order-files`,
                     {
                       url: fileRes.data.url,
                       order_id: orderRes.data

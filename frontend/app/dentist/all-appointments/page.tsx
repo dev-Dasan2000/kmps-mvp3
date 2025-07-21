@@ -76,7 +76,7 @@ export default function AllAppointmentsPage() {
   const [matchingAppointments, setMatchingAppointments] = useState<Appointment[]>([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState<number>(-1);
 
-  const {isLoadingAuth, isLoggedIn, user, accessToken} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
   const router = useRouter();
 
   // Simplified match checking function
@@ -190,7 +190,7 @@ export default function AllAppointmentsPage() {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const response = await axios.get(`${backendUrl}/dentists`);
+        const response = await apiClient.get(`${backendUrl}/dentists`);
         setDoctors(response.data);
       } catch (err) {
         setError('Failed to fetch doctors');
@@ -209,12 +209,12 @@ export default function AllAppointmentsPage() {
         
         // Fetch appointments for all doctors
         const appointmentsPromises = doctors.map(doctor =>
-          axios.get(`${backendUrl}/appointments/fordentist/${doctor.dentist_id}`)
+          apiClient.get(`${backendUrl}/appointments/fordentist/${doctor.dentist_id}`)
         );
         
         // Fetch blocked dates for all doctors
         const blockedDatesPromises = doctors.map(doctor =>
-          axios.get(`${backendUrl}/blocked-dates/fordentist/${doctor.dentist_id}`)
+          apiClient.get(`${backendUrl}/blocked-dates/fordentist/${doctor.dentist_id}`)
         );
 
         const [appointmentsResponses, blockedDatesResponses] = await Promise.all([

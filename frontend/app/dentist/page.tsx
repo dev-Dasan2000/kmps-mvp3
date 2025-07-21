@@ -38,7 +38,7 @@ type Appointment = {
 const DentalDashboard = () => {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const {user, isLoggedIn, isLoadingAuth, accessToken} = useContext(AuthContext);
+  const {user, isLoggedIn, isLoadingAuth, apiClient} = useContext(AuthContext);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isMobile, setIsMobile] = useState(false);
@@ -69,8 +69,8 @@ const DentalDashboard = () => {
   const fetchAppointmentsForDate = async (date: Date) => {
     try {
       // First, fetch all appointments for the dentist
-      const response = await axios.get(
-        `${backendURL}/appointments/fordentist/${user.id}`
+      const response = await apiClient.get(
+        `/appointments/fordentist/${user.id}`
       );
       
       if (response.status === 200) {
@@ -132,8 +132,8 @@ const DentalDashboard = () => {
     setLoadingUpcomingAppointments(true);
     try {
       // First, fetch all future appointments for the dentist
-      const response = await axios.get(
-        `${backendURL}/appointments/fordentist/${user.id}`
+      const response = await apiClient.get(
+        `/appointments/fordentist/${user.id}`
       );
       
       if (response.status === 200) {
@@ -196,8 +196,8 @@ const DentalDashboard = () => {
   const updateStatusChange = async() => {
     setChangingStatus(true);
     try{
-      const response = await axios.put(
-        `${backendURL}/appointments/${appointment_id}`,
+      const response = await apiClient.put(
+        `/appointments/${appointment_id}`,
         {
           status: status
         },{
@@ -308,8 +308,8 @@ const DentalDashboard = () => {
 
       // If cancelling, send the note to the server
       if (newStatus === 'cancelled') {
-        await axios.put(
-          `${backendURL}/appointments/${appointmentId}`,
+        await apiClient.put(
+          `/appointments/${appointmentId}`,
           {
             status: newStatus,
             note: note
@@ -373,8 +373,8 @@ const DentalDashboard = () => {
   const handleConfirmCancel = async (note: string) => {
     if (selectedAppointment) {
       try {
-        await axios.put(
-          `${backendURL}/appointments/${selectedAppointment.appointment_id}`,
+        await apiClient.put(
+          `/appointments/${selectedAppointment.appointment_id}`,
           {
             status: 'cancelled',
             cancel_note: note

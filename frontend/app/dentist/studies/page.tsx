@@ -99,7 +99,7 @@ const MedicalStudyInterface: React.FC = () => {
   const openReportFile = async (reportId: number) => {
     try {
       // First fetch the report data to get the file URL and determine file type
-      const reportResponse = await axios.get(`${backendUrl}/reports/${reportId}`);
+      const reportResponse = await apiClient.get(`/reports/${reportId}`);
       const reportData = reportResponse.data;
       
       const fileUrl = reportData.report_file_url;
@@ -147,7 +147,7 @@ const MedicalStudyInterface: React.FC = () => {
   const [patients, setPatients] = useState<Record<string, any>>({});
 
   // Get current user from auth context
-  const { user, isLoggedIn, isLoadingAuth, accessToken } = useContext(AuthContext);
+  const { user, isLoggedIn, isLoadingAuth, apiClient } = useContext(AuthContext);
   const router = useRouter();
 
   useEffect(()=>{
@@ -181,7 +181,7 @@ const MedicalStudyInterface: React.FC = () => {
   useEffect(() => {
     const fetchTodayCount = async () => {
       try {
-        const res = await axios.get(`${backendUrl}/studies/today/count`);
+        const res = await apiClient.get(`/studies/today/count`);
         if (res.status === 200) {
           const data = res.data;
           setTodayCount(data.count);
@@ -205,7 +205,7 @@ const MedicalStudyInterface: React.FC = () => {
       const fetchedPatients: Record<string, any> = {};
       for (const id of idsToFetch) {
         try {
-          const response = await axios.get(`${backendUrl}/patients/${id}`);
+          const response = await apiClient.get(`/patients/${id}`);
           const patient = response.data;
           fetchedPatients[patient.patient_id || id] = patient;
         } catch (error) {
@@ -226,7 +226,7 @@ const MedicalStudyInterface: React.FC = () => {
       setError(null);
       try {
         // Fetch studies assigned to this dentist
-        const response = await axios.get(`${backendUrl}/studies/dentist/${user.id}`, {
+        const response = await apiClient.get(`/studies/dentist/${user.id}`, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -263,7 +263,7 @@ const MedicalStudyInterface: React.FC = () => {
     const fetchStaff = async () => {
       try {
         // Radiologists
-        const radRes = await axios.get(`${backendUrl}/radiologists`);
+        const radRes = await apiClient.get(`/radiologists`);
         const radData = radRes.data;
         const mappedRads = radData.map((r: any) => ({
           id: r.radiologist_id ?? r.id,
@@ -273,7 +273,7 @@ const MedicalStudyInterface: React.FC = () => {
         setRadiologists(mappedRads);
 
         // Doctors (dentists)
-        const docRes = await axios.get(`${backendUrl}/dentists`);
+        const docRes = await apiClient.get(`/dentists`);
         const docData = docRes.data;
         const mappedDocs = docData.map((d: any) => ({
           id: d.dentist_id ?? d.id,
@@ -300,7 +300,7 @@ const MedicalStudyInterface: React.FC = () => {
         doctor_ids: assignmentForm.doctor_ids
       };
 
-      const res = await axios.put(`${backendUrl}/studies/${selectedStudyId}`, payload, {
+      const res = await apiClient.put(`/studies/${selectedStudyId}`, payload, {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -335,7 +335,7 @@ const MedicalStudyInterface: React.FC = () => {
     }
 
     try {
-      await axios.delete(`${backendUrl}/studies/${studyId}`);
+      await apiClient.delete(`/studies/${studyId}`);
 
       // Only update the UI if the backend deletion was successful
       setStudies(prev => prev.filter(study => study.study_id !== studyId));
