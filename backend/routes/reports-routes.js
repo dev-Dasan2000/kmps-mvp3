@@ -1,12 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateToken } from '../middleware/authentication.js';
+// import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get all reports
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
+router.get('/', /* authenticateToken, */ async (req, res) => {
   try {
     const reports = await prisma.reports.findMany({
       include: {
@@ -21,7 +21,7 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
 });
 
 // Get report by ID
-router.get('/:report_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/:report_id', /* authenticateToken, */ async (req, res) => {
   try {
     const report = await prisma.reports.findUnique({
       where: { report_id: parseInt(req.params.report_id) },
@@ -47,7 +47,7 @@ router.get('/:report_id',  /*authenticateToken,*/  async (req, res) => {
 });
 
 // Get reports by study ID
-router.get('/study/:study_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/study/:study_id', /* authenticateToken, */ async (req, res) => {
   try {
     const study = await prisma.study.findUnique({
       where: { study_id: parseInt(req.params.study_id) },
@@ -85,9 +85,9 @@ router.get('/study/:study_id',  /*authenticateToken,*/  async (req, res) => {
 });
 
 // Create a new report
-router.post('/',  /*authenticateToken,*/  async (req, res) => {
+router.post('/', /* authenticateToken, */ async (req, res) => {
   try {
-    const { study_id, status, report_file_url } = req.body;
+    const { study_id, status, report_file_url, content } = req.body;
 
     // Check if study exists
     const study = await prisma.study.findUnique({
@@ -103,15 +103,20 @@ router.post('/',  /*authenticateToken,*/  async (req, res) => {
       return res.status(400).json({ error: 'A report already exists for this study' });
     }
 
+    // Prepare data for report creation
+    const reportData = {
+      status,
+      report_file_url,
+      content,
+      finalized_at: status === 'finalized' ? new Date() : null,
+      studies: {
+        connect: { study_id: parseInt(study_id) }
+      }
+    };
+
     // Create the report
     const newReport = await prisma.reports.create({
-      data: {
-        status,
-        report_file_url,
-        studies: {
-          connect: { study_id: parseInt(study_id) }
-        }
-      },
+      data: reportData,
       include: {
         studies: true
       }
@@ -125,10 +130,10 @@ router.post('/',  /*authenticateToken,*/  async (req, res) => {
 });
 
 // Update a report
-router.put('/:report_id',  /*authenticateToken,*/  async (req, res) => {
+router.put('/:report_id', /* authenticateToken, */ async (req, res) => {
   try {
     const reportId = parseInt(req.params.report_id);
-    const { status, report_file_url } = req.body;
+    const { status, report_file_url, content } = req.body;
 
     // Check if report exists
     const existingReport = await prisma.reports.findUnique({
@@ -139,12 +144,18 @@ router.put('/:report_id',  /*authenticateToken,*/  async (req, res) => {
       return res.status(404).json({ error: 'Report not found' });
     }
 
+    // Check if report is being finalized
+    const isBeingFinalized = status === 'finalized' && existingReport.status !== 'finalized';
+
     // Update the report
     const updatedReport = await prisma.reports.update({
       where: { report_id: reportId },
       data: {
         status: status ?? existingReport.status,
-        report_file_url: report_file_url ?? existingReport.report_file_url
+        report_file_url: report_file_url ?? existingReport.report_file_url,
+        content: content ?? existingReport.content,
+        updated_at: new Date().toISOString(),
+        finalized_at: isBeingFinalized ? new Date() : existingReport.finalized_at
       }
     });
 
@@ -156,7 +167,7 @@ router.put('/:report_id',  /*authenticateToken,*/  async (req, res) => {
 });
 
 // Delete a report
-router.delete('/:report_id',  /*authenticateToken,*/  async (req, res) => {
+router.delete('/:report_id', /* authenticateToken, */ async (req, res) => {
   try {
     const reportId = parseInt(req.params.report_id);
 
@@ -184,6 +195,43 @@ router.delete('/:report_id',  /*authenticateToken,*/  async (req, res) => {
   } catch (error) {
     console.error('Error deleting report:', error);
     res.status(500).json({ error: 'Failed to delete report' });
+  }
+});
+
+// Export a report to PDF
+router.post('/export/:report_id', /* authenticateToken, */ async (req, res) => {
+  try {
+    const reportId = parseInt(req.params.report_id);
+    const { html_content } = req.body;
+
+    // Check if report exists
+    const existingReport = await prisma.reports.findUnique({
+      where: { report_id: reportId }
+    });
+    
+    if (!existingReport) {
+      return res.status(404).json({ error: 'Report not found' });
+    }
+
+    // Here PDF generation on the server if needed
+    // For now we'll just update the report content and file URL
+
+    const fileName = `report_${reportId}_${new Date().toISOString().slice(0,10)}.pdf`;
+    const report_file_url = `/reports/${fileName}`;
+
+    // Update the report with PDF information
+    await prisma.reports.update({
+      where: { report_id: reportId },
+      data: {
+        content: html_content,
+        report_file_url
+      }
+    });
+
+    res.json({ success: true, file_url: report_file_url });
+  } catch (error) {
+    console.error('Error exporting report as PDF:', error);
+    res.status(500).json({ error: 'Failed to export report' });
   }
 });
 
