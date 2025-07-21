@@ -1,3 +1,65 @@
+/* Report Header Styles */
+.reportHeader {
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+}
+
+.reportTitle {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+}
+
+.reportTitle h1 {
+  font-size: 1.875rem !important;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 !important;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.infoSection {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.infoSection h2 {
+  font-size: 1.25rem !important;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 1rem 0 !important;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.infoGrid dl {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem 1.5rem;
+  margin: 0;
+}
+
+.infoGrid dt {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.infoGrid dd {
+  margin: 0;
+  color: #1e293b;
+  font-weight: 500;
+}
+
 /* Report Editor Styles */
 .editorContent {
   min-height: calc(100vh - 16rem); /* Account for fixed header, toolbar, and footer */
