@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Trash2, Edit } from "lucide-react";
+import { Search, Trash2, Edit, X } from "lucide-react";
 import { AddStaffDialog } from '@/components/AddStaffDialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -60,6 +61,8 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<number | null>(null);
   const router = useRouter();
 
   const filteredStaff = employees.filter(staff => 
@@ -77,13 +80,16 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this employee?')) {
-      return;
-    }
+    setEmployeeToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!employeeToDelete) return;
 
     setIsLoading(true);
     try {
-      const response = await apiClient.delete(`/hr/employees/${id}`, {
+      const response = await apiClient.delete(`/hr/employees/${employeeToDelete}`, {
         withCredentials: true
       });
 
@@ -106,6 +112,8 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
       }
     } finally {
       setIsLoading(false);
+      setDeleteDialogOpen(false);
+      setEmployeeToDelete(null);
     }
   };
 
@@ -150,10 +158,19 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
             <Input 
               placeholder="Search staff..." 
-              className="pl-8"
+              className="pl-8 pr-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
           <Button 
             className='bg-emerald-500 hover:bg-emerald-600 text-white' 
@@ -293,7 +310,43 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
             isEditing={true}
           />
         )}
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) {
+              setEmployeeToDelete(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900">Confirm Employee Deletion</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-700">Are you sure you want to delete this employee? This action cannot be undone.</p>
+            </div>
+            <DialogFooter className="flex space-x-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+                className="px-4"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700 text-white px-4"
+              >
+                Delete Employee
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
-}  
+}    

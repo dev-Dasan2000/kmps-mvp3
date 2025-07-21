@@ -1,7 +1,7 @@
 "use client"
 
 import { useContext, useEffect, useState } from "react"
-import { ChevronDown, ChevronLeft, ChevronRight, Plus, Search, Filter, CalendarIcon } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, Search, Filter, CalendarIcon, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
@@ -168,8 +168,16 @@ export default function AppointmentBooking() {
                 placeholder="Search appointments"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white text-sm"
+                className="pl-10 pr-10 bg-white text-sm"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <div className="flex gap-2 ">
 
@@ -249,7 +257,7 @@ export default function AppointmentBooking() {
                   <ChevronDown className="h-4 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent className="mx-1 md:mx-0" align="end">
                 <DropdownMenuItem onClick={() => setCalendarView("week")}>Calendar view</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCalendarView("room")}>Room view</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setCalendarView("list")}>List view</DropdownMenuItem>

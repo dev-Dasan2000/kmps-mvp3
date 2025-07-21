@@ -1091,8 +1091,17 @@ const MedicalStudyInterface: React.FC = () => {
                   placeholder="Search..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className="w-full pl-10 pr-10 py-2 border border-emerald-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
@@ -1403,6 +1412,7 @@ const MedicalStudyInterface: React.FC = () => {
                     Patient ID <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <input
                       type="text"
                       value={patientSearchTerm}
@@ -1444,8 +1454,26 @@ const MedicalStudyInterface: React.FC = () => {
                         }
                       }, 200)}
                       placeholder="Search by patient name or ID..."
-                      className={`w-full px-3 py-2 border ${!patientValidated ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent`}
+                      className={`w-full pl-10 pr-10 py-2 border ${!patientValidated ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent`}
                     />
+                    {patientSearchTerm && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPatientSearchTerm("");
+                          setNewStudy(prev => ({
+                            ...prev,
+                            patient_id: '',
+                            patient_name: ''
+                          }));
+                          setPatientValidated(false);
+                          setPatientErrorMessage('');
+                        }}
+                        className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                     {showPatientDropdown && patientSearchResults.length > 0 && (
                       <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
                         {patientSearchResults.map((patient) => (

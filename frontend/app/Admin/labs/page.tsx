@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { headers } from 'next/headers';
 import { LabOrderForm } from '@/components/LabOrderForm';
-import { Search } from '@/components/ui/search';
+import { Search as SearchIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 // ======================== TYPES ========================
@@ -790,13 +790,24 @@ const DentalLabModule = () => {
           </div>
 
           <div className="flex gap-4 mb-4">
-            <div className="flex-1">
-              <Search
-                value={orderSearchQuery}
-                onChange={(value) => setOrderSearchQuery(value)}
+            <div className="flex-1 relative">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
                 placeholder="Search orders..."
-                className="w-full"
+                value={orderSearchQuery}
+                onChange={(e) => setOrderSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
+              {orderSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setOrderSearchQuery("")}
+                  className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <select
               value={selectedPriority}
@@ -1199,12 +1210,25 @@ const DentalLabModule = () => {
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold">Labs</h2>
           <div className="flex gap-4 items-center">
-            <Search
-              value={labSearchQuery}
-              onChange={(value) => setLabSearchQuery(value)}
-              placeholder="Search labs..."
-              className="w-64"
-            />
+            <div className="relative w-64">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search labs..."
+                value={labSearchQuery}
+                onChange={(e) => setLabSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+              {labSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setLabSearchQuery("")}
+                  className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
             <button
               onClick={() => setShowInviteDialog(true)}
               className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600 transition-colors flex items-center gap-2"
@@ -1446,13 +1470,24 @@ const DentalLabModule = () => {
             <h2 className="text-xl font-semibold text-gray-900">Lab Requests</h2>
           </div>
           <div className="flex gap-4 mb-4">
-            <div className="flex-1">
-              <Search
-                value={requestSearchQuery}
-                onChange={(value) => setRequestSearchQuery(value)}
+            <div className="flex-1 relative">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
                 placeholder="Search requests..."
-                className="w-full"
+                value={requestSearchQuery}
+                onChange={(e) => setRequestSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
+              {requestSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setRequestSearchQuery("")}
+                  className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
             <select
               value={selectedPriority}
