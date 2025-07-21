@@ -239,6 +239,10 @@ model reports {
   report_id       Int      @id @default(autoincrement())
   status          String
   report_file_url String?
+  content         String?  @db.Text
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now())
+  finalized_at    DateTime?
   studies         study[]
 }
 
