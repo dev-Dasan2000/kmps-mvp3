@@ -199,6 +199,42 @@ export default function ReportEditorPage() {
     `;
   };
 
+  // Function to handle image selection
+  const handleImageClick = (view: any, event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'IMG') {
+      const img = target as HTMLImageElement;
+      
+      // Remove selected class from any previously selected image
+      document.querySelectorAll('.ProseMirror img.selected').forEach(el => {
+        el.classList.remove('selected');
+      });
+      
+      // Add selected class to current image
+      img.classList.add('selected');
+      
+      setSelectedImage(img);
+      
+      // Calculate current size percentage
+      const currentWidth = img.width;
+      const naturalWidth = img.naturalWidth;
+      const currentSize = Math.round((currentWidth / naturalWidth) * 100);
+      setImageSize(currentSize);
+      
+      return true;
+    } else {
+      // Only remove selection if clicking outside the toolbar
+      const clickTarget = event.target as HTMLElement;
+      if (!clickTarget.closest('.image-toolbar')) {
+        setSelectedImage(null);
+        document.querySelectorAll('.ProseMirror img.selected').forEach(el => {
+          el.classList.remove('selected');
+        });
+      }
+    }
+    return false;
+  };
+
   // Set up TipTap editor
   const editor = useEditor({
     extensions: [
@@ -238,34 +274,22 @@ export default function ReportEditorPage() {
         },
       }),
       Image.configure({
-        inline: true,
+        inline: false, // Change to block image for better alignment
         allowBase64: true,
         HTMLAttributes: {
-          class: 'cursor-pointer hover:outline hover:outline-2 hover:outline-blue-500',
+          class: 'cursor-pointer hover:outline hover:outline-2 hover:outline-blue-500 max-w-full',
         },
       }),
       TextAlign.configure({
-        types: ['heading', 'paragraph', 'bulletList', 'orderedList'],
-        alignments: ['left', 'center', 'right', 'justify'],
+        types: ['heading', 'paragraph', 'image'],
+        alignments: ['left', 'center', 'right'],
         defaultAlignment: 'left',
       }),
     ],
     content: '',
     editorProps: {
       handleDOMEvents: {
-        click: (view, event) => {
-          const target = event.target as HTMLElement;
-          if (target.tagName === 'IMG') {
-            setSelectedImage(target as HTMLImageElement);
-            const currentWidth = (target as HTMLImageElement).width;
-            const naturalWidth = (target as HTMLImageElement).naturalWidth;
-            setImageSize(Math.round((currentWidth / naturalWidth) * 100));
-            return true;
-          } else {
-            setSelectedImage(null);
-          }
-          return false;
-        },
+        click: handleImageClick,
       },
       attributes: {
         class: 'prose max-w-none p-4 h-full focus:outline-none'
@@ -637,35 +661,72 @@ export default function ReportEditorPage() {
     editor.view.dispatch(editor.view.state.tr.setMeta('addToHistory', false));
   };
 
-  // Function to handle image selection
-  const handleImageClick = (view: any, event: MouseEvent) => {
-    const target = event.target as HTMLElement;
-    if (target.tagName === 'IMG') {
-      const img = target as HTMLImageElement;
-      setSelectedImage(img);
-      
-      // Calculate current size percentage
-      const currentWidth = img.width;
-      const naturalWidth = img.naturalWidth;
-      const currentSize = Math.round((currentWidth / naturalWidth) * 100);
-      setImageSize(currentSize);
-      
-      return true;
-    } else {
-      setSelectedImage(null);
-    }
-    return false;
-  };
-
   // Function to align image
   const alignImage = (position: 'left' | 'center' | 'right') => {
     if (!selectedImage || !editor) return;
 
-    const imageParent = selectedImage.parentElement;
-    if (!imageParent) return;
+    // Store current image size
+    const currentWidth = selectedImage.style.width || selectedImage.width + 'px';
 
-    // Apply alignment to the parent paragraph
-    imageParent.style.textAlign = position;
+    // Find the parent node that contains the image
+    const parentNode = selectedImage.closest('p, div, h1, h2, h3, h4, h5, h6');
+    if (!(parentNode instanceof HTMLElement)) return;
+
+    // Update alignment
+    parentNode.style.textAlign = position;
+    
+    // Maintain image size
+    selectedImage.style.width = currentWidth;
+    selectedImage.style.display = 'inline-block';
+    
+    // Update margins based on alignment
+    switch (position) {
+      case 'left':
+        selectedImage.style.margin = '0';
+        break;
+      case 'center':
+        selectedImage.style.margin = '0 auto';
+        break;
+      case 'right':
+        selectedImage.style.margin = '0 0 0 auto';
+        break;
+    }
+
+    // Update editor state using commands
+    editor
+      .chain()
+      .focus()
+      .command(({ tr, dispatch }) => {
+        if (!dispatch) return false;
+
+        const pos = editor.view.posAtDOM(selectedImage, 0);
+        if (pos === null) return false;
+
+        const $pos = tr.doc.resolve(pos);
+        const node = $pos.node();
+        
+        if (!node) return false;
+
+        // Find the parent paragraph node
+        let depth = $pos.depth;
+        while (depth > 0 && $pos.node(depth).type.name !== 'paragraph') {
+          depth -= 1;
+        }
+
+        // If we found a paragraph, update its alignment
+        if (depth > 0) {
+          const paragraphPos = $pos.before(depth);
+          tr.setNodeMarkup(paragraphPos, undefined, {
+            ...$pos.node(depth).attrs,
+            style: `text-align: ${position};`,
+          });
+          dispatch(tr);
+          return true;
+        }
+
+        return false;
+      })
+      .run();
   };
 
   // Function to delete image
@@ -680,6 +741,62 @@ export default function ReportEditorPage() {
     editor.view.dispatch(tr);
     setSelectedImage(null);
   };
+
+  // Update CSS for image containers
+  useEffect(() => {
+    if (editor) {
+      const style = document.createElement('style');
+      style.textContent = `
+        .ProseMirror {
+          position: relative;
+        }
+        .ProseMirror p {
+          position: relative;
+          margin: 1em 0;
+          min-height: 1.5em;
+        }
+        .ProseMirror img {
+          display: inline-block;
+          height: auto;
+          transition: all 0.2s ease-in-out;
+          vertical-align: middle;
+        }
+        .ProseMirror img.selected {
+          outline: 2px solid #2563eb;
+          outline-offset: 2px;
+        }
+        .image-toolbar {
+          position: fixed;
+          z-index: 50;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          padding: 0.5rem;
+          display: flex;
+          gap: 0.5rem;
+          transform: translateX(-50%);
+          transition: all 0.2s ease-in-out;
+        }
+        .image-toolbar button {
+          padding: 0.25rem;
+          border-radius: 0.25rem;
+          border: 1px solid #e5e7eb;
+        }
+        .image-toolbar button:hover {
+          background-color: #f3f4f6;
+        }
+        .image-toolbar button.active {
+          background-color: #e5e7eb;
+        }
+      `;
+      document.head.appendChild(style);
+
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, [editor]);
 
   if (!studyId) {
     return (
@@ -1139,15 +1256,13 @@ export default function ReportEditorPage() {
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Insert Image</DialogTitle>
-            <DialogDescription>
-              Upload an image or provide an image URL
-            </DialogDescription>
+          
           </DialogHeader>
           
           <Tabs defaultValue="upload" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="upload">Upload Image</TabsTrigger>
-              <TabsTrigger value="url">Image URL</TabsTrigger>
+              
             </TabsList>
             
             <TabsContent value="upload" className="mt-4">
@@ -1186,16 +1301,7 @@ export default function ReportEditorPage() {
             
             <TabsContent value="url" className="mt-4">
               <div className="space-y-4">
-                <div className="grid w-full items-center gap-1.5">
-                  <Label htmlFor="url">Image URL</Label>
-                  <Input
-                    id="url"
-                    type="url"
-                    placeholder="https://example.com/image.jpg"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                  />
-                </div>
+                
                 <Button
                   onClick={handleUrlImage}
                   disabled={!imageUrl}
@@ -1225,10 +1331,19 @@ export default function ReportEditorPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Image Toolbar - Show when image is selected */}
+      {/* Image Toolbar */}
       {selectedImage && activeTab === 'edit' && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg border p-2 z-50">
+        <div 
+          className="image-toolbar"
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+          }}
+        >
           <div className="flex items-center gap-2">
+            {/* Size Controls */}
             <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-md">
               <TooltipProvider>
                 <Tooltip>
@@ -1269,6 +1384,7 @@ export default function ReportEditorPage() {
 
             <div className="border-r h-6"></div>
 
+            {/* Alignment Controls */}
             <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-md">
               <TooltipProvider>
                 <Tooltip>
@@ -1277,7 +1393,9 @@ export default function ReportEditorPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => alignImage('left')}
-                      className="border hover:bg-slate-100"
+                      className={`border hover:bg-slate-100 ${
+                        selectedImage?.closest('p')?.style.textAlign === 'left' ? 'bg-slate-200' : ''
+                      }`}
                     >
                       <MoveLeft size={16} />
                     </Button>
@@ -1293,7 +1411,9 @@ export default function ReportEditorPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => alignImage('center')}
-                      className="border hover:bg-slate-100"
+                      className={`border hover:bg-slate-100 ${
+                        selectedImage?.closest('p')?.style.textAlign === 'center' ? 'bg-slate-200' : ''
+                      }`}
                     >
                       <ImageCenter size={16} />
                     </Button>
@@ -1309,7 +1429,9 @@ export default function ReportEditorPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => alignImage('right')}
-                      className="border hover:bg-slate-100"
+                      className={`border hover:bg-slate-100 ${
+                        selectedImage?.closest('p')?.style.textAlign === 'right' ? 'bg-slate-200' : ''
+                      }`}
                     >
                       <MoveRight size={16} />
                     </Button>
@@ -1321,6 +1443,7 @@ export default function ReportEditorPage() {
 
             <div className="border-r h-6"></div>
 
+            {/* Delete Button */}
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
