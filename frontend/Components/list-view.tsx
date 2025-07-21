@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +21,7 @@ import {
   CreditCard,
 } from "lucide-react"
 import axios from "axios"
+import { AuthContext } from "@/context/auth-context"
 
 interface Patient {
   patient_id: string
@@ -65,6 +66,7 @@ export function ListView({ selectedDate, refreshKey, searchQuery }: ListViewProp
   const [checkedInAppointments, setCheckedInAppointments] = useState<Appointment[]>([])
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
   const [activeTab, setActiveTab] = useState("today")
+  const {apiClient} = useContext(AuthContext)
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL
 
@@ -73,9 +75,9 @@ export function ListView({ selectedDate, refreshKey, searchQuery }: ListViewProp
       const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL
 
       const [todayRes, allRes, checkedInRes] = await Promise.all([
-        axios.get(`${backendURL}/appointments/today`),
-        axios.get(`${backendURL}/appointments`),
-        axios.get(`${backendURL}/appointments/checkedin`),
+        apiClient.get(`/appointments/today`),
+        apiClient.get(`/appointments`),
+        apiClient.get(`/appointments/checkedin`),
       ])
 
       const todayData = todayRes.data
@@ -122,7 +124,7 @@ export function ListView({ selectedDate, refreshKey, searchQuery }: ListViewProp
 
     try {
       // Update payment status to paid
-      await axios.put(`${backendURL}/appointments/${appointmentId}`, {
+      await apiClient.put(`/appointments/${appointmentId}`, {
         payment_status: "paid",
       })
 
@@ -130,7 +132,7 @@ export function ListView({ selectedDate, refreshKey, searchQuery }: ListViewProp
       const payment_date = now.toISOString().split("T")[0]
       const payment_time = now.toTimeString().split(":").slice(0, 2).join(":")
 
-      await axios.post(`${backendURL}/payment-history`, {
+      await apiClient.post(`/payment-history`, {
         appointment_id: appointmentId,
         payment_date: payment_date,
         payment_time: payment_time,
@@ -153,7 +155,7 @@ export function ListView({ selectedDate, refreshKey, searchQuery }: ListViewProp
 
   const handleCheckIn = async (appointmentID: number) => {
     try {
-      const response = await axios.put(`${backendURL}/appointments/${appointmentID}`, {
+      const response = await apiClient.put(`/appointments/${appointmentID}`, {
         status: "checkedin",
       })
       if (response.status != 202) {

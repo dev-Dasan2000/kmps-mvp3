@@ -44,7 +44,7 @@ export default function PIMPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const {isLoadingAuth, isLoggedIn, user, accessToken} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
   const router = useRouter();
   const [pendingEmployees, setPendingEmployees] = useState<PendingEmployeesCount>({
     dentistCount: 0,
@@ -81,7 +81,7 @@ export default function PIMPage() {
 
   const fetchPendingEmployees = useCallback(async () => {
     try {
-      const response = await axios.get(`${backendUrl}/hr/employees/new/count`);
+      const response = await apiClient.get(`/hr/employees/new/count`);
       setPendingEmployees(response.data);
     } catch (err) {
       console.error('Error fetching pending employees:', err);
@@ -91,7 +91,7 @@ export default function PIMPage() {
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${backendUrl}/hr/employees`);
+      const response = await apiClient.get(`/hr/employees`);
       setEmployees(response.data);
       setStaffStats(calculateStats(response.data));
       setError(null);

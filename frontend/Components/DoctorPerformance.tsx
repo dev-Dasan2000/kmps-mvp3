@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import { AuthContext } from "@/context/auth-context";
 
 // Register Chart.js components
 ChartJS.register(
@@ -97,30 +98,31 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState<'overall' | 'day' | 'week' | 'month'>('overall');
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const {apiClient} = useContext(AuthContext);
 
   // Fetch all appointments for filtering
   const fetchAllAppointments = async () => {
-    if (!user) return;
-    
-    try {
-      // Try to fetch all appointments first
-      const response = await fetch(`${backendURL}/appointments`);
-      if (!response.ok) throw new Error('Failed to fetch appointments');
-      const allAppointments = await response.json();
-      
-      // Filter appointments by dentist ID
-      const dentistAppointments = allAppointments.filter(
-        (appt: any) => appt.dentist_id === user.id || appt.dentistId === user.id
-      );
-      
-      setAllAppointments(dentistAppointments);
-    } catch (err) {
-      console.error('Error fetching appointments:', err);
-      // Set empty arrays if there's an error
-      setAllAppointments([]);
-      setFilteredAppointments([]);
-    }
-  };
+  if (!user) return;
+
+  try {
+    // Use centralized apiClient
+    const response = await apiClient.get('/appointments');
+
+    const allAppointments = response.data;
+
+    // Filter appointments by dentist ID
+    const dentistAppointments = allAppointments.filter(
+      (appt: any) => appt.dentist_id === user.id || appt.dentistId === user.id
+    );
+
+    setAllAppointments(dentistAppointments);
+  } catch (err) {
+    console.error('Error fetching appointments:', err);
+    setAllAppointments([]);
+    setFilteredAppointments([]);
+  }
+};
+
 
   // Filter appointments based on time period
   const filterAppointmentsByPeriod = (period: 'overall' | 'day' | 'week' | 'month') => {
@@ -204,27 +206,21 @@ export default function DoctorPerformanceDashboard({ user, onClose }: Props) {
   }, [allAppointments, timePeriod]);
 
   const fetchDentistData = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Fetch earnings data (we'll handle appointment counts client-side)
-      const earningsResponse = await fetch(`${backendURL}/dentists/earnings/${user.id}`);
-      if (!earningsResponse.ok) {
-        throw new Error('Failed to fetch earnings data');
-      }
-      const earningsData = await earningsResponse.json();
-      setEarningsData(earningsData);
-      
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      console.error('Error fetching dentist data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!user) return;
+
+  setLoading(true);
+  setError(null);
+
+  try {
+    const response = await apiClient.get(`/dentists/earnings/${user.id}`);
+    setEarningsData(response.data);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : 'Failed to fetch data');
+    console.error('Error fetching dentist data:', err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (!user) return null;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { AddStaffDialog } from '@/components/AddStaffDialog';
 import { toast } from "sonner";
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import { AuthContext } from '@/context/auth-context';
 
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -53,6 +54,7 @@ interface StaffDirectoryProps {
 }
 
 export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryProps) {
+  const {apiClient} = useContext(AuthContext);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -81,7 +83,7 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
 
     setIsLoading(true);
     try {
-      const response = await axios.delete(`${backendUrl}/hr/employees/${id}`, {
+      const response = await apiClient.delete(`/hr/employees/${id}`, {
         withCredentials: true
       });
 
@@ -108,35 +110,26 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
   };
 
   const handleUpdateEmployee = async (employeeData: Partial<Employee>) => {
-    if (!selectedEmployee) return;
+  if (!selectedEmployee) return;
 
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/employees/${selectedEmployee.eid}`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(employeeData),
-      });
+  setIsLoading(true);
+  try {
+    const response = await apiClient.put(`/employees/${selectedEmployee.eid}`, employeeData);
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Employee not found');
-        }
-        throw new Error('Failed to update employee');
-      }
-
-      toast.success('Employee updated successfully');
-      setIsEditDialogOpen(false);
-      onEmployeeAdded(); // Refresh the employee list
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update employee');
-    } finally {
-      setIsLoading(false);
+    toast.success('Employee updated successfully');
+    setIsEditDialogOpen(false);
+    onEmployeeAdded();
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      toast.error('Employee not found');
+    } else {
+      toast.error(error.message || 'Failed to update employee');
     }
-  };
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const ScheduleBadge = ({ status }: { status: string }) => (
     <span className={`px-2 py-1 rounded-full ${

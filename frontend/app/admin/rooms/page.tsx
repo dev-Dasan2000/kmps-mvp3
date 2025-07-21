@@ -67,6 +67,7 @@ function AddRoomDialog({ open, onClose, onRoomAdded }: { open: boolean, onClose:
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const { apiClient } = useContext(AuthContext);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +78,7 @@ function AddRoomDialog({ open, onClose, onRoomAdded }: { open: boolean, onClose:
 
     setIsSubmitting(true);
     try {
-      await axios.post(`${backendURL}/rooms`, {
+      await apiClient.post(`/rooms`, {
         room_id: roomId.trim(),
         description: description.trim() || undefined
       });
@@ -150,7 +151,7 @@ function AddRoomDialog({ open, onClose, onRoomAdded }: { open: boolean, onClose:
 export default function RoomTable() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
-  const { isLoadingAuth, isLoggedIn, user } = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
 
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -162,7 +163,7 @@ export default function RoomTable() {
   const fetchRooms = async () => {
     setLoadingRooms(true);
     try {
-      const response = await axios.get(`${backendURL}/rooms`);
+      const response = await apiClient.get(`/rooms`);
       setRooms(response.data);
     } catch (err: any) {
       toast.error(err.message || "Failed to fetch rooms");
@@ -174,7 +175,7 @@ export default function RoomTable() {
   const handleDelete = async (room_id: string) => {
     setDeletingRoom(true);
     try {
-      const res = await axios.delete(`${backendURL}/rooms/${room_id}`);
+      const res = await apiClient.delete(`/rooms/${room_id}`);
       if (res.status !== 200) throw new Error("Failed to delete room");
       
       // Update state to remove deleted room

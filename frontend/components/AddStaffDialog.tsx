@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import axios from 'axios';
 import { Loader2 } from 'lucide-react';
+import { AuthContext } from '@/context/auth-context';
 
 //backend url
 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -109,6 +110,7 @@ export function AddStaffDialog({
   employeeData, 
   isEditing = false 
 }: AddStaffDialogProps) {
+  const {apiClient} = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [availableStaff, setAvailableStaff] = useState<AvailableStaff>({
     dentists: [],
@@ -151,8 +153,8 @@ export function AddStaffDialog({
   const fetchAvailableStaff = async () => {
     setLoadingStaff(true);
     try {
-      console.log('Fetching staff from:', `${backendUrl}/hr/employees/new`);
-      const response = await axios.get(`${backendUrl}/hr/employees/new`, {
+      console.log('Fetching staff from:', `/hr/employees/new`);
+      const response = await apiClient.get(`/hr/employees/new`, {
         withCredentials: true
       });
       
@@ -247,7 +249,7 @@ export function AddStaffDialog({
     try {
       if (isEditing && employeeData) {
         // Update existing employee
-        const employeeResponse = await axios.put(`${backendUrl}/hr/employees/${employeeData.eid}`, {
+        const employeeResponse = await apiClient.put(`/hr/employees/${employeeData.eid}`, {
           ...formData,
           salary: Number(formData.salary),
           bank_info: formData.bank_info,
@@ -268,7 +270,7 @@ export function AddStaffDialog({
         }
       } else {
         // Create new employee
-        await axios.post(`${backendUrl}/hr/employees/`, {
+        await apiClient.post(`/hr/employees/`, {
           ...formData,
           salary: Number(formData.salary)
         }, {

@@ -1,7 +1,8 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Save, AlertTriangle, Plus, X, User, Phone, Mail, Calendar, Info } from 'lucide-react';
 import axios from 'axios';
+import { AuthContext } from '@/context/auth-context';
 import { toast } from 'sonner';
 import {
   Tooltip,
@@ -55,6 +56,7 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
   const [questions, setQuestions] = useState<MedicalQuestion[]>([]);
   const [medicalHistory, setMedicalHistory] = useState<MedicalHistory[]>([]);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const {apiClient} = useContext(AuthContext);
 
   const [formData, setFormData] = useState<FormData>({
     // Medical conditions
@@ -119,13 +121,13 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
     setLoading(true);
     try {
       console.log('Fetching medical questions...');
-      const questionsResponse = await axios.get<MedicalQuestion[]>(`${backendURL}/medical-questions`);
+      const questionsResponse = await apiClient.get<MedicalQuestion[]>(`/medical-questions`);
       const questions = questionsResponse.data;
       console.log('Fetched questions:', questions);
       setQuestions(questions);
 
       console.log('Fetching medical history...');
-      const historyResponse = await axios.get<MedicalHistory[]>(`${backendURL}/medical-history/${patientId}`);
+      const historyResponse = await apiClient.get<MedicalHistory[]>(`/medical-history/${patientId}`);
       const history = historyResponse.data;
       console.log('Fetched history:', history);
       setMedicalHistory(history);
@@ -212,14 +214,14 @@ const MedicalHistoryForm: React.FC<MedicalHistoryFormProps> = ({ patientId, onSa
         try {
           // Try to update first
           console.log(`Attempting to update answer for question ${question.medical_question_id}...`);
-          await axios.put(`${backendURL}/medical-history/${patientId}/${question.medical_question_id}`, {
+          await apiClient.put(`/medical-history/${patientId}/${question.medical_question_id}`, {
             medical_question_answer: answer
           });
           console.log('Update successful');
         } catch (error: any) {
           // If update fails (record doesn't exist), create new record
           console.log(`Update failed, creating new record:`, error.response?.data);
-          await axios.post(`${backendURL}/medical-history`, {
+          await apiClient.post(`/medical-history`, {
             patient_id: patientId,
             medical_question_id: question.medical_question_id,
             medical_question_answer: answer

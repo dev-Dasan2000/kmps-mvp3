@@ -4,8 +4,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { getDoctorColor } from "@/lib/mock-data"
 import type { DayOfWeek } from "@/types/dentist"
 import axios from "axios"
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import { toast } from "sonner"
+import { AuthContext } from "@/context/auth-context"
 
 interface RoomViewProps {
   weekDays: DayOfWeek[]
@@ -41,6 +42,7 @@ interface RoomAssignment {
 }
 
 export function RoomView({ weekDays, selectedDate, viewMode }: RoomViewProps) {
+  const {apiClient} = useContext(AuthContext);
   const [loadingRoomAssignments, setLoadingRoomAssignments] = useState(false)
   const [roomAssignments, setRoomAssignments] = useState<RoomAssignment[]>([])
   const [rooms, setRooms] = useState<{ room_id: string; description: string }[]>([])
@@ -52,8 +54,8 @@ export function RoomView({ weekDays, selectedDate, viewMode }: RoomViewProps) {
     try {
       // First, fetch all rooms
       const [assignmentsResponse, roomsResponse] = await Promise.all([
-        axios.get(`${backendURL}/rooms-assign/`),
-        axios.get(`${backendURL}/rooms/`)
+        apiClient.get(`/rooms-assign/`),
+        apiClient.get(`/rooms/`)
       ]);
 
       if (assignmentsResponse.status === 200 && roomsResponse.status === 200) {

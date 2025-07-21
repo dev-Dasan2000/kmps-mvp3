@@ -20,7 +20,7 @@ const RadiologistHeader = () => {
   const [radiologistInfo, setRadiologistInfo] = useState<RadiologistInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [radiologistId, setRadiologistId] = useState("");
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   const getCurrentDate = () => {
@@ -49,8 +49,8 @@ const RadiologistHeader = () => {
   const fetchRadiologist = async () => {
     setIsLoading(true);
     try{
-      const response = await axios.get(
-        `${backendURL}/radiologists/${radiologistId}`
+      const response = await apiClient.get(
+        `/radiologists/${radiologistId}`
       );
       if(response.status == 500){
         throw new Error("Error Fetching Radiologist");

@@ -2,7 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { sendAccountCreationNotice } from '../utils/mailer.js';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -14,7 +14,7 @@ function generateLabId(count) {
   return `knrslab${number}`;
 }
 
-router.get('/', async (req, res) => {
+router.get('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const labs = await prisma.lab.findMany();
     res.json(labs);
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:lab_id', async (req, res) => {
+router.get('/:lab_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const lab = await prisma.lab.findUnique({
       where: { lab_id: req.params.lab_id },
@@ -35,7 +35,7 @@ router.get('/:lab_id', async (req, res) => {
   }
 });
 
-router.get('/profile/:lab_id', async (req, res) => {
+router.get('/profile/:lab_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const lab = await prisma.lab.findUnique({
       where: { lab_id: req.params.lab_id },
@@ -97,7 +97,7 @@ router.post('/', async (req, res) => {
 });
 
 
-router.put('/:lab_id', async (req, res) => {
+router.put('/:lab_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const { password, ...rest } = req.body.formData;
     const data = { ...rest };
@@ -120,7 +120,7 @@ router.put('/:lab_id', async (req, res) => {
 });
 
 
-router.delete('/:lab_id', async (req, res) => {
+router.delete('/:lab_id', /*authenticateToken,*/ async (req, res) => {
   try {
     await prisma.lab.delete({
       where: { lab_id: req.params.lab_id },

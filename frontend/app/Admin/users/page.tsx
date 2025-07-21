@@ -1,11 +1,10 @@
 "use client";
-import { use, useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Eye, Trash2, Search, Plus, User, Phone, Mail, UserCheck, BarChart3 } from "lucide-react";
 import Image from "next/image";
 import ViewUserDialog from "@/components/ViewUserDialog";
 import InviteUserDialog from "@/components/InviteUserDialog";
-import axios from "axios";
 import { AuthContext } from "@/context/auth-context";
 import { useRouter } from 'next/navigation';
 import {toast} from 'sonner';
@@ -28,7 +27,7 @@ export default function UserTable() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
 
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
 
   // Separate state for each dialog
   const [selectedUserForView, setSelectedUserForView] = useState<User | null>(null);
@@ -43,9 +42,9 @@ export default function UserTable() {
     setLoadingUsers(true);
     try {
       const [dentistsRes, receptionistsRes, radiologistRes] = await Promise.all([
-        axios.get(`${backendURL}/dentists`),
-        axios.get(`${backendURL}/receptionists`),
-        axios.get(`${backendURL}/radiologists`)
+        apiClient.get(`/dentists`),
+        apiClient.get(`/receptionists`),
+        apiClient.get(`/radiologists`)
       ]);
 
       if (dentistsRes.status === 500 || receptionistsRes.status === 500 || radiologistRes.status === 500) {
@@ -102,25 +101,26 @@ export default function UserTable() {
       let deleteURL = "";
       switch (role) {
         case "Dentist":
-          deleteURL = `${backendURL}/dentists/${user_id}`;
+          deleteURL = `/dentists/${user_id}`;
           break;
         case "Receptionist":
-          deleteURL = `${backendURL}/receptionists/${user_id}`;
+          deleteURL = `/receptionists/${user_id}`;
           break;
         case "Radiologist":
-          deleteURL = `${backendURL}/radiologists/${user_id}`;
+          deleteURL = `/radiologists/${user_id}`;
           break;
         default:
           throw new Error("Invalid role");
       }
   
-      const res = await axios.delete(deleteURL);
+      const res = await apiClient.delete(deleteURL);
       if (res.status !== 200) throw new Error("Failed to delete user");
   
       // Update state to remove deleted user
       setUsers(prev => prev?.filter(u => u.id !== user_id));
       toast.success(`${role} deleted successfully`);
     } catch (err: any) {
+      console.log(err);
       toast.error(err.message);
     } finally {
       setDeletingUser(false);
@@ -132,7 +132,6 @@ export default function UserTable() {
     setSelectedUserForAnalytics(user);
   };
   
-
   // Filter users based on search term
   const filteredUsers = users?.filter(user => {
     const searchLower = searchTerm.toLowerCase();

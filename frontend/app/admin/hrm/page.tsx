@@ -59,7 +59,7 @@ interface WeeklyAttendance {
 
 export default function HRMDashboardPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { accessToken, isLoggedIn, isLoadingAuth, user } = useContext(AuthContext);
+  const { isLoggedIn, isLoadingAuth, user, apiClient } = useContext(AuthContext);
   const router = useRouter();
   
   // Chart references
@@ -100,11 +100,11 @@ export default function HRMDashboardPage() {
       setLoading(true);
       try {
         // Fetch employees
-        const employeesResponse = await axios.get(`${backendURL}/hr/employees`);
+        const employeesResponse = await apiClient.get(`/hr/employees`);
         setEmployees(employeesResponse.data || []);
         
         // Fetch weekly attendance
-        const weeklyAttendanceResponse = await axios.get(`${backendURL}/hr/attendance/weekly/all`);
+        const weeklyAttendanceResponse = await apiClient.get(`/hr/attendance/weekly/all`);
         setWeeklyAttendance(weeklyAttendanceResponse.data || []);
         
         // Calculate on leave today

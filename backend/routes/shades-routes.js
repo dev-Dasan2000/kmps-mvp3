@@ -1,9 +1,11 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../middleware/authentication.js';
+
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const shades = await prisma.shades.findMany();
     res.json(shades);
@@ -12,7 +14,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const { shade } = req.body;
     const newShade = await prisma.shades.create({ data: { shade } });
@@ -22,7 +24,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', /*authenticateToken,*/ async (req, res) => {
   try {
     const updated = await prisma.shades.update({
       where: { shade_type_id: Number(req.params.id) },
@@ -34,7 +36,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', /*authenticateToken,*/ async (req, res) => {
   try {
     await prisma.shades.delete({ where: { shade_type_id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });

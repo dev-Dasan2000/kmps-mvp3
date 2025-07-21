@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { format, setHours, setMinutes } from 'date-fns';
+import { AuthContext } from '@/context/auth-context';
 
 interface BaseAppointment {
   appointment_id: number;
@@ -62,28 +63,28 @@ const generateTimeSlots = () => {
   const slots = [];
   const startHour = WORKING_HOURS.start; // 8:00 AM
   const endHour = WORKING_HOURS.end;     // 5:30 PM
-  
+
   // Calculate total minutes from start to end time
   const totalMinutes = (endHour - startHour) * 60;
   const totalSlots = Math.ceil(totalMinutes / TIME_SLOT_MINUTES);
-  
+
   for (let i = 0; i <= totalSlots; i++) {
     const minutesFromStart = i * TIME_SLOT_MINUTES;
     const hour = Math.floor(startHour + Math.floor(minutesFromStart / 60));
     const minute = minutesFromStart % 60;
-    
+
     // Create a date object at the start of the day
     const date = new Date();
     date.setHours(0, 0, 0, 0);
-    
+
     // Add the calculated hours and minutes
     date.setHours(hour, minute, 0, 0);
-    
+
     // Format the time
     const timeString = format(date, 'h:mm a').toLowerCase();
     slots.push(timeString);
   }
-  
+
   return slots;
 };
 
@@ -94,58 +95,44 @@ export default function DentistCalendarView() {
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const timeSlots = generateTimeSlots();
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const {apiClient} = useContext(AuthContext);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-        
-        // Fetch all necessary data in parallel
+
+        // Fetch dentists and all blocked dates
         const [dentistsResponse, blockedDatesResponse] = await Promise.all([
-          fetch(`${backendUrl}/dentists`),
-          fetch(`${backendUrl}/blocked-dates`)
+          apiClient.get('/dentists'),
+          apiClient.get('/blocked-dates')
         ]);
 
-        if (!dentistsResponse.ok) throw new Error('Failed to fetch dentists');
-        
-        const [dentistsData, blockedDatesData] = await Promise.all([
-          dentistsResponse.json(),
-          blockedDatesResponse.ok ? blockedDatesResponse.json() : []
-        ]);
+        const dentistsData = dentistsResponse.data;
+        const blockedDatesData = blockedDatesResponse?.data || [];
 
-        // Fetch appointments for each dentist
+        // Fetch appointments and blocked dates for each dentist
         const dentistsWithData = await Promise.all(
           dentistsData.map(async (dentist: Dentist) => {
             try {
-              // Fetch appointments for the dentist
-              const appointmentsResponse = await fetch(
-                `${backendUrl}/appointments/fordentist/${dentist.dentist_id}`
-              );
-              
-              // Fetch blocked dates specifically for this dentist
-              const blockedDatesResponse = await fetch(
-                `${backendUrl}/blocked-dates/fordentist/${dentist.dentist_id}`
-              );
-              
-              const appointments = appointmentsResponse.ok 
-                ? await appointmentsResponse.json() 
-                : [];
+              const [appointmentsResponse, dentistBlockedResponse] = await Promise.all([
+                apiClient.get(`/appointments/fordentist/${dentist.dentist_id}`),
+                apiClient.get(`/blocked-dates/fordentist/${dentist.dentist_id}`)
+              ]);
 
-              const blockedSlots = blockedDatesResponse.ok
-                ? await blockedDatesResponse.json()
-                : [];
+              const appointments = appointmentsResponse?.data || [];
+              const blockedSlots = dentistBlockedResponse?.data || [];
 
-              // Filter appointments and blocked slots for the selected date
               const filteredAppointments = appointments.filter((appt: Appointment) => {
                 const appointmentDate = new Date(appt.date);
                 return format(appointmentDate, 'yyyy-MM-dd') === formattedDate;
               });
-              
+
               const filteredBlockedSlots = blockedSlots.filter((blocked: BlockedDate) => {
                 return blocked.date === formattedDate;
               });
-              
+
               return {
                 ...dentist,
                 appointments: filteredAppointments,
@@ -153,15 +140,15 @@ export default function DentistCalendarView() {
               };
             } catch (error) {
               console.error(`Error fetching data for dentist ${dentist.dentist_id}:`, error);
-              return { 
-                ...dentist, 
-                appointments: [], 
-                blockedSlots: [] 
+              return {
+                ...dentist,
+                appointments: [],
+                blockedSlots: []
               };
             }
           })
         );
-        
+
         setDentists(dentistsWithData);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -171,16 +158,17 @@ export default function DentistCalendarView() {
     };
 
     fetchData();
-  }, [selectedDate, backendUrl]);
+  }, [selectedDate]);
+
 
   // Parse 12-hour time string (e.g., '3:30 pm') to minutes since midnight
   const parseTimeToMinutes = (timeStr: string, period: string): number => {
     let [hours, minutes = 0] = timeStr.split(':').map(Number);
-    
+
     // Convert 12-hour to 24-hour format
     if (period === 'pm' && hours < 12) hours += 12;
     if (period === 'am' && hours === 12) hours = 0;
-    
+
     return hours * 60 + minutes;
   };
 
@@ -194,10 +182,10 @@ export default function DentistCalendarView() {
   const isTimeInRange = (timeMinutes: number, startTimeStr: string, endTimeStr: string): boolean => {
     const startMinutes = time24ToMinutes(startTimeStr);
     const endMinutes = time24ToMinutes(endTimeStr);
-    
+
     return timeMinutes >= startMinutes && timeMinutes < endMinutes;
   };
-  
+
 
 
   const findAppointmentAtTime = (dentist: Dentist, timeSlot: string, slotIndex: number): CalendarSlot | null => {
@@ -205,18 +193,18 @@ export default function DentistCalendarView() {
     const [time, period] = timeSlot.split(' ');
     const slotTimeMinutes = parseTimeToMinutes(time, period);
     const formattedSelectedDate = format(selectedDate, 'yyyy-MM-dd');
-    
+
     // Calculate the next slot's time to determine the end of this slot
     const nextSlotMinutes = slotTimeMinutes + TIME_SLOT_MINUTES;
-    
+
     // Check for blocked slots first
     if (dentist.blockedSlots && dentist.blockedSlots.length > 0) {
       for (const blocked of dentist.blockedSlots) {
         if (blocked.date !== formattedSelectedDate) continue;
-        
+
         const blockedStartMinutes = time24ToMinutes(blocked.time_from);
         const blockedEndMinutes = time24ToMinutes(blocked.time_to);
-        
+
         // Check if this time slot is within the blocked period
         if (slotTimeMinutes >= blockedStartMinutes && slotTimeMinutes < blockedEndMinutes) {
           // If this is the first slot of the blocked period, return the blocked slot
@@ -241,7 +229,7 @@ export default function DentistCalendarView() {
 
         const [apptHour, apptMinute] = appt.time_from.split(':').map(Number);
         const apptTimeMinutes = apptHour * 60 + apptMinute;
-        
+
         // Check if this slot's start time matches the appointment's start time
         return Math.abs(slotTimeMinutes - apptTimeMinutes) < TIME_SLOT_MINUTES;
       });
@@ -264,16 +252,16 @@ export default function DentistCalendarView() {
 
   const getAppointmentDurationInSlots = (appointment: Appointment | BlockedSlot) => {
     if (!appointment) return 1;
-    
+
     const [startHour, startMinute] = appointment.time_from.split(':').map(Number);
     const [endHour, endMinute] = appointment.time_to.split(':').map(Number);
-    
+
     const start = new Date(selectedDate);
     start.setHours(startHour, startMinute, 0, 0);
-    
+
     const end = new Date(selectedDate);
     end.setHours(endHour, endMinute, 0, 0);
-    
+
     const durationInMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
     return Math.max(1, Math.round(durationInMinutes / TIME_SLOT_MINUTES));
   };
@@ -339,7 +327,7 @@ export default function DentistCalendarView() {
           {format(selectedDate, 'EEEE, MMMM d, yyyy')}
         </h2>
         <div className="flex items-center space-x-2">
-          <button 
+          <button
             onClick={() => setSelectedDate(prev => {
               const newDate = new Date(prev);
               newDate.setDate(prev.getDate() - 1);
@@ -352,13 +340,13 @@ export default function DentistCalendarView() {
               <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
           </button>
-          <button 
+          <button
             onClick={() => setSelectedDate(new Date())}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             Today
           </button>
-          <button 
+          <button
             onClick={() => setSelectedDate(prev => {
               const newDate = new Date(prev);
               newDate.setDate(prev.getDate() + 1);
@@ -382,7 +370,7 @@ export default function DentistCalendarView() {
             <div className="h-12 flex items-center justify-center font-semibold text-gray-700 border-b bg-white">
               Time
             </div>
-            <div 
+            <div
               className="grid"
               style={{
                 gridTemplateRows: `repeat(${timeSlots.length}, minmax(${ROW_HEIGHT}px, auto))`
@@ -391,8 +379,8 @@ export default function DentistCalendarView() {
               {timeSlots.map((time, index) => {
                 const showTime = index % 3 === 0;
                 return (
-                  <div 
-                    key={`time-${index}`} 
+                  <div
+                    key={`time-${index}`}
                     className="flex items-center justify-center text-sm font-medium text-gray-600 border-b"
                     style={{ height: `${ROW_HEIGHT}px` }}
                   >
@@ -405,8 +393,8 @@ export default function DentistCalendarView() {
 
           {/* Dentists columns */}
           {dentists.map(dentist => (
-            <div 
-              key={dentist.dentist_id} 
+            <div
+              key={dentist.dentist_id}
               className="border-r last:border-r-0 min-w-[160px]"
             >
               <div className="h-12 flex items-center justify-center font-semibold text-gray-700 border-b bg-white sticky top-0 z-10">
@@ -416,7 +404,7 @@ export default function DentistCalendarView() {
                   </div>
                 </div>
               </div>
-              <div 
+              <div
                 className="grid relative"
                 style={{
                   gridTemplateRows: `repeat(${timeSlots.length}, minmax(${ROW_HEIGHT}px, auto))`
@@ -424,30 +412,30 @@ export default function DentistCalendarView() {
               >
                 {timeSlots.map((timeSlot, slotIndex) => {
                   const slot = findAppointmentAtTime(dentist, timeSlot, slotIndex);
-                  
+
                   // Skip rendering if this is a continuation of a blocked slot
                   if (slot?.isBlocked && slot?.isContinuation) {
                     return null;
                   }
-                  
+
                   const isBooked = slot && !slot.isBlocked;
                   const isBlocked = slot?.isBlocked;
-                  
+
                   // Calculate duration in slots for both booked and blocked slots
                   let durationInSlots = 1;
-                  
+
                   if ((isBooked || isBlocked) && slot && 'time_from' in slot && 'time_to' in slot) {
                     const startMinutes = time24ToMinutes(slot.time_from);
                     const endMinutes = time24ToMinutes(slot.time_to);
                     const slotStartMinutes = parseTimeToMinutes(timeSlot.split(' ')[0], timeSlot.split(' ')[1]);
-                    
+
                     // Calculate duration in slots (minimum 1 slot)
                     durationInSlots = Math.max(1, Math.ceil((endMinutes - startMinutes) / TIME_SLOT_MINUTES));
-                    
+
                     // Only render if this is the first slot of the block
                     if (Math.abs(slotStartMinutes - startMinutes) < TIME_SLOT_MINUTES) {
                       return (
-                        <div 
+                        <div
                           key={`${dentist.dentist_id}-${timeSlot}-${slotIndex}`}
                           className={`relative ${isBlocked ? 'z-10' : 'z-5'}`}
                           style={{
@@ -464,7 +452,7 @@ export default function DentistCalendarView() {
 
                   // Render empty slot if no booking or block
                   return (
-                    <div 
+                    <div
                       key={`${dentist.dentist_id}-${timeSlot}-${slotIndex}`}
                       className="relative"
                       style={{

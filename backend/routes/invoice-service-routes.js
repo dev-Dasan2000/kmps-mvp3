@@ -1,10 +1,11 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', /*authenticateToken,*/  async (req, res) => {
   try {
     console.log('Fetching all invoice services');
     const services = await prisma.invoice_services.findMany();
@@ -15,7 +16,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:service_id', async (req, res) => {
+router.get('/:service_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const service = await prisma.invoice_service.findUnique({
       where: { service_id: Number(req.params.service_id) },
@@ -27,7 +28,7 @@ router.get('/:service_id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const { service_name, amount } = req.body;
     const newService = await prisma.invoice_services.create({
@@ -39,7 +40,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:service_id', async (req, res) => {
+router.put('/:service_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const data = req.body;
     const updatedService = await prisma.invoice_services.update({
@@ -52,7 +53,7 @@ router.put('/:service_id', async (req, res) => {
   }
 });
 
-router.delete('/:service_id', async (req, res) => {
+router.delete('/:service_id', /*authenticateToken,*/ async (req, res) => {
   try {
     await prisma.invoice_services.delete({
       where: { service_id: Number(req.params.service_id) },

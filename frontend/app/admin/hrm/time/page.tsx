@@ -82,7 +82,7 @@ interface AttendanceStats {
 
 export default function TimeManagementPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { accessToken, isLoggedIn, isLoadingAuth, user } = useContext(AuthContext);
+  const { isLoggedIn, isLoadingAuth, user, apiClient } = useContext(AuthContext);
   const router = useRouter();
   
   // State variables
@@ -107,19 +107,19 @@ export default function TimeManagementPage() {
     setLoading(true);
     try {
       // Fetch employees (used for employment status & part-time list)
-      const employeesRes = await axios.get<Employee[]>(`${backendURL}/hr/employees`);
+      const employeesRes = await apiClient.get<Employee[]>(`/hr/employees`);
       setEmployees(employeesRes.data);
 
       // Fetch all shifts and keep today's only
-      const shiftsRes = await axios.get<Shift[]>(`${backendURL}/hr/shifts`);
+      const shiftsRes = await apiClient.get<Shift[]>(`/hr/shifts`);
       const todayISO = new Date().toISOString().split("T")[0];
       const todaysShifts = shiftsRes.data.filter(sh => new Date(sh.from_time).toISOString().split("T")[0] === todayISO);
       setShiftsToday(todaysShifts);
 
       // Fetch today's attendance and leaves
       const [attendanceResponse, leavesResponse] = await Promise.all([
-        axios.get<TodayAttendanceResponse>(`${backendURL}/hr/attendance/today`),
-        axios.get<TodayLeavesResponse>(`${backendURL}/hr/leaves/today/all`)
+        apiClient.get<TodayAttendanceResponse>(`/hr/attendance/today`),
+        apiClient.get<TodayLeavesResponse>(`/hr/leaves/today/all`)
       ]);
 
       if (attendanceResponse.data && leavesResponse.data) {
@@ -199,7 +199,7 @@ export default function TimeManagementPage() {
   const handleClockIn = async (eid: number) => {
     setClockingInEid(eid);
     try {
-      const response = await axios.post(`${backendURL}/hr/attendance/clock-in`, { eid });
+      const response = await apiClient.post(`/hr/attendance/clock-in`, { eid });
       toast.success('Clock in successful');
       // Refresh data to update UI
       await fetchData();
@@ -216,7 +216,7 @@ export default function TimeManagementPage() {
   const handleClockOut = async (eid: number) => {
     setClockingOutEid(eid);
     try {
-      const response = await axios.post(`${backendURL}/hr/attendance/clock-out`, { eid });
+      const response = await apiClient.post(`/hr/attendance/clock-out`, { eid });
       toast.success('Clock out successful');
       // Refresh data to update UI
       await fetchData();

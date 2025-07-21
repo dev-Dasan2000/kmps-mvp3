@@ -1,13 +1,13 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Composite primary key: patient_id + medical_question_id
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const histories = await prisma.medical_history.findMany();
     res.json(histories);
@@ -16,7 +16,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const histories = await prisma.medical_history.findMany(
       {
@@ -35,7 +35,7 @@ router.get('/:patient_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:patient_id/:medical_question_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:patient_id/:medical_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { patient_id, medical_question_id } = req.params;
     const history = await prisma.medical_history.findUnique({
@@ -53,7 +53,7 @@ router.get('/:patient_id/:medical_question_id', /* authenticateToken, */ async (
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { patient_id, medical_question_id, medical_question_answer } = req.body;
     const existing = await prisma.medical_history.findUnique({
@@ -76,7 +76,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.put('/:patient_id/:medical_question_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:patient_id/:medical_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { patient_id, medical_question_id } = req.params;
     const { medical_question_answer } = req.body;
@@ -95,7 +95,7 @@ router.put('/:patient_id/:medical_question_id', /* authenticateToken, */ async (
   }
 });
 
-router.delete('/:patient_id/:medical_question_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:patient_id/:medical_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { patient_id, medical_question_id } = req.params;
     await prisma.medical_history.delete({

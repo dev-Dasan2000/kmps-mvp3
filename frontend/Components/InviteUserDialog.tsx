@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import axios from "axios";
+import { AuthContext } from "@/context/auth-context";
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ interface Props {
 
 export default function InviteUserDialog({ open, onClose }: Props) {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const {apiClient} = useContext(AuthContext);
 
   const [role, setRole] = useState<"Dentist" | "Receptionist" | "Radiologist">("Dentist");
   const [email, setEmail] = useState("");
@@ -43,8 +45,8 @@ export default function InviteUserDialog({ open, onClose }: Props) {
     try {
       console.log("Sending invite request...", { role, email });
 
-      const response = await axios.post(
-        `${backendURL}/admins/invite`,
+      const response = await apiClient.post(
+        `/admins/invite`,
         {
           role: role,
           email: email

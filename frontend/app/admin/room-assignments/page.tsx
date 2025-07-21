@@ -26,7 +26,7 @@ const page = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
 
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +37,7 @@ const page = () => {
 
     setIsSubmitting(true);
     try {
-      await axios.post(`${backendURL}/rooms`, {
+      await apiClient.post(`/rooms`, {
         room_id: roomId.trim(),
         description: description.trim() || undefined
       });

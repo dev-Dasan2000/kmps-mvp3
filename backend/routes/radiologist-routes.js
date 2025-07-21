@@ -2,14 +2,14 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { sendAccountCreationNotice } from '../utils/mailer.js';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
 // Get all radiologists
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const radiologists = await prisma.radiologists.findMany({
       select: {
@@ -28,7 +28,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // Get radiologist by ID
-router.get('/:radiologist_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:radiologist_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const radiologist = await prisma.radiologists.findUnique({
       where: { radiologist_id: req.params.radiologist_id },
@@ -54,7 +54,7 @@ router.get('/:radiologist_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Get the 10 most recent studies for a radiologist
-router.get('/:radiologist_id/recent-studies', /* authenticateToken, */ async (req, res) => {
+router.get('/:radiologist_id/recent-studies',  /*authenticateToken,*/  async (req, res) => {
   try {
     const radiologistId = req.params.radiologist_id;
 
@@ -112,7 +112,7 @@ router.get('/:radiologist_id/recent-studies', /* authenticateToken, */ async (re
 });
 
 // Get counts of studies by report status for a radiologist
-router.get('/:radiologist_id/study-counts', /* authenticateToken, */ async (req, res) => {
+router.get('/:radiologist_id/study-counts',  /*authenticateToken,*/  async (req, res) => {
   try {
     const radiologistId = req.params.radiologist_id;
 
@@ -160,7 +160,7 @@ router.get('/:radiologist_id/study-counts', /* authenticateToken, */ async (req,
 });
 
 // Create new radiologist
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { name, email, password, phone_number, profile_picture } = req.body;
 
@@ -220,7 +220,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
 
 
 // Update radiologist
-router.put('/:radiologist_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:radiologist_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { name, email, password, phone_number, profile_picture, signature } = req.body;
     const radiologistId = req.params.radiologist_id;
@@ -279,7 +279,7 @@ router.put('/:radiologist_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Delete radiologist
-router.delete('/:radiologist_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:radiologist_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const radiologistId = req.params.radiologist_id;
 

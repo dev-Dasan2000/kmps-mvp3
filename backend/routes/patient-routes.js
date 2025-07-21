@@ -2,7 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { sendAccountCreationNotice, sendAccountCreationNoticeWithPassword } from '../utils/mailer.js';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -49,7 +49,7 @@ router.get('/search', async (req, res) => {
   }
 });
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const patients = await prisma.patients.findMany();
     res.json(patients);
@@ -58,7 +58,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/count', /* authenticateToken, */ async (req, res) => {
+router.get('/count',  /*authenticateToken,*/  async (req, res) => {
   try {
     const count = await prisma.patients.count();
     res.json(count);
@@ -67,7 +67,7 @@ router.get('/count', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const patient = await prisma.patients.findUnique({
       where: { patient_id: req.params.patient_id },
@@ -79,7 +79,7 @@ router.get('/:patient_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   let passwordGenerated = false;
   try {
     let {
@@ -162,8 +162,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-
-router.put('/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const patient_id = req.params.patient_id;
     const {
@@ -220,8 +219,7 @@ router.put('/:patient_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-
-router.delete('/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     await prisma.patients.delete({ where: { patient_id: req.params.patient_id } });
     res.json({ message: 'Deleted' });

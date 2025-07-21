@@ -18,7 +18,7 @@ interface ReceptionistInfo {
 const ReceptionistHeader = () => {
   const router = useRouter();
   const [receptionistInfo, setReceptionistInfo] = useState<ReceptionistInfo | null>(null);
-  const {user, isLoadingAuth, isLoggedIn} = useContext(AuthContext);
+  const {user, isLoadingAuth, isLoggedIn, apiClient} = useContext(AuthContext);
   const [loadingReceptionist, setLoadingReceptionist] = useState(false);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -46,8 +46,8 @@ const ReceptionistHeader = () => {
   const fetchReceptionistInfo = async () => {
     setLoadingReceptionist(true);
     try{
-      const response = await axios.get(
-        `${backendURL}/receptionists/${user.id}`
+      const response = await apiClient.get(
+        `/receptionists/${user.id}`
       );
       if(response.status == 500){
         throw new Error("Error fetching receptionist Data");
@@ -123,7 +123,7 @@ const ReceptionistHeader = () => {
               className="h-8 w-8 sm:h-10 sm:w-10 cursor-pointer hover:ring-2 hover:ring-emerald-300 transition-all duration-200" 
               onClick={handleProfileClick}
             >
-              <AvatarImage src={receptionistInfo?.profile_picture} alt={receptionistInfo
+              <AvatarImage src={`${backendURL}${receptionistInfo?.profile_picture}`} alt={receptionistInfo
                 ?.name} />
               <AvatarFallback className="text-xs sm:text-sm font-semibold bg-emerald-100 text-emerald-800">
                 {receptionistInfo ? getReceptionistInitials(receptionistInfo.name) : 'R'}

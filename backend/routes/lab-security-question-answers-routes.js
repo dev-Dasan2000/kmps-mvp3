@@ -1,13 +1,13 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Composite key: lab_id + security_question_id
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const answers = await prisma.lab_security_question_answers.findMany();
     res.json(answers);
@@ -16,7 +16,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:lab_id/:security_question_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:lab_id/:security_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { lab_id, security_question_id } = req.params;
     const answer = await prisma.lab_security_question_answers.findUnique({
@@ -34,7 +34,7 @@ router.get('/:lab_id/:security_question_id', /* authenticateToken, */ async (req
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     let { lab_id, security_question_id, answer } = req.body;
 
@@ -67,7 +67,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.put('/:lab_id/:security_question_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:lab_id/:security_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { lab_id, security_question_id } = req.params;
     const { answer } = req.body;
@@ -87,7 +87,7 @@ router.put('/:lab_id/:security_question_id', /* authenticateToken, */ async (req
   }
 });
 
-router.delete('/:lab_id/:security_question_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:lab_id/:security_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { lab_id, security_question_id } = req.params;
     await prisma.lab_security_question_answers.delete({

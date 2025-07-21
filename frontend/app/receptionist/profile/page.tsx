@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { ChangePasswordDialog } from "@/Components/ChangePasswordDialog";
+import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
 
 interface ReceptionistProfile {
   receptionist_id: string;

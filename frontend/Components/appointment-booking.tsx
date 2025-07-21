@@ -35,7 +35,7 @@ export default function AppointmentBooking() {
   const [loadingDentists, setLoadingDentists] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const { isLoadingAuth, isLoggedIn, user } = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
 
   const router = useRouter();
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -43,8 +43,8 @@ export default function AppointmentBooking() {
   const fetchDentists = async () => {
     setLoadingDentists(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/dentists`
+      const response = await apiClient.get(
+        `/dentists`
       );
       if (response.status == 500) {
         throw new Error("Error Fetching Dentists");

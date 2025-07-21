@@ -53,7 +53,7 @@ export default function DirectoryPage() {
     const [employeeStats, setEmployeeStats] = useState<EmployeeStats | null>(null)
     const [showStatsDialog, setShowStatsDialog] = useState(false)
     const isMobile = useMediaQuery("(max-width: 768px)")
-    const {isLoadingAuth, isLoggedIn, user, accessToken} = useContext(AuthContext);
+    const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
     const router = useRouter();
 
     useEffect(() => {
@@ -64,8 +64,8 @@ export default function DirectoryPage() {
                 
                 // Fetch employees and attendance data in parallel using axios
                 const [employeesRes, attendanceRes] = await Promise.all([
-                    axios.get(`${backendUrl}/hr/employees`),
-                    axios.get(`${backendUrl}/hr/attendance/daily/${today}`)
+                    apiClient.get(`/hr/employees`),
+                    apiClient.get(`/hr/attendance/daily/${today}`)
                 ])
                 
                 const employeesData = employeesRes.data
@@ -130,8 +130,8 @@ export default function DirectoryPage() {
             
             // Fetch attendance data and leave data in parallel using axios
             const [attendanceResponse, leavesResponse] = await Promise.all([
-                axios.get(`${backendUrl}/hr/attendance/total/${employee.eid}`),
-                axios.get(`${backendUrl}/hr/leaves/${employee.eid}`)
+                apiClient.get(`/hr/attendance/total/${employee.eid}`),
+                apiClient.get(`/hr/leaves/${employee.eid}`)
             ])
             
             // Extract response data

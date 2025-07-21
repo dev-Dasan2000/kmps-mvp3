@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useContext } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ import { Plus, Calendar, Clock, User, Building, Search, CalendarIcon, X, Edit, T
 import type { RoomAssignment } from "@/types/dentist"
 import axios from "axios"
 import { toast } from "sonner"
+import { AuthContext } from "@/context/auth-context"
 
 interface Dentist {
   dentist_id: string
@@ -35,6 +36,7 @@ interface ExtendedRoomAssignment extends RoomAssignment {
 
 export function RoomAssignment({refreshKey}:{refreshKey: number}) {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL
+  const {apiClient} = useContext(AuthContext);
   const [assignments, setAssignments] = useState<ExtendedRoomAssignment[]>([])
   const [filteredAssignments, setFilteredAssignments] = useState<ExtendedRoomAssignment[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -59,7 +61,7 @@ export function RoomAssignment({refreshKey}:{refreshKey: number}) {
   // Fetch dentists from backend
   const fetchDentists = async () => {
     try {
-      const response = await axios.get(`${backendURL}/dentists`)
+      const response = await apiClient.get(`/dentists`)
       setDentists(response.data)
     } catch (error) {
       console.error("Failed to fetch dentists:", error)
@@ -74,7 +76,7 @@ export function RoomAssignment({refreshKey}:{refreshKey: number}) {
     }
 
     try {
-      await axios.delete(`${backendURL}/rooms/${roomId}`);
+      await apiClient.delete(`/rooms/${roomId}`);
       toast.success('Room deleted successfully');
       fetchRooms(); // Refresh the rooms list
       fetchAssignments(); // Refresh assignments as well
@@ -87,7 +89,7 @@ export function RoomAssignment({refreshKey}:{refreshKey: number}) {
   // Fetch rooms from backend
   const fetchRooms = async () => {
     try {
-      const response = await axios.get(`${backendURL}/rooms`)
+      const response = await apiClient.get(`/rooms`)
       setRooms(response.data)
     } catch (error) {
       console.error("Failed to fetch rooms:", error)
@@ -99,7 +101,7 @@ export function RoomAssignment({refreshKey}:{refreshKey: number}) {
   const fetchAssignments = async () => {
     setLoading(true)
     try {
-      const response = await axios.get(`${backendURL}/rooms-assign`)
+      const response = await apiClient.get(`/rooms-assign`)
 
       // Transform the data to match the ExtendedRoomAssignment interface
       const extendedAssignments: ExtendedRoomAssignment[] = response.data.map((assignment: any, index: number) => {
@@ -235,7 +237,7 @@ export function RoomAssignment({refreshKey}:{refreshKey: number}) {
         time_from: formData.time_from,
         time_to: formData.time_to,
       }
-      await axios.post(`${backendURL}/rooms-assign`, payload)
+      await apiClient.post(`/rooms-assign`, payload)
 
       toast.success("Room assignment created successfully")
       fetchAssignments() // Refresh the assignments list
@@ -288,8 +290,8 @@ export function RoomAssignment({refreshKey}:{refreshKey: number}) {
         time_to: formData.time_to,
       }
 
-      await axios.put(
-        `${backendURL}/rooms-assign/${originalRoomId}/${originalDentistId}/${originalDate}/${originalTimeFrom}/${originalTimeTo}`,
+      await apiClient.put(
+        `/rooms-assign/${originalRoomId}/${originalDentistId}/${originalDate}/${originalTimeFrom}/${originalTimeTo}`,
         payload
       )
 
@@ -318,7 +320,7 @@ export function RoomAssignment({refreshKey}:{refreshKey: number}) {
       const time_from = encodeURIComponent(assignment.time_from)
       const time_to = encodeURIComponent(assignment.time_to)
 
-      await axios.delete(`${backendURL}/rooms-assign/${roomId}/${dentistId}/${date}/${time_from}/${time_to}`)
+      await apiClient.delete(`/rooms-assign/${roomId}/${dentistId}/${date}/${time_from}/${time_to}`)
 
       toast.success("Room assignment deleted successfully")
       fetchAssignments() // Refresh the assignments list

@@ -1,11 +1,11 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const blockedDates = await prisma.blocked_dates.findMany();
     res.json(blockedDates);
@@ -14,7 +14,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/fordentist/:dentist_id', /* authenticateToken, */ async (req, res) => {
+router.get('/fordentist/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const blockedDates = await prisma.blocked_dates.findMany({where: {dentist_id: req.params.dentist_id}});
     res.json(blockedDates);
@@ -23,7 +23,7 @@ router.get('/fordentist/:dentist_id', /* authenticateToken, */ async (req, res) 
   }
 });
 
-router.get('/:blocked_date_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:blocked_date_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const blockedDate = await prisma.blocked_dates.findUnique({
       where: { blocked_date_id: Number(req.params.blocked_date_id) },
@@ -57,7 +57,7 @@ router.post('/', async (req, res) => {
 });
 
 
-router.put('/:blocked_date_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:blocked_date_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const data = req.body;
     const updatedBlockedDate = await prisma.blocked_dates.update({
@@ -70,7 +70,7 @@ router.put('/:blocked_date_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.delete('/:blocked_date_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:blocked_date_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     await prisma.blocked_dates.delete({
       where: { blocked_date_id: Number(req.params.blocked_date_id) },

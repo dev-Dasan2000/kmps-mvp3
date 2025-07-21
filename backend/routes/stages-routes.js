@@ -1,12 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get all stages
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const stages = await prisma.stages.findMany({
       orderBy: {
@@ -21,7 +21,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // Get single stage by stage_id
-router.get('/:stage_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:stage_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const stage = await prisma.stages.findUnique({
       where: { stage_id: Number(req.params.stage_id) },
@@ -35,7 +35,7 @@ router.get('/:stage_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Create new stage
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { name } = req.body;
     const newStage = await prisma.stages.create({
@@ -49,7 +49,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // Update existing stage
-router.put('/:stage_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:stage_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const data = req.body;
     const updatedStage = await prisma.stages.update({
@@ -64,7 +64,7 @@ router.put('/:stage_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Delete stage
-router.delete('/:stage_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:stage_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     await prisma.stages.delete({
       where: { stage_id: Number(req.params.stage_id) },

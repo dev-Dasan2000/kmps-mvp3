@@ -1,12 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get all stage_assign records
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const assignments = await prisma.stage_assign.findMany();
     res.json(assignments);
@@ -17,7 +17,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // Get single stage_assign by stage_assign_id
-router.get('/:stage_assign_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:stage_assign_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const id = Number(req.params.stage_assign_id);
     const assignment = await prisma.stage_assign.findUnique({
@@ -32,7 +32,7 @@ router.get('/:stage_assign_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Create new stage_assign
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { stage_id, order_id, completed = false, date } = req.body;
 
@@ -53,7 +53,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // Update existing stage_assign by stage_assign_id
-router.put('/:stage_assign_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:stage_assign_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const id = Number(req.params.stage_assign_id);
     const data = req.body;
@@ -74,7 +74,7 @@ router.put('/:stage_assign_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Delete stage_assign by stage_assign_id
-router.delete('/:stage_assign_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:stage_assign_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const id = Number(req.params.stage_assign_id);
 

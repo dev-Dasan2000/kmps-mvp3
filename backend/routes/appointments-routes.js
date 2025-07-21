@@ -1,13 +1,13 @@
 import express from 'express';
 import { Prisma,PrismaClient } from '@prisma/client';
 import { DateTime } from 'luxon';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 import { sendAppointmentConfirmation, sendAppointmentCancelation } from '../utils/mailer.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       include: {
@@ -36,7 +36,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/fordentist/:dentist_id', /* authenticateToken, */ async (req, res) => {
+router.get('/fordentist/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       where: { dentist_id: req.params.dentist_id },
@@ -66,7 +66,7 @@ router.get('/fordentist/:dentist_id', /* authenticateToken, */ async (req, res) 
   }
 });
 
-router.get('/forpatient/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/forpatient/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       where: { patient_id: req.params.patient_id },
@@ -137,7 +137,7 @@ router.get('/today/fordentist/:dentist_id', async (req, res) => {
   }
 });
 
-router.get('/fordentist/patients/:dentist_id', /* authenticateToken, */ async (req, res) => {
+router.get('/fordentist/patients/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const dentistId = req.params.dentist_id;
 
@@ -179,7 +179,7 @@ router.get('/fordentist/patients/:dentist_id', /* authenticateToken, */ async (r
 });
 
 
-router.get('/today/forpatient/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/today/forpatient/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -221,7 +221,7 @@ router.get('/today/forpatient/:patient_id', /* authenticateToken, */ async (req,
 });
 
 
-router.get('/today', /* authenticateToken, */ async (req, res) => {
+router.get('/today',  /*authenticateToken,*/  async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -263,7 +263,7 @@ router.get('/today', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/count/today', /* authenticateToken, */ async (req, res) => {
+router.get('/count/today',  /*authenticateToken,*/  async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -290,7 +290,7 @@ router.get('/count/today', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/count/today-checked-in', /* authenticateToken, */ async (req, res) => {
+router.get('/count/today-checked-in',  /*authenticateToken,*/  async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -318,7 +318,7 @@ router.get('/count/today-checked-in', /* authenticateToken, */ async (req, res) 
   }
 });
 
-router.get('/count/today-not-checked-in', /* authenticateToken, */ async (req, res) => {
+router.get('/count/today-not-checked-in',  /*authenticateToken,*/  async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -346,7 +346,7 @@ router.get('/count/today-not-checked-in', /* authenticateToken, */ async (req, r
   }
 });
 
-router.get('/fordentist/upcoming/:dentist_id', /* authenticateToken, */ async (req, res) => {
+router.get('/fordentist/upcoming/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     // Get today's date in Asia/Colombo (without time)
     const colomboToday = DateTime.now().setZone('Asia/Colombo').toISODate(); // '2025-06-20'
@@ -388,7 +388,7 @@ router.get('/fordentist/upcoming/:dentist_id', /* authenticateToken, */ async (r
   }
 });
 
-router.get('/forpatient/upcoming/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/forpatient/upcoming/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     // Get today's date in Asia/Colombo (without time)
     const colomboToday = DateTime.now().setZone('Asia/Colombo').toISODate(); // '2025-06-20'
@@ -430,7 +430,7 @@ router.get('/forpatient/upcoming/:patient_id', /* authenticateToken, */ async (r
   }
 });
 
-router.get('/pending', /* authenticateToken, */ async (req, res) => {
+router.get('/pending',  /*authenticateToken,*/  async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       where: {
@@ -465,7 +465,7 @@ router.get('/pending', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/checkedin', /* authenticateToken, */ async (req, res) => {
+router.get('/checkedin',  /*authenticateToken,*/  async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       where: {
@@ -500,7 +500,7 @@ router.get('/checkedin', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/count', /* authenticateToken, */ async (req, res) => {
+router.get('/count',  /*authenticateToken,*/  async (req, res) => {
   try {
     const count = await prisma.appointments.count();
     res.json(count);
@@ -509,7 +509,7 @@ router.get('/count', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/pending-count', /* authenticateToken, */ async (req, res) => {
+router.get('/pending-count',  /*authenticateToken,*/  async (req, res) => {
   try {
     const count = await prisma.appointments.count({ where: { status: "pending", patient_id:{not:null}, dentist_id:{not: null} } });
     res.json(count);
@@ -518,7 +518,7 @@ router.get('/pending-count', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/completed-count', /* authenticateToken, */ async (req, res) => {
+router.get('/completed-count',  /*authenticateToken,*/  async (req, res) => {
   try {
     const count = await prisma.appointments.count({ where: { status: "completed" } });
     res.json(count);
@@ -527,7 +527,7 @@ router.get('/completed-count', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/confirmed-count', /* authenticateToken, */ async (req, res) => {
+router.get('/confirmed-count',  /*authenticateToken,*/  async (req, res) => {
   try {
     const count = await prisma.appointments.count({ where: { status: "confirmed" } });
     res.json(count);
@@ -536,7 +536,7 @@ router.get('/confirmed-count', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:appointment_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:appointment_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const appointment = await prisma.appointments.findUnique({
       where: { appointment_id: Number(req.params.appointment_id) },
@@ -583,7 +583,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:appointment_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:appointment_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const data = req.body;
     if (data.date) data.date = new Date(data.date);
@@ -637,7 +637,7 @@ router.put('/:appointment_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.delete('/:appointment_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:appointment_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     await prisma.appointments.delete({
       where: { appointment_id: Number(req.params.appointment_id) },
@@ -648,7 +648,7 @@ router.delete('/:appointment_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/payment-summary/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/payment-summary/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { patient_id } = req.params;
 

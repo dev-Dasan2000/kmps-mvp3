@@ -2,7 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 import { sendAccountCreationInvite } from '../utils/mailer.js';
 
 const prisma = new PrismaClient();
@@ -11,7 +11,7 @@ dotenv.config();
 
 const SALT_ROUNDS = 10;
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const admins = await prisma.admins.findMany();
     res.json(admins);
@@ -20,7 +20,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:admin_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:admin_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const admin = await prisma.admins.findUnique({
       where: { admin_id: req.params.admin_id },
@@ -32,7 +32,7 @@ router.get('/:admin_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { admin_id, password } = req.body;
 
@@ -53,7 +53,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.put('/:admin_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:admin_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { password } = req.body;
     let data = {};
@@ -71,7 +71,7 @@ router.put('/:admin_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.delete('/:admin_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:admin_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     await prisma.admins.delete({
       where: { admin_id: req.params.admin_id },
@@ -82,7 +82,7 @@ router.delete('/:admin_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.post('/invite', /* authenticateToken, */ async (req, res) => {
+router.post('/invite',  /*authenticateToken,*/  async (req, res) => {
   try{
     const role = req.body.role.toLowerCase();
     const URL = `${process.env.FRONTEND_URL}/${role}Signup`;

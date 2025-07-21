@@ -1,6 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/trends', /* authenticateToken, */ async (req, res) => {
+router.get('/trends',  /*authenticateToken,*/  async (req, res) => {
 
   const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -118,7 +118,7 @@ router.get('/trends', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/income/this-month', /* authenticateToken, */ async (req, res) => {
+router.get('/income/this-month',  /*authenticateToken,*/  async (req, res) => {
   try {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -149,7 +149,7 @@ router.get('/income/this-month', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:appointment_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:appointment_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const payment = await prisma.payment_history.findUnique({
       where: { appointment_id: Number(req.params.appointment_id) },
@@ -161,7 +161,7 @@ router.get('/:appointment_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { appointment_id, reference_number } = req.body;
 
@@ -186,7 +186,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.put('/:appointment_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:appointment_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const appointment_id = Number(req.params.appointment_id);
     const { payment_date, payment_time, reference_number } = req.body;
@@ -201,7 +201,7 @@ router.put('/:appointment_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.delete('/:appointment_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:appointment_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     await prisma.payment_history.delete({
       where: { appointment_id: Number(req.params.appointment_id) },
@@ -213,7 +213,7 @@ router.delete('/:appointment_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Get payment history by patient ID
-router.get('/patient/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/patient/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const patientId = req.params.patient_id;
     // First, get all appointments for the patient

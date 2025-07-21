@@ -1,12 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { DateTime } from 'luxon';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const notes = await prisma.soap_notes.findMany();
     res.json(notes);
@@ -15,7 +15,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/forpatient/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/forpatient/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const notes = await prisma.soap_notes.findMany({where:{patient_id:req.params.patient_id}});
     res.json(notes);
@@ -25,7 +25,7 @@ router.get('/forpatient/:patient_id', /* authenticateToken, */ async (req, res) 
   }
 });
 
-router.get('/:note_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:note_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const note = await prisma.soap_notes.findUnique({
       where: { note_id: Number(req.params.note_id) },
@@ -37,7 +37,7 @@ router.get('/:note_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { dentist_id, patient_id, note } = req.body;
 
@@ -59,7 +59,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.put('/:note_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:note_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const id = Number(req.params.note_id);
     const { dentist_id, patient_id, note } = req.body;
@@ -74,7 +74,7 @@ router.put('/:note_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.delete('/:note_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:note_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     await prisma.soap_notes.delete({
       where: { note_id: Number(req.params.note_id) },
