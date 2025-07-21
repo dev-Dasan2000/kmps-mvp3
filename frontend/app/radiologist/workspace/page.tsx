@@ -584,23 +584,28 @@ const RadiologistWorkspace: React.FC = () => {
                 <div className="p-4 border rounded-md">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="font-medium">Report #{selectedStudy.report_id}</h3>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      // TODO - view report functionality
-                      toast.info('Report viewing functionality will be implemented in the future');
-                    }}>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => {
+                        router.push(`/radiologist/reports?studyId=${selectedStudy.study_id}`);
+                      }}
+                    >
                       <Eye className="h-4 w-4 mr-2" />
                       View Full Report
                     </Button>
                   </div>
-                  <p className="text-gray-500 italic">The report content will be displayed here.</p>
+                  <p className="text-gray-500 italic">Click the button above to view the full report.</p>
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <p className="text-gray-500 mb-4">No report has been created for this study yet.</p>
-                  <Button className="bg-emerald-600 hover:bg-emerald-500" onClick={() => {
-                    // TODO - create report functionality
-                    toast.info('Report creation functionality will be implemented in the future');
-                  }}>
+                  <Button 
+                    className="bg-emerald-600 hover:bg-emerald-500" 
+                    onClick={() => {
+                      router.push(`/radiologist/reports?studyId=${selectedStudy.study_id}`);
+                    }}
+                  >
                     <FileText className="h-4 w-4 mr-2" />
                     Create Report
                   </Button>

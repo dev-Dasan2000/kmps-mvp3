@@ -1,0 +1,159 @@
+/* Report Editor Styles */
+.editorContent {
+  min-height: calc(100vh - 16rem); /* Account for fixed header, toolbar, and footer */
+  padding: 2rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  > * + * {
+    margin-top: 0.75em;
+  }
+
+  /* Text alignment styles */
+  :global(.ProseMirror) {
+    height: 100%;
+    outline: none;
+    padding-bottom: 5rem; /* Add extra padding at bottom for better scrolling experience */
+
+    p[style*="text-align: left"],
+    h1[style*="text-align: left"],
+    h2[style*="text-align: left"],
+    h3[style*="text-align: left"],
+    ul[style*="text-align: left"],
+    ol[style*="text-align: left"] {
+      text-align: left;
+    }
+
+    p[style*="text-align: center"],
+    h1[style*="text-align: center"],
+    h2[style*="text-align: center"],
+    h3[style*="text-align: center"],
+    ul[style*="text-align: center"],
+    ol[style*="text-align: center"] {
+      text-align: center;
+    }
+
+    p[style*="text-align: right"],
+    h1[style*="text-align: right"],
+    h2[style*="text-align: right"],
+    h3[style*="text-align: right"],
+    ul[style*="text-align: right"],
+    ol[style*="text-align: right"] {
+      text-align: right;
+    }
+
+    p[style*="text-align: justify"],
+    h1[style*="text-align: justify"],
+    h2[style*="text-align: justify"],
+    h3[style*="text-align: justify"],
+    ul[style*="text-align: justify"],
+    ol[style*="text-align: justify"] {
+      text-align: justify;
+    }
+
+    /* First element spacing */
+    > *:first-child {
+      margin-top: 0;
+    }
+  }
+
+  /* Heading Styles - MS Word-like sizes */
+  h1 {
+    font-size: 2em !important; /* 32px */
+    font-weight: bold;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    color: #000;
+  }
+
+  h2 {
+    font-size: 1.5em !important; /* 24px */
+    font-weight: bold;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    color: #000;
+  }
+
+  h3 {
+    font-size: 1.17em !important; /* 18.72px */
+    font-weight: bold;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+    color: #000;
+  }
+
+  /* List Styles */
+  ul {
+    list-style-type: disc !important;
+    padding-left: 1.5em !important;
+    margin-left: 0.5em;
+  }
+
+  ol {
+    list-style-type: decimal !important;
+    padding-left: 1.5em !important;
+    margin-left: 0.5em;
+  }
+
+  li {
+    margin-bottom: 0.25em;
+  }
+
+  /* Table Styles */
+  table {
+    border-collapse: collapse;
+    margin: 0;
+    overflow: hidden;
+    table-layout: fixed;
+    width: 100%;
+    margin-bottom: 1em;
+  }
+
+  td, th {
+    border: 2px solid #000;
+    box-sizing: border-box;
+    min-width: 1em;
+    padding: 0.5em;
+    position: relative;
+    vertical-align: top;
+
+    > * {
+      margin-bottom: 0;
+    }
+  }
+
+  th {
+    background-color: #f1f5f9;
+    font-weight: bold;
+  }
+
+  :global(.selectedCell:after) {
+    background: rgba(200, 200, 255, 0.4);
+    content: "";
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 2;
+  }
+
+  /* Image Styles */
+  img {
+    max-width: 100%;
+    height: auto;
+    margin: 1em 0;
+  }
+}
+
+/* Preview mode styles */
+.previewContent {
+  composes: editorContent;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: calc(100vh - 16rem);
+  padding-bottom: 5rem;
+} 
