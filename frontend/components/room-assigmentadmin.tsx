@@ -403,8 +403,17 @@ export function RoomAssignment({refreshKey}:{refreshKey: number}) {
             placeholder="Search by dentist or room..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10"
           />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => setSearchTerm("")}
+              className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
           </div>
         </div>
         

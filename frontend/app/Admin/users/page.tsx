@@ -1,7 +1,7 @@
 "use client";
 import { useContext, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, Search, Plus, User, Phone, Mail, UserCheck, BarChart3 } from "lucide-react";
+import { Eye, Trash2, Search, Plus, User, Phone, Mail, UserCheck, BarChart3, X } from "lucide-react";
 import Image from "next/image";
 import ViewUserDialog from "@/components/ViewUserDialog";
 import InviteUserDialog from "@/components/InviteUserDialog";
@@ -238,8 +238,16 @@ export default function UserTable() {
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg   focus:border-transparent"
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:border-transparent"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 

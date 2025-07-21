@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { Plus, Edit, Trash2, Download, Eye, Search, DollarSign, FileText, Users, Calendar as CalendarIcon, Phone, Mail, MapPin, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Download, Eye, Search, DollarSign, FileText, Users, Calendar as CalendarIcon, Phone, Mail, MapPin, X, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { toast } from 'sonner';
@@ -107,6 +107,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<number | null>(null);
   const router = useRouter();
+  const [patientSearchQuery, setPatientSearchQuery] = useState('');
+  const [patientSearchResults, setPatientSearchResults] = useState<Patient[]>([]);
+  const [isSearchingPatient, setIsSearchingPatient] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [patientSearchOpen, setPatientSearchOpen] = useState(false);
 
   const [formData, setFormData] = useState<InvoiceFormData>({
     patient_id: '',
@@ -673,6 +678,42 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     };
   }, [isLoadingAuth, isLoggedIn, user, router]);
 
+  // Add patient search function
+  const searchPatients = useCallback(async (query: string) => {
+    if (!query || query.length < 2) {
+      setPatientSearchResults([]);
+      return;
+    }
+
+    setIsSearchingPatient(true);
+    try {
+      const response = await apiClient.get(`/patients/search?q=${encodeURIComponent(query)}`);
+      setPatientSearchResults(response.data);
+    } catch (error) {
+      console.error('Error searching patients:', error);
+      toast.error('Failed to search patients');
+    } finally {
+      setIsSearchingPatient(false);
+    }
+  }, [apiClient]);
+
+  // Add debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchPatients(patientSearchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [patientSearchQuery, searchPatients]);
+
+  // Add patient selection handler
+  const handlePatientSelect = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setFormData(prev => ({ ...prev, patient_id: patient.patient_id }));
+    setPatientSearchQuery(patient.name);
+    setPatientSearchOpen(false);
+  };
+
   if (formSubmitting || isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -750,8 +791,17 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
               placeholder="Search invoices by patient, ID, dentist..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
+              className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:border-transparent"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1004,19 +1054,89 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 <div className="p-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="patient_id" className="font-medium">Patient *</Label>
-                      <Select onValueChange={(value) => setFormData(prev => ({ ...prev, patient_id: value }))}>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Select patient" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {patients.map((patient) => (
-                            <SelectItem key={patient.patient_id} value={patient.patient_id}>
-                              {patient.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="patient_search" className="font-medium">Patient *</Label>
+                      <div className="relative">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                          <Input
+                            id="patient_search"
+                            placeholder="Search patients..."
+                            value={patientSearchQuery}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setPatientSearchQuery(value);
+                              setPatientSearchOpen(value.length >= 2);
+                            }}
+                            onFocus={() => {
+                              if (patientSearchQuery.length >= 2) {
+                                setPatientSearchOpen(true);
+                              }
+                            }}
+                            className="pl-10 pr-10"
+                          />
+                          {patientSearchQuery && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPatientSearchQuery("");
+                                setSelectedPatient(null);
+                                setFormData(prev => ({ ...prev, patient_id: "" }));
+                                setPatientSearchOpen(false);
+                              }}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                        {patientSearchQuery.length >= 2 && (
+                          <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+                            <PopoverTrigger asChild>
+                              <div className="h-0" />
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[--trigger-width] p-0 mt-1" style={{ "--trigger-width": "100%" } as any}>
+                              <div className="max-h-[300px] overflow-auto py-1">
+                                {isSearchingPatient ? (
+                                  <div className="flex items-center justify-center py-4">
+                                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                                  </div>
+                                ) : patientSearchResults.length > 0 ? (
+                                  patientSearchResults.map((patient) => (
+                                    <button
+                                      key={patient.patient_id}
+                                      type="button"
+                                      className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                      onClick={() => handlePatientSelect(patient)}
+                                    >
+                                      <div className="font-medium">{patient.name}</div>
+                                      <div className="text-sm text-gray-500">{patient.email}</div>
+                                    </button>
+                                  ))
+                                ) : (
+                                  <div className="text-center py-4 text-gray-500">No patients found</div>
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
+                      {selectedPatient && (
+                        <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                          <div className="text-sm font-medium">{selectedPatient.name}</div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4" />
+                              {selectedPatient.email}
+                            </div>
+                            {selectedPatient.phone_number && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Phone className="h-4 w-4" />
+                                {selectedPatient.phone_number}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="dentist_id" className="font-medium">Dentist</Label>
