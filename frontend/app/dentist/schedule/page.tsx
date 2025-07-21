@@ -331,7 +331,7 @@ const BlockTimeForm = ({
 
 export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { user, isLoadingAuth, isLoggedIn, accessToken } = useContext(AuthContext);
+  const { user, isLoadingAuth, isLoggedIn, apiClient } = useContext(AuthContext);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
@@ -379,7 +379,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
       return;
     }
     try {
-      const response = await fetch(`${backendURL}/patients/search?q=${encodeURIComponent(term)}`);
+      const response = await fetch(`/patients/search?q=${encodeURIComponent(term)}`);
       if (response.ok) {
         const data = await response.json();
         setPatientSearchResults(data);
@@ -456,8 +456,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const fetchAppointments = async () => {
     setLoadingAppointments(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/appointments/fordentist/${user.id}`
+      const response = await apiClient.get(
+        `/appointments/fordentist/${user.id}`
       );
       if (response.status === 500) {
         throw new Error("Internal server error");
@@ -479,8 +479,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const fetchBlockedSlots = async () => {
     setLoadingBlockedSlots(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/blocked-dates/fordentist/${user.id}`
+      const response = await apiClient.get(
+        `/blocked-dates/fordentist/${user.id}`
       );
       if (response.status === 500) {
         throw new Error("Internal Server Error");
@@ -525,8 +525,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
               toast.dismiss(t);
               setDeletingBlock(true);
               try {
-                const response = await axios.delete(
-                  `${backendURL}/blocked-dates/${blocked_date_id}`
+                const response = await apiClient.delete(
+                  `/blocked-dates/${blocked_date_id}`
                 );
                 if (response.status == 500) {
                   throw new Error("Error Deleting Block Slot");
@@ -554,8 +554,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
 
   const fetchDentistWorkInfo = async () => {
     try {
-      const response = await axios.get(
-        `${backendURL}/dentists/getworkinfo/${user.id}`
+      const response = await apiClient.get(
+        `/dentists/getworkinfo/${user.id}`
       );
       if (response.status == 500) {
         throw new Error("Internal Server Error");
@@ -700,8 +700,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
       }
 
       // 1. Create the appointment
-      const response = await axios.post(
-        `${backendURL}/appointments/`,
+      const response = await apiClient.post(
+        `/appointments/`,
         {
           patient_id: patient_id,
           dentist_id: user.id,
@@ -720,7 +720,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
       } else {
         // 2. Fetch patient details to include in the appointment
         try {
-          const patientResponse = await axios.get(`${backendURL}/patients/${patient_id}`);
+          const patientResponse = await apiClient.get(`/patients/${patient_id}`);
           const patientData = patientResponse.data;
 
           // 3. Create a complete appointment object with patient details
@@ -788,8 +788,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
 
     setCreatingBlockSlot(true);
     try {
-      const response = await axios.post(
-        `${backendURL}/blocked-dates/`,
+      const response = await apiClient.post(
+        `/blocked-dates/`,
         {
           dentist_id: user.id,
           date: blockDate,
@@ -826,8 +826,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const handleAppointmentCancellation = async (appointment_id: number) => {
     setCancellingAppointment(true);
     try {
-      const response = await axios.put(
-        `${backendURL}/appointments/${appointment_id}`,
+      const response = await apiClient.put(
+        `/appointments/${appointment_id}`,
         {
           status: "cancelled"
         }

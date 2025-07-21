@@ -313,6 +313,7 @@ const MedicalStudyInterface: React.FC = () => {
   // Fetch studies from the backend
   useEffect(() => {
     const fetchStudies = async () => {
+      if(radiologistID == "") return;
       setLoading(true);
       setError(null);
       try {

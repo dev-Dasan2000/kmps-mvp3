@@ -95,7 +95,7 @@ export default function ExpenseManagement() {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
-  const { isLoadingAuth, isLoggedIn, user, accessToken } = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
 
   useEffect(() => {
     if (!user) return;
@@ -123,8 +123,8 @@ export default function ExpenseManagement() {
   const fetchExpenses = async () => {
     setIsLoadingExpenses(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/expense/fordentist/${user.id}`
+      const res = await apiClient.get(
+        `/expense/fordentist/${user.id}`
       );
       if (res.status == 500) {
         throw new Error("Error fetching expense");
@@ -180,7 +180,7 @@ export default function ExpenseManagement() {
       if (file) {
         const fileForm = new FormData();
         fileForm.append('file', file);
-        const res = await axios.post(`${backendURL}/files`, fileForm, {
+        const res = await apiClient.post(`/files`, fileForm, {
           headers: { 'Content-Type': 'multipart/form-data' },
           withCredentials: true,
         });
@@ -200,8 +200,8 @@ export default function ExpenseManagement() {
 
       if (editingExpense) {
         // PUT: Update existing expense
-        const res = await axios.put(
-          `${backendURL}/expense/${editingExpense.expence_id}`,
+        const res = await apiClient.put(
+          `/expense/${editingExpense.expence_id}`,
           expenseData,
           {
             withCredentials: true,
@@ -223,8 +223,8 @@ export default function ExpenseManagement() {
         toast.success("Expense updated successfully");
       } else {
         // POST: Create new expense
-        const res = await axios.post(
-          `${backendURL}/expense`,
+        const res = await apiClient.post(
+          `/expense`,
           expenseData,
           {
             withCredentials: true,
@@ -273,8 +273,8 @@ export default function ExpenseManagement() {
   const acceptExpense = async (expence_id: number) => {
     setIsAccepting(true);
     try {
-      const res = await axios.put(
-        `${backendURL}/expense/${expence_id}`,
+      const res = await apiClient.put(
+        `/expense/${expence_id}`,
         {
           status: "approved"
         },

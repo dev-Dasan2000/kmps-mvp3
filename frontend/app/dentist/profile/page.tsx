@@ -28,7 +28,7 @@ interface DentistData {
 
 const ProfilePage = () => {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { user, isLoadingAuth, accessToken, isLoggedIn } = useContext(AuthContext);
+  const { user, isLoadingAuth, apiClient, isLoggedIn } = useContext(AuthContext);
   const [DentistData, setDentistData] = useState<DentistData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -67,8 +67,8 @@ const ProfilePage = () => {
 
   const fetchDentistData = async () => {
     try {
-      const response = await axios.get(
-        `${backendURL}/dentists/${user?.id}`
+      const response = await apiClient.get(
+        `/dentists/${user?.id}`
       );
 
       setDentistData(response.data);
@@ -170,8 +170,8 @@ const ProfilePage = () => {
         const formData = new FormData();
         formData.append('image', editedData.newProfilePicture);
 
-        const uploadResponse = await axios.post(
-          `${backendURL}/photos`,
+        const uploadResponse = await apiClient.post(
+          `/photos`,
           formData,
           {
             headers: {
@@ -186,7 +186,7 @@ const ProfilePage = () => {
       }
 
       // Update client information
-      const response = await axios.put(`${backendURL}/dentists/${user.id}`, {
+      const response = await apiClient.put(`/dentists/${user.id}`, {
         name: `${editedData.firstName} ${editedData.lastName}`.trim(),
         phone_number: editedData.phone_number,
         profile_picture: profilePicturePath,

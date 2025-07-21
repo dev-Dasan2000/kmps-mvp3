@@ -354,7 +354,7 @@ export default function ReportEditorPage() {
     
     const autoSaveInterval = setInterval(() => {
       saveReport();
-    }, 60000); // Auto-save every minute
+    }, 30000); // Auto-save every 30 seconds
     
     return () => clearInterval(autoSaveInterval);
   }, [editor, reportStatus]);
