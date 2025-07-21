@@ -18,7 +18,7 @@ interface DoctorInfo {
 const DoctorHeader = () => {
   const router = useRouter();
   const [doctorInfo, setDoctorInfo] = useState<DoctorInfo | null>(null);
-  const {user, isLoadingAuth, isLoggedIn} = useContext(AuthContext);
+  const {user, isLoadingAuth, isLoggedIn, apiClient} = useContext(AuthContext);
   const [loadingDentist, setLoadingDentist] = useState(false);
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -46,8 +46,8 @@ const DoctorHeader = () => {
   const fetchDoctorInfo = async () => {
     setLoadingDentist(true);
     try{
-      const response = await axios.get(
-        `${backendURL}/dentists/${user.id}`
+      const response = await apiClient.get(
+        `/dentists/${user.id}`
       );
       if(response.status == 500){
         throw new Error("Error Fetching Doctor Info");

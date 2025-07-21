@@ -58,7 +58,7 @@ const PaymentsInterface: React.FC = () => {
 
   const router = useRouter()
 
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -68,7 +68,7 @@ const PaymentsInterface: React.FC = () => {
   const fetchPayments = async () => {
     setLoadingPayments(true);
     try {
-      const response = await axios.get(`${backendURL}/payment-history`);
+      const response = await apiClient.get(`/payment-history`);
 
       if (response.status === 500) {
         throw new Error("Internal Server Error");
@@ -202,7 +202,7 @@ const PaymentsInterface: React.FC = () => {
                               {payment.patient?.profile_picture ? (
                                 <>
                                   <Image
-                                    src={`${backendURL}${payment.patient.profile_picture}`}
+                                    src={`${payment.patient.profile_picture}`}
                                     alt={payment.patient.name}
                                     width={40}
                                     height={40}
@@ -245,7 +245,7 @@ const PaymentsInterface: React.FC = () => {
                               {payment.dentist?.profile_picture ? (
                                 <>
                                   <Image
-                                    src={`${backendURL}${payment.dentist.profile_picture}`}
+                                    src={`${payment.dentist.profile_picture}`}
                                     alt={payment.dentist.name}
                                     width={40}
                                     height={40}
@@ -322,7 +322,7 @@ const PaymentsInterface: React.FC = () => {
                       {payment.patient?.profile_picture ? (
                         <>
                           <Image
-                            src={`${backendURL}${payment.patient.profile_picture}`}
+                            src={`${payment.patient.profile_picture}`}
                             alt={payment.patient.name}
                             width={48}
                             height={48}
@@ -369,7 +369,7 @@ const PaymentsInterface: React.FC = () => {
                       {payment.dentist?.profile_picture ? (
                         <>
                           <Image
-                            src={`${backendURL}${payment.dentist.profile_picture}`}
+                            src={`${payment.dentist.profile_picture}`}
                             alt={payment.dentist.name}
                             width={40}
                             height={40}

@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { Carattere } from 'next/font/google';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { ChangePasswordDialog } from '@/Components/ChangePasswordDialog';
+import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
 
 interface DentistData {
   dentist_id: string;

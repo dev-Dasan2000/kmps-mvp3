@@ -1,12 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all rooms
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const rooms = await prisma.rooms.findMany();
     res.json(rooms);
@@ -17,7 +17,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // GET one room by ID
-router.get('/:room_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:room_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const room = await prisma.rooms.findUnique({
       where: { room_id: req.params.room_id }
@@ -59,7 +59,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update a room
-router.put('/:room_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:room_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { description } = req.body;
 
@@ -76,7 +76,7 @@ router.put('/:room_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // DELETE a room
-router.delete('/:room_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:room_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     await prisma.rooms.delete({
       where: { room_id: req.params.room_id }

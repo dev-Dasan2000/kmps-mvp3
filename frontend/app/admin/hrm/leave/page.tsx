@@ -43,7 +43,7 @@ interface LeaveSummary {
 
 export default function LeavesManagementPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { accessToken, isLoggedIn, user, isLoadingAuth } = useContext(AuthContext);
+  const { apiClient, isLoggedIn, user, isLoadingAuth } = useContext(AuthContext);
   const router = useRouter();
   
   // State variables
@@ -78,11 +78,11 @@ export default function LeavesManagementPage() {
     setLoading(true);
     try {
       // Fetch all leave requests
-      const leaveResponse = await axios.get(`${backendURL}/hr/leaves`);
+      const leaveResponse = await apiClient.get(`/hr/leaves`);
       setLeaveRequests(leaveResponse.data || []);
       
       // Fetch all employees for the dropdown
-      const employeesResponse = await axios.get(`${backendURL}/hr/employees`);
+      const employeesResponse = await apiClient.get(`/hr/employees`);
       setEmployees(employeesResponse.data || []);
       
       // Calculate leave summary
@@ -163,12 +163,12 @@ export default function LeavesManagementPage() {
       };
       
       // First create the leave request
-      const createResponse = await axios.post(`${backendURL}/hr/leaves`, leaveData);
+      const createResponse = await apiClient.post(`/hr/leaves`, leaveData);
       const createdLeave = createResponse.data.leave;
       
       // Then immediately approve it using the update status endpoint
-      await axios.put(
-        `${backendURL}/hr/leaves/${createdLeave.eid}/${createdLeave.from_date}/${createdLeave.to_date}/status`,
+      await apiClient.put(
+        `/hr/leaves/${createdLeave.eid}/${createdLeave.from_date}/${createdLeave.to_date}/status`,
         { status: 'Approved' }
       );
       
@@ -193,8 +193,8 @@ export default function LeavesManagementPage() {
 
   const handleStatusChange = async (leave: LeaveRequest, newStatus: 'Approved' | 'Rejected') => {
     try {
-      await axios.put(
-        `${backendURL}/hr/leaves/${leave.eid}/${leave.from_date}/${leave.to_date}/status`,
+      await apiClient.put(
+        `/hr/leaves/${leave.eid}/${leave.from_date}/${leave.to_date}/status`,
         { status: newStatus }
       );
       toast.success(`Leave request ${newStatus.toLowerCase()} successfully`);

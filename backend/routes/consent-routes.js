@@ -1,12 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get all consent forms
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const consentForms = await prisma.consent_form.findMany({
       include: {
@@ -22,7 +22,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // Get consent forms by patient ID
-router.get('/patient/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/patient/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { patient_id } = req.params;
     const consentForms = await prisma.consent_form.findMany({
@@ -41,7 +41,7 @@ router.get('/patient/:patient_id', /* authenticateToken, */ async (req, res) => 
 });
 
 // Get consent forms by dentist ID
-router.get('/dentist/:dentist_id', /* authenticateToken, */ async (req, res) => {
+router.get('/dentist/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { dentist_id } = req.params;
     const consentForms = await prisma.consent_form.findMany({
@@ -60,7 +60,7 @@ router.get('/dentist/:dentist_id', /* authenticateToken, */ async (req, res) => 
 });
 
 // Get a specific consent form by ID
-router.get('/:form_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:form_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { form_id } = req.params;
     const consentForm = await prisma.consent_form.findUnique({
@@ -85,7 +85,7 @@ router.get('/:form_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Create a new consent form
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { 
       patient_id, 
@@ -122,7 +122,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // Update a consent form
-router.put('/:form_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:form_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { form_id } = req.params;
     const { 
@@ -174,7 +174,7 @@ router.put('/:form_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Delete a consent form
-router.delete('/:form_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:form_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { form_id } = req.params;
     

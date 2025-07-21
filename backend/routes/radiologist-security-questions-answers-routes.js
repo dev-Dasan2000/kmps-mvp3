@@ -1,13 +1,13 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Composite key: radiologist_id + security_question_id
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const answers = await prisma.radiologist_security_question_answers.findMany();
     res.json(answers);
@@ -16,7 +16,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:radiologist_id/:security_question_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:radiologist_id/:security_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { radiologist_id, security_question_id } = req.params;
     const answer = await prisma.radiologist_security_question_answers.findUnique({
@@ -34,7 +34,7 @@ router.get('/:radiologist_id/:security_question_id', /* authenticateToken, */ as
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { radiologist_id, security_question_id, answer } = req.body;
 
@@ -62,7 +62,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.put('/:radiologist_id/:security_question_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:radiologist_id/:security_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { radiologist_id, security_question_id } = req.params;
     const { answer } = req.body;
@@ -82,7 +82,7 @@ router.put('/:radiologist_id/:security_question_id', /* authenticateToken, */ as
   }
 });
 
-router.delete('/:radiologist_id/:security_question_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:radiologist_id/:security_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { radiologist_id, security_question_id } = req.params;
     await prisma.radiologist_security_question_answers.delete({

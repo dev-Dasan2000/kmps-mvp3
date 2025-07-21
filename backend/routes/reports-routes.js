@@ -1,12 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get all reports
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const reports = await prisma.reports.findMany({
       include: {
@@ -21,7 +21,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // Get report by ID
-router.get('/:report_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:report_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const report = await prisma.reports.findUnique({
       where: { report_id: parseInt(req.params.report_id) },
@@ -47,7 +47,7 @@ router.get('/:report_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Get reports by study ID
-router.get('/study/:study_id', /* authenticateToken, */ async (req, res) => {
+router.get('/study/:study_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const study = await prisma.study.findUnique({
       where: { study_id: parseInt(req.params.study_id) },
@@ -85,7 +85,7 @@ router.get('/study/:study_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Create a new report
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { study_id, status, report_file_url } = req.body;
 
@@ -125,7 +125,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
 });
 
 // Update a report
-router.put('/:report_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:report_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const reportId = parseInt(req.params.report_id);
     const { status, report_file_url } = req.body;
@@ -156,7 +156,7 @@ router.put('/:report_id', /* authenticateToken, */ async (req, res) => {
 });
 
 // Delete a report
-router.delete('/:report_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:report_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const reportId = parseInt(req.params.report_id);
 

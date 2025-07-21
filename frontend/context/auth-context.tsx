@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   createContext,
@@ -7,8 +7,10 @@ import {
   ReactNode,
   Dispatch,
   SetStateAction,
-} from "react";
-import axios from "axios";
+  useMemo,
+} from 'react';
+import axios from 'axios';
+import { createAPIClient } from './../api';
 
 type AuthContextType = {
   user: any;
@@ -17,15 +19,17 @@ type AuthContextType = {
   isLoadingAuth: boolean;
   setUser: Dispatch<SetStateAction<any>>;
   setAccessToken: Dispatch<SetStateAction<string>>;
+  apiClient: ReturnType<typeof createAPIClient>;
 };
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
-  accessToken: "",
+  accessToken: '',
   isLoggedIn: false,
   isLoadingAuth: true,
   setUser: () => {},
   setAccessToken: () => {},
+  apiClient: {} as any,
 });
 
 type AuthProviderProps = {
@@ -34,10 +38,15 @@ type AuthProviderProps = {
 
 export const AuthContextProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<any>(null);
-  const [accessToken, setAccessToken] = useState<string>("");
+  const [accessToken, setAccessToken] = useState<string>('');
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
   const isLoggedIn = !!user && !!accessToken;
+
+  const apiClient = useMemo(
+    () => createAPIClient({ accessToken, setAccessToken, setUser }),
+    [accessToken]
+  );
 
   useEffect(() => {
     const checkLoginStatus = async () => {
@@ -46,9 +55,6 @@ export const AuthContextProvider = ({ children }: AuthProviderProps) => {
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/refresh_token`,
           {
             withCredentials: true,
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
           }
         );
 
@@ -58,7 +64,7 @@ export const AuthContextProvider = ({ children }: AuthProviderProps) => {
         }
       } catch (error) {
         setUser(null);
-        setAccessToken("");
+        setAccessToken('');
       } finally {
         setIsLoadingAuth(false);
       }
@@ -69,7 +75,15 @@ export const AuthContextProvider = ({ children }: AuthProviderProps) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, isLoggedIn, isLoadingAuth, setUser, setAccessToken }}
+      value={{
+        user,
+        accessToken,
+        isLoggedIn,
+        isLoadingAuth,
+        setUser,
+        setAccessToken,
+        apiClient,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -3,6 +3,7 @@ import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar'
 import { Button } from './ui/button'
 import axios from 'axios'
 import { toast } from 'sonner'
+import { AuthContext } from '@/context/auth-context'
 
 
 
@@ -33,6 +34,7 @@ export function BookingCard({
   serviceName,
   onCancel
 }: BookingCardProps) {
+  const { apiClient } = React.useContext(AuthContext)
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -85,8 +87,8 @@ export function BookingCard({
 
   const handleAppointmentCancellation = async (appointment_id: string) => {
     try {
-      const response = await axios.delete(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/appointments/${appointment_id}`
+      const response = await apiClient.delete(
+        `/appointments/${appointment_id}`
       );
       if(response.data.message == "Appointment deleted") {
         toast.success("Appointment cancelled", {

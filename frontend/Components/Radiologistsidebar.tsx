@@ -31,7 +31,7 @@ import axios from "axios";
 import { toast } from "sonner";
 
 const RadiologistSidebar = () => {
-  const { setUser, setAccessToken } = useContext(AuthContext);
+  const { setUser, setAccessToken, apiClient } = useContext(AuthContext);
   const pathname = usePathname();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -74,7 +74,7 @@ const RadiologistSidebar = () => {
   const handleLogout = async () => {
     setIsLoading(true);
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`, { withCredentials: true });
+      await apiClient.delete(`/auth/delete_token`, { withCredentials: true });
       setUser(null); setAccessToken("");
       router.push("/");
     } catch (e) {

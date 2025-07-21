@@ -15,7 +15,7 @@ interface Patient{
 }
 
 const PatientHeader = () => {
-  const {isLoggedIn, isLoadingAuth, user} = useContext(AuthContext);
+  const {isLoggedIn, isLoadingAuth, user, apiClient} = useContext(AuthContext);
   const [patient, setPatient] = useState<Patient>();
   const [loadingPatient, setLoadingPatient] = useState(false);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -23,8 +23,8 @@ const PatientHeader = () => {
   const fetchPatient = async () => {
     setLoadingPatient(true);
     try{
-      const response = await axios.get(
-        `${backendURL}/patients/${user.id}`
+      const response = await apiClient.get(
+        `/patients/${user.id}`
       );
       if(response.status == 500){
         throw new Error("Error fetching patient");

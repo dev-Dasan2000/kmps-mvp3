@@ -9,8 +9,6 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-
-
 // Register Chart.js components - including DoughnutController
 Chart.Chart.register(
   Chart.CategoryScale,
@@ -67,7 +65,7 @@ const DentalDashboard: React.FC = () => {
 
   const router = useRouter();
 
-  const {accessToken, isLoggedIn, isLoadingAuth, user } = useContext(AuthContext);
+  const {isLoggedIn, isLoadingAuth, user, apiClient } = useContext(AuthContext);
   const [loadingMainCounts, setLoadingMainCounts] = useState(false);
   const [loadingAppointmentCounts, setLoadingAppointmentCounts] = useState(false);
   const [loadingPaymentTrends, setLoadingPaymentTrends] = useState(false);
@@ -95,23 +93,23 @@ const DentalDashboard: React.FC = () => {
   const fetchMainCounts = async () => {
     setLoadingMainCounts(true);
     try {
-      const dentistcount = await axios.get(
-        `${backendURL}/dentists/count`
+      const dentistcount = await apiClient.get(
+        `/dentists/count`
       );
-      const patientcount = await axios.get(
-        `${backendURL}/patients/count`
+      const patientcount = await apiClient.get(
+        `/patients/count`
       );
-      const receptionistscount = await axios.get(
-        `${backendURL}/receptionists/count`
+      const receptionistscount = await apiClient.get(
+        `/receptionists/count`
       );
-      const appointmentscount = await axios.get(
-        `${backendURL}/appointments/count`
+      const appointmentscount = await apiClient.get(
+        `/appointments/count`
       );
-      const monthlyincome = await axios.get(
-        `${backendURL}/payment-history/income/this-month`
+      const monthlyincome = await apiClient.get(
+        `/payment-history/income/this-month`
       );
-      const pendingappointmentscount = await axios.get(
-        `${backendURL}/appointments/pending-count`
+      const pendingappointmentscount = await apiClient.get(
+        `/appointments/pending-count`
       )
       if (dentistcount.status == 500 || patientcount.status == 500 || receptionistscount.status == 500 || appointmentscount.status == 500 || monthlyincome.status == 500 || pendingappointmentscount.status == 500) { throw new Error("Internal Server Error"); }
       setDashboardData({
@@ -134,7 +132,7 @@ const DentalDashboard: React.FC = () => {
   const fetchAllAppointments = async () => {
     setLoadingAppointmentCounts(true);
     try {
-      const response = await axios.get(`${backendURL}/appointments`);
+      const response = await apiClient.get(`/appointments`);
       if (response.status === 200) {
         setAllAppointments(response.data);
         // Don't call filterAppointmentsByPeriod here to avoid race condition
@@ -194,8 +192,8 @@ const DentalDashboard: React.FC = () => {
   const fetchPaymentTrends = async () => {
     setLoadingPaymentTrends(true);
     try{
-      const paymenttrends = await axios.get(
-        `${backendURL}/payment-history/trends`
+      const paymenttrends = await apiClient.get(
+        `/payment-history/trends`
       );
       if(paymenttrends.status == 500){
         throw new Error("internal Server Error");

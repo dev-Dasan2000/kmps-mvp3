@@ -96,7 +96,7 @@ export default function ExpenseManagement() {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
-  const { isLoadingAuth, isLoggedIn, user } = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
 
   useEffect(() => {
     fetchExpenses();
@@ -124,8 +124,8 @@ export default function ExpenseManagement() {
   const fetchDentists = async () => {
     setIsLoadingDentists(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/dentists`
+      const res = await apiClient.get(
+        `/dentists`
       );
       if (res.status == 500) {
         throw new Error("Error fetching dentists");
@@ -142,8 +142,8 @@ export default function ExpenseManagement() {
   const fetchExpenses = async () => {
     setIsLoadingExpenses(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/expense`
+      const res = await apiClient.get(
+        `/expense`
       );
       if (res.status == 500) {
         throw new Error("Error fetching expense");
@@ -196,7 +196,7 @@ export default function ExpenseManagement() {
     if (file) {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await axios.post(`${backendURL}/files`, formData, {
+      const res = await apiClient.post(`/files`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -208,7 +208,6 @@ export default function ExpenseManagement() {
     }
     try {
       const expenseData = {
-        expence_id: (expenses.length+1),
         date: new Date(formData.date).toISOString(),
         title: formData.title,
         description: formData.description,
@@ -219,8 +218,8 @@ export default function ExpenseManagement() {
       };
 
       if (editingExpense) {
-        const res = await axios.put(
-          `${backendURL}/expense/${editingExpense.expence_id}`,
+        const res = await apiClient.put(
+          `/expense/${editingExpense.expence_id}`,
           {
             ...expenseData,
           }
@@ -237,8 +236,8 @@ export default function ExpenseManagement() {
           expense.expence_id === editingExpense.expence_id ? updatedExpense : expense
         ));
       } else {
-        const res = await axios.post(
-          `${backendURL}/expense`,
+        const res = await apiClient.post(
+          `/expense`,
           {
             date: expenseData.date,
             title: expenseData.title,
@@ -309,8 +308,8 @@ export default function ExpenseManagement() {
   const acceptExpense = async (expence_id: number) => {
     setIsAccepting(true);
     try {
-      const res = await axios.put(
-        `${backendURL}/expense/${expence_id}`,
+      const res = await apiClient.put(
+        `/expense/${expence_id}`,
         {
           status: "approved"
         },
@@ -321,14 +320,6 @@ export default function ExpenseManagement() {
           }
         }
       )
-      // Replace with actual API call
-      // await fetch(`/api/expenses/${expence_id}/accept`, {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ status: 'approved' }),
-      // });
 
       setExpenses(expenses.map(expense =>
         expense.expence_id === expence_id
@@ -440,7 +431,7 @@ export default function ExpenseManagement() {
                         size="sm"
                         className="p-1 h-8 w-8 hover:text-blue-600"
                         title="Download Receipt"
-                        onClick={() => window.open(`${backendURL}${expense.receipt_url}`, '_blank')}
+                        onClick={() => window.open(`${expense.receipt_url}`, '_blank')}
                       >
                         <Download size={16} />
                       </Button>

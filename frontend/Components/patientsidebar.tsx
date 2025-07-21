@@ -35,7 +35,7 @@ import { Button } from "@/components/ui/button";
 import axios from "axios";
 
 const PatientSidebar = () => {
-  const {setUser, setAccessToken, user} = useContext(AuthContext);
+  const {setUser, setAccessToken, user, apiClient} = useContext(AuthContext);
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
@@ -76,8 +76,8 @@ const PatientSidebar = () => {
   const handleLogout = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.delete(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`,
+      const response = await apiClient.delete(
+        `/auth/delete_token`,
         {
           withCredentials: true,
         }

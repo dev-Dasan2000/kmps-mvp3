@@ -33,7 +33,7 @@ const PatientManagement = () => {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
 
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
 
   const [loadingPatient, setLoadingPatient] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([
@@ -128,8 +128,8 @@ const PatientManagement = () => {
     }
     try{
       if(editingPatient){
-        const response = await axios.put(
-          `${backendURL}/patients/${editingPatient.patient_id}`,
+        const response = await apiClient.put(
+          `/patients/${editingPatient.patient_id}`,
           {
             name: formData.name,
             profile_picture: formData.profile_picture,
@@ -155,8 +155,8 @@ const PatientManagement = () => {
       }
       else{
         const newPatientId = `P${String(patients.length + 1).padStart(3, '0')}`;
-        const response = await axios.post(
-          `${backendURL}/patients`, {
+        const response = await apiClient.post(
+          `/patients`, {
           hospital_patient_id: formData.hospital_patient_id,
           patient_id: newPatientId,
           name: formData.name,
@@ -196,8 +196,8 @@ const PatientManagement = () => {
 
   const handleDeletePatient = async (patientId: string) => {
     try {
-      const response = await axios.delete(
-        `${backendURL}/patients/${patientId}`
+      const response = await apiClient.delete(
+        `/patients/${patientId}`
       );
       if (response.status == 500) {
         throw new Error("Internal Server Error");
@@ -226,8 +226,8 @@ const PatientManagement = () => {
   const fetchPatients = async () => {
     setLoadingPatient(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/patients`
+      const response = await apiClient.get(
+        `/patients`
       );
       if (response.status == 500) {
         throw new Error("Internal Server Error");
@@ -314,7 +314,7 @@ const PatientManagement = () => {
                         <Image
                           src={patient.profile_picture.startsWith('http') 
                             ? patient.profile_picture 
-                            : `${backendURL}/${patient.profile_picture.startsWith('/') ? patient.profile_picture.slice(1) : patient.profile_picture}`}
+                            : `/${patient.profile_picture.startsWith('/') ? patient.profile_picture.slice(1) : patient.profile_picture}`}
                           alt={patient.name}
                           width={40}
                           height={40}
@@ -382,7 +382,7 @@ const PatientManagement = () => {
                         <Image
                           src={patient.profile_picture.startsWith('http') 
                             ? patient.profile_picture 
-                            : `${backendURL}/${patient.profile_picture.startsWith('/') ? patient.profile_picture.slice(1) : patient.profile_picture}`}
+                            : `/${patient.profile_picture.startsWith('/') ? patient.profile_picture.slice(1) : patient.profile_picture}`}
                           alt={patient.name}
                           width={48}
                           height={48}

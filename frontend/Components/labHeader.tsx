@@ -18,7 +18,7 @@ interface LabInfo {
 const  LabPartnerHeader = () => {
   const router = useRouter();
   const [labInfo, setLabInfo] = useState<LabInfo | null>(null);
-  const {user, isLoadingAuth, isLoggedIn} = useContext(AuthContext);
+  const {user, isLoadingAuth, isLoggedIn, apiClient} = useContext(AuthContext);
   const [loadingLab, setLoadingLab] = useState(false);
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -46,8 +46,8 @@ const  LabPartnerHeader = () => {
   const fetchLabInfo = async () => {
     setLoadingLab(true);
     try{
-      const response = await axios.get(
-        `${backendURL}/labs/${user.id}`
+      const response = await apiClient.get(
+        `/labs/${user.id}`
       );
       if(response.status == 500){
         throw new Error("Error Fetching Doctor Info");
@@ -125,7 +125,7 @@ const  LabPartnerHeader = () => {
               onClick={handleProfileClick}
             >
              {/* <AvatarImage 
-                src={labInfo?.profile_picture ? `${backendURL}${doctorInfo.profile_picture}` : ''} 
+                src={labInfo?.profile_picture ? `${doctorInfo.profile_picture}` : ''} 
                 alt={doctorInfo?.name} 
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;

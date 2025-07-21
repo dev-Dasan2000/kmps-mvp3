@@ -121,7 +121,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   });
 
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
 
   const paymentTypes = ['cash', 'card', 'online', 'bank_transfer'];
 
@@ -136,10 +136,10 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       try {
         // Fetch all data in parallel to speed things up
         const [invoicesRes, servicesRes, patientsRes, dentistsRes] = await Promise.all([
-          axios.get(`${backendUrl}/invoices`),
-          axios.get(`${backendUrl}/invoice-services`),
-          axios.get(`${backendUrl}/patients`),
-          axios.get(`${backendUrl}/dentists`)
+          apiClient.get(`/invoices`),
+          apiClient.get(`/invoice-services`),
+          apiClient.get(`/patients`),
+          apiClient.get(`/dentists`)
         ]);
         
         if (!isMounted) return;
@@ -277,12 +277,12 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         note: formData.note
       };
 
-      const invoiceResponse = await axios.post(`${backendUrl}/invoices`, invoiceData);
+      const invoiceResponse = await apiClient.post(`/invoices`, invoiceData);
       const newInvoice = invoiceResponse.data;
 
       // Then assign services to the invoice
       const serviceAssignPromises = formData.services.map(serviceId => {
-        return axios.post(`${backendUrl}/invoice-service-assign`, {
+        return apiClient.post(`/invoice-service-assign`, {
           invoice_id: newInvoice.invoice_id,
           service_id: serviceId
         });
@@ -291,7 +291,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       await Promise.all(serviceAssignPromises);
 
       // Refresh invoices data to include the new invoice
-      const invoicesRes = await axios.get(`${backendUrl}/invoices`);
+      const invoicesRes = await apiClient.get(`/invoices`);
       setInvoices(invoicesRes.data);
 
       setIsCreatingInvoice(false);
@@ -328,7 +328,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       setViewLoading(invoice.invoice_id);
 
       // Fetch the services directly from the invoice-service-assign endpoint
-      const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice.invoice_id}`);
+      const response = await apiClient.get(`/invoice-service-assign/${invoice.invoice_id}`);
 
       // Create a copy of the invoice with updated services
       const invoiceWithServices = {
@@ -362,7 +362,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       setEditLoading(invoice.invoice_id);
 
       // Fetch the services directly from the invoice-service-assign endpoint
-      const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice.invoice_id}`);
+      const response = await apiClient.get(`/invoice-service-assign/${invoice.invoice_id}`);
       console.log('Fetched service assignments for edit:', response.data);
 
       // Extract service IDs from the response
@@ -454,14 +454,14 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         note: formData.note
       };
 
-      await axios.put(`${backendUrl}/invoices/${selectedInvoice.invoice_id}`, invoiceData);
+      await apiClient.put(`/invoices/${selectedInvoice.invoice_id}`, invoiceData);
 
       // First delete all existing service assignments
       // We need to manually keep track of existing services since they might be removed
       const deletePromises = [];
       for (const existingService of selectedInvoice.services) {
         deletePromises.push(
-          axios.delete(`${backendUrl}/invoice-service-assign`, {
+          apiClient.delete(`/invoice-service-assign`, {
             data: {
               invoice_id: selectedInvoice.invoice_id,
               service_id: existingService.service_id
@@ -474,7 +474,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
       // Then re-assign services to the invoice
       const serviceAssignPromises = formData.services.map(serviceId => {
-        return axios.post(`${backendUrl}/invoice-service-assign`, {
+        return apiClient.post(`/invoice-service-assign`, {
           invoice_id: selectedInvoice.invoice_id,
           service_id: serviceId
         });
@@ -483,7 +483,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       await Promise.all(serviceAssignPromises);
 
       // Refresh invoices data to include the updated invoice
-      const invoicesRes = await axios.get(`${backendUrl}/invoices`);
+      const invoicesRes = await apiClient.get(`/invoices`);
       setInvoices(invoicesRes.data);
 
       setIsEditingInvoice(false);
@@ -527,7 +527,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
     setDeleteLoading(invoiceToDelete);
     try {
-      await axios.delete(`${backendUrl}/invoices/${invoiceToDelete}`);
+      await apiClient.delete(`/invoices/${invoiceToDelete}`);
 
       // Remove the deleted invoice from the state
       setInvoices(prevInvoices => prevInvoices.filter(invoice => invoice.invoice_id !== invoiceToDelete));
@@ -560,7 +560,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       }
 
       // Fetch the services directly from the API to ensure we have the latest data
-      const response = await axios.get(`${backendUrl}/invoice-service-assign/${invoice_id}`);
+      const response = await apiClient.get(`/invoice-service-assign/${invoice_id}`);
 
       const servicesWithDetails = response.data.map((item: any) => ({
         ...item,

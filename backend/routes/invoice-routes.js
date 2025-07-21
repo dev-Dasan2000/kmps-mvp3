@@ -1,10 +1,11 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+router.get('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const invoices = await prisma.invoice.findMany({
       include: { patients: true, dentists: true, services: true }
@@ -15,7 +16,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:invoice_id', async (req, res) => {
+router.get('/:invoice_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const invoice = await prisma.invoice.findUnique({
       where: { invoice_id: Number(req.params.invoice_id) },
@@ -28,7 +29,7 @@ router.get('/:invoice_id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const { patient_id, dentist_id, payment_type, tax_rate, lab_cost, discount, date, total_amount, note} = req.body;
     const newInvoice = await prisma.invoice.create({
@@ -51,7 +52,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:invoice_id', async (req, res) => {
+router.put('/:invoice_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const data = req.body;
     if (data.date) data.date = new Date(data.date);
@@ -65,7 +66,7 @@ router.put('/:invoice_id', async (req, res) => {
   }
 });
 
-router.delete('/:invoice_id', async (req, res) => {
+router.delete('/:invoice_id', /*authenticateToken,*/ async (req, res) => {
   try {
     await prisma.invoice.delete({
       where: { invoice_id: Number(req.params.invoice_id) },

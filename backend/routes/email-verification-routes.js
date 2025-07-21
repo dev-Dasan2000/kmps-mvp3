@@ -1,12 +1,11 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { sendVerificationCode } from '../utils/mailer.js';
-// import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  async (req, res) => {
   try {
     const verifications = await prisma.email_verifications.findMany();
     res.json(verifications);
@@ -15,7 +14,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:email', /* authenticateToken, */ async (req, res) => {
+router.get('/:email',  async (req, res) => {
   try {
     const email = req.params.email;
     const verification = await prisma.email_verifications.findUnique({
@@ -28,7 +27,7 @@ router.get('/:email', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.post('/verify', /* authenticateToken, */ async (req, res) => {
+router.post('/verify',  async (req, res) => {
   try {
     const { email, code } = req.body;
 
@@ -51,7 +50,7 @@ router.post('/verify', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -75,7 +74,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.put('/:email', /* authenticateToken, */ async (req, res) => {
+router.put('/:email',  async (req, res) => {
   try {
     const email = req.params.email;
     const { code } = req.body;
@@ -89,7 +88,7 @@ router.put('/:email', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.delete('/:email', /* authenticateToken, */ async (req, res) => {
+router.delete('/:email',  async (req, res) => {
   try {
     await prisma.email_verifications.delete({ where: { email: req.params.email } });
     res.json({ message: 'Deleted' });

@@ -2,12 +2,12 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const reports = await prisma.medical_reports.findMany();
     res.json(reports);
@@ -16,7 +16,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:report_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:report_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const report = await prisma.medical_reports.findUnique({
       where: { report_id: Number(req.params.report_id) },
@@ -28,7 +28,7 @@ router.get('/:report_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/forpatient/:patient_id', /* authenticateToken, */ async (req, res) => {
+router.get('/forpatient/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const reports = await prisma.medical_reports.findMany({
       where: { patient_id: req.params.patient_id },
@@ -40,7 +40,7 @@ router.get('/forpatient/:patient_id', /* authenticateToken, */ async (req, res) 
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { patient_id, record_url, record_name } = req.body;
 
@@ -65,7 +65,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
 });
 
 
-router.put('/:report_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:report_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const report_id = Number(req.params.report_id);
     const { patient_id, record_url, record_name } = req.body;
@@ -79,7 +79,7 @@ router.put('/:report_id', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.delete('/:report_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:report_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const reportId = Number(req.params.report_id);
 

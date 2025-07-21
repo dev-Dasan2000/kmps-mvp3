@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
+import { AuthContext } from "@/context/auth-context";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 interface ChangePasswordDialogProps {
   userType: 'receptionist' | 'dentist' | 'patient' | 'radiologist' | 'lab' | 'admin';
@@ -17,6 +19,7 @@ interface ChangePasswordDialogProps {
 export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialogProps) {
   const router = useRouter();
   const { user, accessToken, setUser, setAccessToken } = useAuth();
+  const {apiClient} = useContext(AuthContext);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
@@ -81,7 +84,7 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
 
     setIsVerifyingPassword(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`, {
+      const response = await apiClient.post(`/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -92,9 +95,7 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
         }),
       });
 
-      const data = await response.json();
-      
-      if (!data.successful) {
+      if (!response.data.successful) {
         setCurrentPasswordError("Current password is incorrect");
         setIsCurrentPasswordValid(false);
         return false;
@@ -115,9 +116,8 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
   const handleLogout = async () => {
     try {
       // Delete refresh token
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`, {
-        method: 'DELETE',
-        credentials: 'include',
+      await apiClient.delete(`/auth/delete_token`, {
+        withCredentials: true,
       });
 
       // Clear auth context
@@ -139,7 +139,7 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!isCurrentPasswordValid) {
       setCurrentPasswordError("Please verify your current password first");
       return;
@@ -159,50 +159,45 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
 
     try {
       // Update password
-      const endpoint = `${process.env.NEXT_PUBLIC_BACKEND_URL}/${userType}s/${user?.id}`;
+      const endpoint = `/${userType}s/${user?.id}`;
 
       // First, verify current password one last time
-      const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: user?.id,
-          password: formData.currentPassword,
-        }),
-      });
+      const verifyResponse = await apiClient.post(`/auth/login`, {
+        id: user?.id,
+        password: formData.currentPassword,
+      },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          }
+        }
+      );
 
-      const verifyData = await verifyResponse.json();
-      
-      if (!verifyData.successful) {
+      if (!verifyResponse.data.successful) {
         throw new Error("Current password verification failed. Please try again.");
       }
 
       // Then update the password
-      const response = await fetch(endpoint, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          password: formData.newPassword.trim(),
-          // Send current password for additional security
-          currentPassword: formData.currentPassword
-        }),
-      });
+      const response = await apiClient.put(endpoint, {
+        password: formData.newPassword.trim(),
+        currentPassword: formData.currentPassword
+      },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          }
+        }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to change password");
+      if (response.data.error) {
+        throw new Error(response.data.error || "Failed to change password");
       }
 
       toast.success("Password changed successfully. Please wait...");
       setIsOpen(false);
       resetForm();
 
-      // Add a longer delay before logout to allow database update
       setTimeout(() => {
         toast.success("Logging out...");
         setTimeout(() => {
@@ -218,8 +213,8 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
     }
   };
 
-  const isFormValid = isCurrentPasswordValid && 
-    formData.newPassword.length >= 8 && 
+  const isFormValid = isCurrentPasswordValid &&
+    formData.newPassword.length >= 8 &&
     formData.newPassword === formData.confirmPassword;
 
   return (
@@ -229,7 +224,7 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
     }}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button 
+          <Button
             variant="outline"
             className="bg-emerald-500 hover:bg-emerald-600 text-white"
           >

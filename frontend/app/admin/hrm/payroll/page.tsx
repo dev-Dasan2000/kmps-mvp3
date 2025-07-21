@@ -50,7 +50,7 @@ interface Payroll {
 
 export default function PayrollPage() {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { accessToken, isLoggedIn, isLoadingAuth, user } = useContext(AuthContext);
+  const { isLoggedIn, isLoadingAuth, user, apiClient } = useContext(AuthContext);
   const router = useRouter();
   
   // State variables
@@ -93,9 +93,7 @@ export default function PayrollPage() {
       setLoading(true);
       try {
         // Fetch payrolls with detailed information
-        const payrollResponse = await axios.get(`${backendURL}/hr/payroll/payroll-details`, {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        });
+        const payrollResponse = await apiClient.get(`/hr/payroll/payroll-details`);
         
         setPayrolls(payrollResponse.data || []);
         setFilteredPayrolls(payrollResponse.data || []);
@@ -108,7 +106,7 @@ export default function PayrollPage() {
     };
     
     fetchData();
-  }, [backendURL, isLoggedIn, accessToken]);
+  }, [backendURL, isLoggedIn]);
   
   // Filter payrolls based on search query
   useEffect(() => {
@@ -146,13 +144,11 @@ export default function PayrollPage() {
   // Process salary function
   const processSalary = async (payroll: Payroll) => {
     try {
-      await axios.put(`${backendURL}/hr/payroll/${payroll.payroll_id}`, {
+      await apiClient.put(`/hr/payroll/${payroll.payroll_id}`, {
         net_salary: payroll.net_salary,
         epf: payroll.epf,
         etf: payroll.etf,
         status: 'Processed'
-      }, {
-        headers: { Authorization: `Bearer ${accessToken}` }
       });
       
       // Update local state
@@ -180,9 +176,7 @@ export default function PayrollPage() {
     try {
       if (!employeeId) return;
       
-      const response = await axios.get(`${backendURL}/hr/employees/${employeeId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
+      const response = await apiClient.get(`/hr/employees/${employeeId}`);
       
       if (response.data) {
         setSelectedEmployee(response.data);
@@ -277,15 +271,11 @@ export default function PayrollPage() {
         status: 'Not Processed'
       };
       
-      await axios.post(`${backendURL}/hr/payroll`, payrollData, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
+      await apiClient.post(`/hr/payroll`, payrollData);
       
       // Refresh data
-      const payrollResponse = await axios.get(`${backendURL}/hr/payroll/payroll-details`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      
+      const payrollResponse = await apiClient.get(`/hr/payroll/payroll-details`);
+    
       setPayrolls(payrollResponse.data || []);
       setFilteredPayrolls(payrollResponse.data || []);
       

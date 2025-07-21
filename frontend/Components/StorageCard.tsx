@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { X, HardDrive, FileType, File, FilePlus2 } from 'lucide-react';
+import { AuthContext } from '@/context/auth-context';
 
 interface StorageData {
   dcmSize: string;
@@ -16,25 +17,25 @@ const StorageCard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [showOverlay, setShowOverlay] = useState(false);
+  const {apiClient} = useContext(AuthContext);
   
   const fetchStorageData = async () => {
-    setIsLoading(true);
-    try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
-      const response = await fetch(`${backendUrl}/files/storage`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch storage data');
-      }
-      const data = await response.json();
-      setStorageData(data);
-      setError('');
-    } catch (err) {
-      console.error('Error fetching storage data:', err);
-      setError('Failed to load storage data');
-    } finally {
-      setIsLoading(false);
+  setIsLoading(true);
+  try {
+    const response = await apiClient.get('/files/storage');
+    if (!response.data) {
+      throw new Error('Failed to fetch storage data');
     }
-  };
+    setStorageData(response.data);
+    setError('');
+  } catch (err) {
+    console.error('Error fetching storage data:', err);
+    setError('Failed to load storage data');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   useEffect(() => {
     fetchStorageData();

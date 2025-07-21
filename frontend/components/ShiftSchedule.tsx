@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar, Plus, CalendarIcon, Clock } from 'lucide-react';
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { AuthContext } from '@/context/auth-context';
 import axios from 'axios';
 import {
   Select,
@@ -50,6 +51,7 @@ interface ShiftScheduleProps {
 
 export default function ShiftSchedule({ shifts = [], loading = false, partTimeEmployees = [], onShiftAdded }: ShiftScheduleProps) {
   // Local component state
+  const {apiClient} = useContext(AuthContext);
   const [activeShifts, setActiveShifts] = useState<Shift[]>(shifts);
   const [addOpen, setAddOpen] = useState(false);
   const [rosterOpen, setRosterOpen] = useState(false);
@@ -73,7 +75,7 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
     const fetchAllShifts = async () => {
       if (!backendURL) return;
       try {
-        const response = await axios.get<Shift[]>(`${backendURL}/hr/shifts`);
+        const response = await apiClient.get<Shift[]>(`/hr/shifts`);
         setAllShifts(response.data);
       } catch (error) {
         console.error('Error fetching all shifts:', error);
@@ -293,7 +295,7 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
               
               setSaving(true);
               try {
-                await axios.post(`${backendURL}/hr/shifts`, {
+                await apiClient.post(`/hr/shifts`, {
                   eid: selectedEid,
                   from_time: newFromTime.toISOString(),
                   to_time: newToTime.toISOString()

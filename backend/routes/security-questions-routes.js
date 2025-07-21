@@ -1,11 +1,11 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-// import { authenticateToken } from '../middleware/authentication.js';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', /* authenticateToken, */ async (req, res) => {
+router.get('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const questions = await prisma.security_questions.findMany();
     res.json(questions);
@@ -14,7 +14,7 @@ router.get('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.get('/:security_question_id', /* authenticateToken, */ async (req, res) => {
+router.get('/:security_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const question = await prisma.security_questions.findUnique({
       where: { security_question_id: Number(req.params.security_question_id) },
@@ -26,7 +26,7 @@ router.get('/:security_question_id', /* authenticateToken, */ async (req, res) =
   }
 });
 
-router.post('/', /* authenticateToken, */ async (req, res) => {
+router.post('/',  /*authenticateToken,*/  async (req, res) => {
   try {
     const { question } = req.body;
     const created = await prisma.security_questions.create({ data: { question } });
@@ -36,7 +36,7 @@ router.post('/', /* authenticateToken, */ async (req, res) => {
   }
 });
 
-router.put('/:security_question_id', /* authenticateToken, */ async (req, res) => {
+router.put('/:security_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     const id = Number(req.params.security_question_id);
     const { question } = req.body;
@@ -51,7 +51,7 @@ router.put('/:security_question_id', /* authenticateToken, */ async (req, res) =
   }
 });
 
-router.delete('/:security_question_id', /* authenticateToken, */ async (req, res) => {
+router.delete('/:security_question_id',  /*authenticateToken,*/  async (req, res) => {
   try {
     await prisma.security_questions.delete({
       where: { security_question_id: Number(req.params.security_question_id) },

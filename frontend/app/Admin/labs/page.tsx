@@ -98,7 +98,7 @@ const DentalLabModule = () => {
   const formScrollRef = useRef<HTMLDivElement>(null);
   const formScrollPosition = useRef<number>(0);
 
-  const { user, isLoggedIn, isLoadingAuth } = useContext(AuthContext);
+  const { user, isLoggedIn, isLoadingAuth, apiClient } = useContext(AuthContext);
 
   const router = useRouter();
 
@@ -167,8 +167,8 @@ const DentalLabModule = () => {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-      const fetchedOrders = await axios.get(
-        `${backendURL}/orders`
+      const fetchedOrders = await apiClient.get(
+        `/orders`
       );
       if (fetchedOrders.status == 500) {
         throw new Error("Error fetching orders");
@@ -190,8 +190,8 @@ const DentalLabModule = () => {
   const fetchStages = async () => {
     setLoadingStages(true);
     try {
-      const stagesres = await axios.get(
-        `${backendURL}/stages`
+      const stagesres = await apiClient.get(
+        `/stages`
       );
       if (stagesres.status == 500) {
         throw new Error("Internal Server Error");
@@ -213,8 +213,8 @@ const DentalLabModule = () => {
   const fetchStageAssigns = async () => {
     setLoadingStageAssigns(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/stage-assign`
+      const res = await apiClient.get(
+        `/stage-assign`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -236,8 +236,8 @@ const DentalLabModule = () => {
   const fetchLabs = async () => {
     setLoadingLabs(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/labs`
+      const res = await apiClient.get(
+        `/labs`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -259,8 +259,8 @@ const DentalLabModule = () => {
   const fetchWorkTypes = async () => {
     setLoadingWorkTypes(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/work-types`
+      const res = await apiClient.get(
+        `/work-types`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -282,8 +282,8 @@ const DentalLabModule = () => {
   const fetchPatients = async () => {
     setLoadingPatients(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/patients`
+      const res = await apiClient.get(
+        `/patients`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -305,8 +305,8 @@ const DentalLabModule = () => {
   const fetchDentists = async () => {
     setLoadingDentists(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/dentists`
+      const res = await apiClient.get(
+        `/dentists`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -328,8 +328,8 @@ const DentalLabModule = () => {
   const fetchShades = async () => {
     setLoadingShades(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/shades`
+      const res = await apiClient.get(
+        `/shades`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -351,8 +351,8 @@ const DentalLabModule = () => {
   const fetchMaterials = async () => {
     setLoadingMaterials(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/material-types`
+      const res = await apiClient.get(
+        `/material-types`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -512,8 +512,8 @@ const DentalLabModule = () => {
   const handleCreateOrder = async () => {
     setCreatingOrder(true);
     try {
-      const res = await axios.post(
-        `${backendURL}/orders`,
+      const res = await apiClient.post(
+        `/orders`,
         {
           patient_id: newOrder.patient_id,
           dentist_id: newOrder.dentist_id,
@@ -541,7 +541,7 @@ const DentalLabModule = () => {
         const formData = new FormData();
         formData.append("file", file);
 
-        const response = await axios.post(`${backendURL}/files`, formData, {
+        const response = await apiClient.post(`/files`, formData, {
           headers: {
             "Content-Type": "multipart/form-data"
           },
@@ -557,8 +557,8 @@ const DentalLabModule = () => {
           category: 'uncategorized'
         };
 
-        const res2 = await axios.post(
-          `${backendURL}/order-files`,
+        const res2 = await apiClient.post(
+          `/order-files`,
           {
             url: response.data.url,
             order_id: res.data // or `newOrderID` if set
@@ -609,8 +609,8 @@ const DentalLabModule = () => {
     if (!order_id) return;
     setAcceptingOrder(true);
     try {
-      const res = await axios.put(
-        `${backendURL}/orders/${order_id}`,
+      const res = await apiClient.put(
+        `/orders/${order_id}`,
         {
           status: "accepted"
         },
@@ -647,8 +647,8 @@ const DentalLabModule = () => {
 
     setIsSending(true);
     try {
-      const res = await axios.post(
-        `${backendURL}/admins/invite`,
+      const res = await apiClient.post(
+        `/admins/invite`,
         {
           role: "lab",
           email: inviteEmail
@@ -686,7 +686,7 @@ const DentalLabModule = () => {
     }
 
     try {
-      await axios.delete(`${backendURL}/orders/${orderId}`);
+      await apiClient.delete(`/orders/${orderId}`);
       setToast({
         show: true,
         message: 'Order deleted successfully',
@@ -705,7 +705,7 @@ const DentalLabModule = () => {
 
   const deleteLab = async (labId: string) => {
     try {
-      await axios.delete(`${backendURL}/labs/${labId}`);
+      await apiClient.delete(`/labs/${labId}`);
       setLabs(labs.filter(lab => lab.lab_id !== labId));
       setToast({
         show: true,
@@ -1036,7 +1036,7 @@ const DentalLabModule = () => {
                       </div>
                     </div>
                     <a
-                      href={`${backendURL}${file.url}`}
+                      href={`${file.url}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 text-sm"
@@ -1081,7 +1081,7 @@ const DentalLabModule = () => {
         file_types: formData.submissionChecklist ? JSON.stringify(formData.submissionChecklist) : null
       };
   
-      const orderResponse = await axios.post(`${backendURL}/orders`, orderData);
+      const orderResponse = await apiClient.post(`/orders`, orderData);
       if (orderResponse.status !== 201) {
         throw new Error('Order creation failed');
       }
@@ -1093,7 +1093,7 @@ const DentalLabModule = () => {
           const fileFormData = new FormData();
           fileFormData.append("file", file);
   
-          const uploadRes = await axios.post(`${backendURL}/files`, fileFormData, {
+          const uploadRes = await apiClient.post(`/files`, fileFormData, {
             headers: {
               "Content-Type": "multipart/form-data"
             },
@@ -1109,8 +1109,8 @@ const DentalLabModule = () => {
             category: 'uncategorized'
           };
   
-          const dbRes = await axios.post(
-            `${backendURL}/order-files`,
+          const dbRes = await apiClient.post(
+            `/order-files`,
             {
               url: uploadedFile.url,
               order_id: orderId

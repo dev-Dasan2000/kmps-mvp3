@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from "sonner"
 import axios from 'axios'
+import { AuthContext } from '@/context/auth-context'
 
 interface Patient {
   patient_id: string
@@ -64,6 +65,7 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
   const [patientErrorMessage, setPatientErrorMessage] = useState('')
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const { apiClient } = useContext(AuthContext)
 
   // Helper function to generate time slots based on work hours and duration
     const generateTimeSlots = (workTimeFrom: string, workTimeTo: string, duration: string): TimeSlot[] => {
@@ -227,13 +229,12 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
     }
     
     try {
-      const response = await fetch(`${backendURL}/patients/search?q=${encodeURIComponent(term)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setPatientSearchResults(data);
+      const response = await apiClient.get(`/patients/search?q=${encodeURIComponent(term)}`);
+      if (response.data) {
+        setPatientSearchResults(response.data);
         
         // If no patients were found matching the search term
-        if (data.length === 0 && term.length > 2) {
+        if (response.data.length === 0 && term.length > 2) {
           setPatientValidated(false);
           setPatientErrorMessage('No matching patients found. Please select a patient from the dropdown.');
         }
@@ -249,7 +250,7 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
     const fetchDentists = async () => {
       try {
         setDebugInfo('Fetching dentists...')
-        const response = await axios.get(`${backendURL}/dentists`)
+        const response = await apiClient.get(`/dentists`)
         setDentists(response.data)
         setDebugInfo(`Loaded ${response.data.length} dentists`)
         console.log('✅ Loaded dentists:', response.data.length)
@@ -276,7 +277,7 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
       try {
         setDebugInfo('Loading dentist details...')
         console.log('🔍 Fetching dentist details for ID:', formData.dentistId)
-        const response = await axios.get(`${backendURL}/dentists/${formData.dentistId}`)
+        const response = await apiClient.get(`/dentists/${formData.dentistId}`)
         console.log('✅ Dentist details loaded:', response.data)
         setSelectedDentist(response.data)
         setDebugInfo(`Loaded dentist: Dr. ${response.data.name}`)
@@ -348,8 +349,8 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
       let takenIntervals: { start: string; end: string }[] = []
       try {
         const [appointmentsRes, blockedRes] = await Promise.all([
-          axios.get(`${backendURL}/appointments/fordentist/${selectedDentist.dentist_id}`),
-          axios.get(`${backendURL}/blocked-dates/fordentist/${selectedDentist.dentist_id}`)
+          apiClient.get(`/appointments/fordentist/${selectedDentist.dentist_id}`),
+          apiClient.get(`/blocked-dates/fordentist/${selectedDentist.dentist_id}`)
         ])
 
         // Appointments on selected date
@@ -427,7 +428,7 @@ export function AppointmentDialog({ open, onOpenChange, onAppointmentCreated }: 
       setLoading(true)
       const [startTime, endTime] = formData.timeSlot.split(' - ')
       
-      await axios.post(`${backendURL}/appointments`, {
+      await apiClient.post(`/appointments`, {
         patient_id: formData.patientId,
         dentist_id: formData.dentistId,
         date: dateString,

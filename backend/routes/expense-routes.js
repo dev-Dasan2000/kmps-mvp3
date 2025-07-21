@@ -1,11 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get all expenses
-router.get('/', async (req, res) => {
+router.get('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const expenses = await prisma.expense.findMany({
       include: {
@@ -23,7 +24,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/fordentist/:dentist_id', async (req, res) => {
+router.get('/fordentist/:dentist_id', /*authenticateToken,*/  async (req, res) => {
   try {
     const expenses = await prisma.expense.findMany({where:{dentist_id:req.params.dentist_id}});
     res.json(expenses);
@@ -33,7 +34,7 @@ router.get('/fordentist/:dentist_id', async (req, res) => {
 });
 
 // Get expense by ID
-router.get('/:expence_id', async (req, res) => {
+router.get('/:expence_id', /*authenticateToken,*/  async (req, res) => {
   try {
     const expense = await prisma.expense.findUnique({
       where: { expence_id: Number(req.params.expence_id) },
@@ -46,7 +47,7 @@ router.get('/:expence_id', async (req, res) => {
 });
 
 // Create new expense
-router.post('/', async (req, res) => {
+router.post('/', /*authenticateToken,*/  async (req, res) => {
   try {
     const { date, title, description, amount, receipt_url, dentist_id, status } = req.body;
     const newExpense = await prisma.expense.create({
@@ -68,7 +69,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update expense
-router.put('/:expence_id', async (req, res) => {
+router.put('/:expence_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const { expence_id } = req.params;
     const data = { ...req.body };
@@ -91,7 +92,7 @@ router.put('/:expence_id', async (req, res) => {
 });
 
 // Delete expense
-router.delete('/:expence_id', async (req, res) => {
+router.delete('/:expence_id', /*authenticateToken,*/ async (req, res) => {
   try {
     await prisma.expense.delete({
       where: { expence_id: Number(req.params.expence_id) },

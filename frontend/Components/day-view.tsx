@@ -96,7 +96,7 @@ export function DayView({ selectedDate }: DayViewProps) {
                   {/* Doctor Header */}
                   <div className="flex items-center gap-3 mb-3">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage src={dentist.profile_picture || "/placeholder.svg"} />
+                      <AvatarImage src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}` || "/placeholder.svg"} />
                       <AvatarFallback className="text-sm">
                         {dentist.name
                           .split(" ")

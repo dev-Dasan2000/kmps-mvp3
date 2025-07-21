@@ -93,7 +93,7 @@ const items = [
 ];
 
 const AdminSidebar = () => {
-  const {setUser, setAccessToken} = useContext(AuthContext);
+  const {setUser, setAccessToken, apiClient} = useContext(AuthContext);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -107,8 +107,8 @@ const AdminSidebar = () => {
   const handleLogout = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.delete(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/delete_token`,
+      const response = await apiClient.delete(
+        `/auth/delete_token`,
         {
           withCredentials: true,
         }

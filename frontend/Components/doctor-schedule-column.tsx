@@ -219,7 +219,7 @@ export function DoctorScheduleColumn({
       : []
 
   // Check if dentist is working on selected date (for day view)
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
   
   // Toggle selection of an appointment
   const toggleAppointmentSelection = (appointmentId: number) => {
@@ -248,8 +248,8 @@ export function DoctorScheduleColumn({
     try {
       // Update each selected appointment's status to 'cancelled' with the note
       const updatePromises = selectedAppointments.map(appointmentId => 
-        axios.put(
-          `${backendURL}/appointments/${appointmentId}`,
+        apiClient.put(
+          `/appointments/${appointmentId}`,
           { 
             status: 'cancelled',
             cancel_note: note || null
@@ -295,8 +295,8 @@ export function DoctorScheduleColumn({
   const fetchBlocked = async () => {
     setLoadingBlocked(true);
     try{
-      const response = await axios.get(
-        `${backendURL}/blocked-dates`
+      const response = await apiClient.get(
+        `/blocked-dates`
       );
       if(response.status == 500){
         throw new Error("Error Fetching Blocked Slots");
@@ -314,8 +314,8 @@ export function DoctorScheduleColumn({
   const fetchAppointments = async () => {
     setLoadingAppointments(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/appointments/fordentist/${dentist.dentist_id}`
+      const response = await apiClient.get(
+        `/appointments/fordentist/${dentist.dentist_id}`
       );
       if (response.status == 500) {
         throw new Error(`Error Fetching Appointments for Doctor: ${dentist.name}`);
