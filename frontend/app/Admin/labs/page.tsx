@@ -1818,19 +1818,6 @@ const DentalLabModule = () => {
           </div>
         )}
 
-        {/* Delete Lab Dialog */}
-        {/*<Dialog open={deleteLabDialogOpen} onOpenChange={setDeleteLabDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Are you absolutely sure?</DialogTitle>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteLabDialogOpen(false)}>Cancel</Button>
-              <Button variant="destructive" onClick={confirmLabDelete}>Delete</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>*/}
-
         {/* Delete Order Dialog */}
          <Dialog
            open={deleteOrderDialogOpen}
