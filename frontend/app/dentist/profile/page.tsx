@@ -259,7 +259,7 @@ const ProfilePage = () => {
                       }}
                     />
                     <div
-                      className="initials-fallback w-full h-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-medium text-2xl hidden"
+                      className="initials-fallback w-full h-full bg-emerald-100 text-emerald-700 flex:hidden items-center justify-center font-medium text-2xl hidden"
                     >
                       {DentistData.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </div>
