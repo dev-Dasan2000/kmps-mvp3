@@ -8,6 +8,8 @@ import axios from 'axios';
 import { headers } from 'next/headers';
 import { LabOrderForm } from '@/components/LabOrderForm';
 import { Search } from '@/components/ui/search';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 // ======================== TYPES ========================
 
 type Lab = {
@@ -116,6 +118,10 @@ const DentalLabModule = () => {
   const [patients, setPatients] = useState<PatientType[]>([]);
   const [dentists, setDentists] = useState<DenstistType[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [deleteLabDialogOpen, setDeleteLabDialogOpen] = useState(false);
+  const [labToDelete, setLabToDelete] = useState<string | null>(null);
+  const [deleteOrderDialogOpen, setDeleteOrderDialogOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<number | null>(null);
 
   const [showNewLab, setShowNewLab] = useState(false);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -681,12 +687,15 @@ const DentalLabModule = () => {
 
   const deleteOrder = async (orderId: number) => {
     if (!orderId) return;
-    if (!window.confirm('Are you sure you want to delete this order?')) {
-      return;
-    }
+    setOrderToDelete(orderId);
+    setDeleteOrderDialogOpen(true);
+  };
+
+  const confirmOrderDelete = async () => {
+    if (!orderToDelete) return;
 
     try {
-      await apiClient.delete(`/orders/${orderId}`);
+      await apiClient.delete(`/orders/${orderToDelete}`);
       setToast({
         show: true,
         message: 'Order deleted successfully',
@@ -700,13 +709,24 @@ const DentalLabModule = () => {
         message: error.response?.data?.error || error.message || 'Error deleting order',
         type: 'error'
       });
+    } finally {
+      setDeleteOrderDialogOpen(false);
+      setOrderToDelete(null);
     }
   };
 
   const deleteLab = async (labId: string) => {
+    // Open the delete confirmation dialog and set the lab to delete
+    setLabToDelete(labId);
+    setDeleteLabDialogOpen(true);
+  };
+
+  const confirmLabDelete = async () => {
+    if (!labToDelete) return;
+
     try {
-      await apiClient.delete(`/labs/${labId}`);
-      setLabs(labs.filter(lab => lab.lab_id !== labId));
+      await apiClient.delete(`/labs/${labToDelete}`);
+      setLabs(labs.filter(lab => lab.lab_id !== labToDelete));
       setToast({
         show: true,
         message: 'Lab deleted successfully',
@@ -714,15 +734,17 @@ const DentalLabModule = () => {
       });
     } catch (err: any) {
       const status = err.response?.status;
-
-    setToast({
-      show: true,
-      message: status === 409 
-        ? 'This Lab has associated orders. Please delete them before deleting the lab.' 
-        : err.message || 'Failed to delete lab',
-      type: 'error'
-    });
-  }
+      setToast({
+        show: true,
+        message: status === 409 
+          ? 'This Lab has associated orders. Please delete them before deleting the lab.' 
+          : err.message || 'Failed to delete lab',
+        type: 'error'
+      });
+    } finally {
+      setDeleteLabDialogOpen(false);
+      setLabToDelete(null);
+    }
   };
 
   // ======================== SUBCOMPONENTS ========================
@@ -1200,11 +1222,7 @@ const DentalLabModule = () => {
                   <div className="flex justify-between items-start">
                     <h3 className="text-lg font-bold text-gray-900 truncate">{lab.name}</h3>
                     <button
-                      onClick={() => {
-                        if (window.confirm('Are you sure you want to delete this lab?')) {
-                          deleteLab(lab.lab_id);
-                        }
-                      }}
+                      onClick={() => deleteLab(lab.lab_id)}
                       className="text-red-500 hover:text-red-700 transition-colors"
                     >
                       <Trash2 className="h-5 w-5" />
@@ -1266,6 +1284,42 @@ const DentalLabModule = () => {
           :
           <p className='text-center text-gray-500 p-4'>No Labs Available</p>
         }
+
+        {/* Delete Lab Confirmation Dialog */}
+        <Dialog
+          open={deleteLabDialogOpen}
+          onOpenChange={(open) => {
+            setDeleteLabDialogOpen(open);
+            if (!open) {
+              setLabToDelete(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900">Confirm Lab Deletion</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-700">Are you sure you want to delete this lab? This action cannot be undone.</p>
+            </div>
+            <DialogFooter className="flex space-x-2 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteLabDialogOpen(false)}
+                className="px-4"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmLabDelete}
+                className="bg-red-600 hover:bg-red-700 text-white px-4"
+              >
+                Delete Lab
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   };
@@ -1763,6 +1817,42 @@ const DentalLabModule = () => {
             </div>
           </div>
         )}
+
+        {/* Delete Order Dialog */}
+         <Dialog
+           open={deleteOrderDialogOpen}
+           onOpenChange={(open) => {
+             setDeleteOrderDialogOpen(open);
+             if (!open) {
+               setOrderToDelete(null);
+             }
+           }}
+         >
+           <DialogContent className="max-w-md">
+             <DialogHeader>
+               <DialogTitle className="text-xl font-bold text-gray-900">Confirm Order Deletion</DialogTitle>
+             </DialogHeader>
+             <div className="py-4">
+               <p className="text-gray-700">Are you sure you want to delete this order? This action cannot be undone.</p>
+             </div>
+             <DialogFooter className="flex space-x-2 justify-end">
+               <Button
+                 variant="outline"
+                 onClick={() => setDeleteOrderDialogOpen(false)}
+                 className="px-4"
+               >
+                 Cancel
+               </Button>
+               <Button
+                 variant="destructive"
+                 onClick={confirmOrderDelete}
+                 className="bg-red-600 hover:bg-red-700 text-white px-4"
+               >
+                 Delete Order
+               </Button>
+             </DialogFooter>
+           </DialogContent>
+         </Dialog>
       </div>
     </div>
   );
