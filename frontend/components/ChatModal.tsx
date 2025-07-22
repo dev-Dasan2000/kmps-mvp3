@@ -192,6 +192,14 @@ export const ChatModal: FC<ChatModalProps> = ({
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const { user } = useContext(AuthContext);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [note]);
+
   useEffect(() => {
     socket.on("note_created", (newNote) => {
       setNote(prev => [...(prev || []), newNote]);
@@ -211,9 +219,6 @@ export const ChatModal: FC<ChatModalProps> = ({
     };
   }, [studyId]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   const fetchNote = async (study_id: number) => {
     setGettingNotes(true);
@@ -312,7 +317,6 @@ export const ChatModal: FC<ChatModalProps> = ({
         throw new Error("Failed to send message");
       }
       setNewMessage('');
-      scrollToBottom();
     } catch (err: any) {
       toast.error("Failed to send message: " + (err.response?.data?.message || err.message));
     } finally {
@@ -567,7 +571,7 @@ export const ChatModal: FC<ChatModalProps> = ({
               className="p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-500"
               disabled={sending || !newMessage.trim()}
             >
-              {sending? <Loader size={20}/> : <Send size={20} />}
+              {sending ? <Loader size={20} /> : <Send size={20} />}
             </button>
           </div>
         </div>
