@@ -2,7 +2,6 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/authentication.js';
 
-const router = express.Router();
 const prisma = new PrismaClient();
 
 const notesRouter = (io) => {
@@ -44,6 +43,41 @@ const notesRouter = (io) => {
 
             const note = await prisma.note.findUnique({
                 where: { note_id },
+                include: {
+                    dentist: {
+                        select: {
+                            name: true,
+                            email: true
+                        }
+                    },
+                    radiologist: {
+                        select: {
+                            name: true,
+                            email: true
+                        }
+                    },
+                    study: true
+                }
+            });
+
+            if (!note) {
+                return res.status(404).json({ error: 'Note not found' });
+            }
+
+            res.json(note);
+        } catch (error) {
+            console.error('Error fetching note:', error);
+            res.status(500).json({ error: 'Failed to fetch note' });
+        }
+    });
+
+    // Get note by study ID
+    router.get('/bystudy/:study_id', /*authenticateToken,*/ async (req, res) => {
+        try {
+            const study_id = Number(req.params.study_id);
+
+            const note = await prisma.note.findMany({
+                where: { study_id : study_id },
                 include: {
                     dentist: {
                         select: {
