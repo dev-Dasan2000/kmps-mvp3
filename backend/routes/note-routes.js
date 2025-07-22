@@ -23,7 +23,11 @@ const notesRouter = (io) => {
                             name: true,
                             email: true
                         }
-                    }
+                    },
+                    study: true
+                },
+                orderBy: {
+                    created_at: 'desc'
                 }
             });
             res.json(notes);
@@ -52,7 +56,8 @@ const notesRouter = (io) => {
                             name: true,
                             email: true
                         }
-                    }
+                    },
+                    study: true
                 }
             });
 
@@ -70,15 +75,22 @@ const notesRouter = (io) => {
     // Create a new note
     router.post('/', /*authenticateToken,*/ async (req, res) => {
         try {
-            const { note, dentist_id, radiologist_id } = req.body;
+            const { note, dentist_id, radiologist_id, study_id } = req.body;
 
             if (!note) {
                 return res.status(400).json({ error: 'Note content is required' });
             }
 
-            // Ensure at least one of dentist_id or radiologist_id is provided
-            if (!dentist_id && !radiologist_id) {
-                return res.status(400).json({ error: 'Either dentist_id or radiologist_id must be provided' });
+            if (!study_id) {
+                return res.status(400).json({ error: 'Study ID is required' });
+            }
+
+            // Verify study exists
+            const study = await prisma.study.findUnique({
+                where: { study_id }
+            });
+            if (!study) {
+                return res.status(404).json({ error: 'Study not found' });
             }
 
             // If dentist_id is provided, verify it exists
@@ -105,7 +117,8 @@ const notesRouter = (io) => {
                 data: {
                     note,
                     dentist_id,
-                    radiologist_id
+                    radiologist_id,
+                    study_id
                 }
             });
             io.emit('note_created', newNote);
@@ -120,7 +133,7 @@ const notesRouter = (io) => {
     router.put('/:note_id', /*authenticateToken,*/ async (req, res) => {
         try {
             const note_id = Number(req.params.note_id);
-            const { note, dentist_id, radiologist_id } = req.body;
+            const { note, dentist_id, radiologist_id, study_id } = req.body;
 
             // Check if note exists
             const existingNote = await prisma.note.findUnique({
@@ -131,14 +144,24 @@ const notesRouter = (io) => {
                 return res.status(404).json({ error: 'Note not found' });
             }
 
+            // If study_id is being updated, verify it exists
+            if (study_id !== undefined && study_id !== existingNote.study_id) {
+                const study = await prisma.study.findUnique({
+                    where: { study_id }
+                });
+                if (!study) {
+                    return res.status(404).json({ error: 'Study not found' });
+                }
+            }
+
             // Update the note
             const updatedNote = await prisma.note.update({
                 where: { note_id },
                 data: {
                     note: note !== undefined ? note : existingNote.note,
                     dentist_id: dentist_id !== undefined ? dentist_id : existingNote.dentist_id,
-                    radiologist_id: radiologist_id !== undefined ? radiologist_id : existingNote.radiologist_id
-                    // We don't update created_at as it represents when the note was first created
+                    radiologist_id: radiologist_id !== undefined ? radiologist_id : existingNote.radiologist_id,
+                    study_id: study_id !== undefined ? study_id : existingNote.study_id
                 }
             });
             io.emit('note_updated', updatedNote);
