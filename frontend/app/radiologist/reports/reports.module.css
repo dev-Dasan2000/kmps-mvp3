@@ -78,6 +78,34 @@
   overflow: hidden;
 }
 
+/* Add styles for editor headings */
+.editor :global(.ProseMirror) h1 {
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+  color: #0d7d85 !important;
+  margin: 1.5rem 0 1rem !important;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.editor :global(.ProseMirror) h2 {
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  color: #0d7d85 !important;
+  margin: 1.5rem 0 0.75rem !important;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
+.editor :global(.ProseMirror) h3 {
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  color: #0d7d85 !important;
+  margin: 1.25rem 0 0.5rem !important;
+  max-width: 100%;
+  overflow-wrap: break-word;
+}
+
 /* Report Content Styles */
 .reportContent {
   padding: 0.5rem 1rem;
@@ -94,7 +122,7 @@
 .reportContent h1 {
   font-size: 1.8rem !important;
   font-weight: 700 !important;
-  color: #0d7d85 !important; /* Changed from oklch to standard hex */
+  color: #0d7d85 !important;
   margin: 1.5rem 0 1rem !important;
   max-width: 100%;
   overflow-wrap: break-word;
@@ -103,7 +131,7 @@
 .reportContent h2 {
   font-size: 1.4rem !important;
   font-weight: 700 !important;
-  color: #0d7d85 !important; /* Changed from oklch to standard hex */
+  color: #0d7d85 !important;
   margin: 1.5rem 0 0.75rem !important;
   max-width: 100%;
   overflow-wrap: break-word;
@@ -112,7 +140,7 @@
 .reportContent h3 {
   font-size: 1.2rem !important;
   font-weight: 700 !important;
-  color: #0d7d85 !important; /* Changed from oklch to standard hex */
+  color: #0d7d85 !important;
   margin: 1.25rem 0 0.5rem !important;
   max-width: 100%;
   overflow-wrap: break-word;
