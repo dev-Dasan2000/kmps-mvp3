@@ -1350,17 +1350,31 @@ const DentalLabModule = () => {
 
   const Dashboard = () => {
     const stats = [
-      { title: 'Active Orders', value: orders.filter(o => o.status === 'in-progress').length.toString(), color: 'bg-blue-500' },
-      { title: 'Pending Pickup', value: orders.filter(o => o.status === 'completed').length.toString(), color: 'bg-green-500' },
-      {
-        title: 'Overdue', value: orders.filter(o =>
-          o.due_date && new Date(o.due_date) < new Date() && o.status !== 'completed').length.toString(),
-        color: 'bg-red-500'
+      { 
+        title: 'Active Orders', 
+        value: orders.filter(o => o.status === 'in-progress').length.toString(), 
+        color: 'bg-blue-300',
+        icon: Clock
+      },
+      { 
+        title: 'Pending Pickup', 
+        value: orders.filter(o => o.status === 'completed').length.toString(), 
+        color: 'bg-emerald-300',
+        icon: Package
       },
       {
-        title: 'This Month', value: orders.filter(o =>
+        title: 'Overdue', 
+        value: orders.filter(o =>
+          o.due_date && new Date(o.due_date) < new Date() && o.status !== 'completed').length.toString(),
+        color: 'bg-rose-300',
+        icon: AlertCircle
+      },
+      {
+        title: 'This Month', 
+        value: orders.filter(o =>
           o.due_date && new Date(o.due_date).getMonth() === new Date().getMonth()).length.toString(),
-        color: 'bg-purple-500'
+        color: 'bg-violet-300',
+        icon: Calendar
       }
     ];
 
@@ -1371,7 +1385,7 @@ const DentalLabModule = () => {
             <div key={index} className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center">
                 <div className={`${stat.color} rounded-lg p-3 mr-4`}>
-                  <Package className="h-6 w-6 text-white" />
+                  <stat.icon className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-600">{stat.title}</p>

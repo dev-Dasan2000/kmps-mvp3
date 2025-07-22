@@ -376,8 +376,8 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                 <p className="text-sm font-medium text-gray-600">Active Orders</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
               </div>
-              <div className="bg-blue-500 p-3 rounded-full">
-                <Package className="w-6 h-6 text-white" />
+              <div className="bg-blue-300 p-3 rounded-lg">
+                <Clock className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
@@ -389,8 +389,8 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                 <p className="text-sm font-medium text-gray-600">Completed</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
               </div>
-              <div className="bg-green-500 p-3 rounded-full">
-                <CheckCircle className="w-6 h-6 text-white" />
+              <div className="bg-emerald-300 p-3 rounded-lg">
+                <Package className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
@@ -402,8 +402,8 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                 <p className="text-sm font-medium text-gray-600">Overdue</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.overdue}</p>
               </div>
-              <div className="bg-red-500 p-3 rounded-full">
-                <AlertCircle className="w-6 h-6 text-white" />
+              <div className="bg-rose-300 p-3 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
@@ -415,8 +415,8 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                 <p className="text-sm font-medium text-gray-600">Total Orders</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
               </div>
-              <div className="bg-purple-500 p-3 rounded-full">
-                <Archive className="w-6 h-6 text-white" />
+              <div className="bg-violet-300 p-3 rounded-lg">
+                <CalendarIcon className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
