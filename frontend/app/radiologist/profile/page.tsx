@@ -10,7 +10,9 @@ import { useRouter } from "next/navigation";
 import { Carattere } from 'next/font/google';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
+import { ChangePasswordDialog } from '@/Components/ChangePasswordDialog';
+import { SignatureDialog } from '@/Components/SignatureDialog';
+import Image from 'next/image';
 
 interface radiologistData {
   radiologist_id: string;
@@ -18,7 +20,7 @@ interface radiologistData {
   name: string;
   phone_number: string;
   profile_picture: string | null;
-  signature: string;
+  signature: string | null;
 }
 
 const ProfilePage = () => {
@@ -36,7 +38,7 @@ const ProfilePage = () => {
     phone_number: '',
     newProfilePicture: null as File | null,
     newProfilePicturePreview: '' as string,
-    signature: '',
+    signature: null as string | null,
   });
   const router = useRouter();
 
@@ -71,7 +73,7 @@ const ProfilePage = () => {
         phone_number: response.data.phone_number,
         newProfilePicture: null,
         newProfilePicturePreview: '',
-        signature: response.data.signature,
+        signature: response.data.signature || null,
       });
     } catch (error: any) {
       toast.error("Failed to fetch profile data", {
@@ -144,6 +146,7 @@ const ProfilePage = () => {
     if (!radiologistData || !user?.id) return;
 
     try {
+      setIsLoading(true);
       let profilePicturePath = radiologistData.profile_picture;
 
       if (editedData.newProfilePicture) {
@@ -173,6 +176,7 @@ const ProfilePage = () => {
         signature: editedData.signature,
       });
 
+      // Update local state with the response data
       setradiologistData(response.data);
       setIsEditing(false);
       toast.success("Profile updated successfully");
@@ -180,6 +184,8 @@ const ProfilePage = () => {
       toast.error("Failed to update profile", {
         description: error.response?.data?.error || "An error occurred"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -376,28 +382,11 @@ const ProfilePage = () => {
                       }`}
                   />
                 </div>
-
-                {/* Signature */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Signature
-                  </label>
-                  <input
-                    type="text"
-                    value={(isEditing ? editedData.signature : radiologistData.signature) || ''}
-                    onChange={(e) => setEditedData({ ...editedData, signature: e.target.value })}
-                    readOnly={!isEditing}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${isEditing ? 'bg-white' : 'bg-gray-50'
-                      } text-gray-900 text-sm sm:text-base ${isEditing ? 'focus:ring-2 focus:ring-teal-500 focus:border-teal-500' : ''
-                      }`}
-                  />
-                </div>
               </div>
             </div>
           </div>
 
           {/* Password Section */}
-          
           <div className="border-t border-gray-200 px-6 py-6 sm:px-8">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-900">Password</h2>
@@ -413,6 +402,59 @@ const ProfilePage = () => {
               </div>
             </div>
           </div>
+
+          {/* Signature Section */}
+          <div className="border-t border-gray-200 px-6 py-6 sm:px-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Signature</h2>
+              <SignatureDialog
+                onSave={(signatureData) => {
+                  if (radiologistData) {
+                    setradiologistData({
+                      ...radiologistData,
+                      signature: signatureData
+                    });
+                  }
+                }}
+                trigger={
+                  <Button variant="outline">
+                    {radiologistData.signature ? 'Change Signature' : 'Add Signature'}
+                  </Button>
+                }
+                radiologistId={user?.id}
+                apiClient={apiClient}
+              />
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <div className="flex-1">
+                {radiologistData.signature ? (
+                  <div className="relative w-48 h-24 border rounded-md overflow-hidden bg-white">
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_BACKEND_URL}${radiologistData.signature}`}
+                      alt="Signature"
+                      className="w-full h-full object-contain p-2"
+                      onError={(e) => {
+                        console.error('Error loading signature:', e);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          const errorMessage = document.createElement('p');
+                          errorMessage.className = 'text-sm text-gray-500 p-2';
+                          errorMessage.textContent = 'Error loading signature';
+                          parent.appendChild(errorMessage);
+                        }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No signature added</p>
+                )}
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
