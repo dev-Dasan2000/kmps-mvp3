@@ -66,6 +66,7 @@ function getFileSizesByType(dirPath) {
 
 // Upload file
 router.post('/', upload.single('file'), (req, res) => {
+  console.log('Received file:', req.file);
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
