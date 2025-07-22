@@ -60,7 +60,7 @@ router.post('/:radiologistId', upload.single('signature'), async (req, res) => {
       }
     }
 
-    const fileUrl = `/uploads/photos/${req.file.filename}`;
+    const fileUrl = `/uploads/signatures/${req.file.filename}`;
 
     // Update radiologist with new signature URL
     await prisma.radiologists.update({
