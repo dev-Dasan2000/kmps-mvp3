@@ -373,28 +373,34 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const searchTimeoutRef = React.useRef<NodeJS.Timeout>();
 
   // Search patients function
-  const searchPatients = async (term: string) => {
+  const searchPatients = useCallback(async (term: string) => {
     if (!term || term.length < 2) {
       setPatientSearchResults([]);
+      setShowPatientDropdown(false);
       return;
     }
     try {
-      const response = await fetch(`/patients/search?q=${encodeURIComponent(term)}`);
-      if (response.ok) {
-        const data = await response.json();
+      const response = await apiClient.get(`/patients/search?q=${encodeURIComponent(term)}`);
+      if (response.status === 200) {
+        const data = response.data;
         setPatientSearchResults(data);
+        setShowPatientDropdown(true);
         
         // If no patients were found matching the search term
         if (data.length === 0 && term.length > 2) {
           setPatientValidated(false);
           setPatientErrorMessage('No matching patients found. Please select a patient from the dropdown.');
+        } else {
+          setPatientValidated(true);
+          setPatientErrorMessage('');
         }
       }
     } catch (err) {
       console.error('Error searching patients:', err);
       setPatientSearchResults([]);
+      setShowPatientDropdown(false);
     }
-  };
+  }, [apiClient]);
 
   // Debounced search effect
   useEffect(() => {
@@ -408,6 +414,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
       }, 300);
     } else {
       setPatientSearchResults([]);
+      setShowPatientDropdown(false);
     }
 
     return () => {
@@ -415,7 +422,7 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [patientSearchTerm]);
+  }, [patientSearchTerm, searchPatients]);
 
   // Reset search when modal is opened/closed
   useEffect(() => {
@@ -1290,12 +1297,26 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
           <CardHeader>
             <CardTitle className="text-lg">Appointment Management</CardTitle>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="Search appointments..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
+              <div className="relative max-w-sm">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search appointments..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-8"
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    tabIndex={-1}
+                    aria-label="Clear search"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>
