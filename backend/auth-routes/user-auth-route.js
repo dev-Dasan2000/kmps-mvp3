@@ -8,8 +8,8 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 const findUserById = async (id) => {
-  let user = await prisma.patients.findUnique({ where: { patient_id: id } });
-  if (user) return { user, role: 'patient' };
+  /*let user = await prisma.patients.findUnique({ where: { patient_id: id } });
+  if (user) return { user, role: 'patient' };*/
 
   user = await prisma.radiologists.findUnique({ where: { radiologist_id: id } });
   if (user) return { user, role: 'radiologist' };
