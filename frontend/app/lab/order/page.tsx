@@ -91,7 +91,7 @@ type Order = {
 // ======================== COMPONENT ========================
 const LabOrderModule = () => {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { user, isLoggedIn, isLoadingAuth } = useContext(AuthContext);
+  const { user, isLoggedIn, isLoadingAuth, apiClient } = useContext(AuthContext);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -132,8 +132,8 @@ const LabOrderModule = () => {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-      const fetchedOrders = await axios.get(
-        `${backendURL}/orders`
+      const fetchedOrders = await apiClient.get(
+        `/orders`
       );
       if (fetchedOrders.status == 500) {
         throw new Error("Error fetching orders");
@@ -155,8 +155,8 @@ const LabOrderModule = () => {
   const fetchStages = async () => {
     setLoadingStages(true);
     try {
-      const stagesres = await axios.get(
-        `${backendURL}/stages`
+      const stagesres = await apiClient.get(
+        `/stages`
       );
       if (stagesres.status == 500) {
         throw new Error("Internal Server Error");
@@ -178,8 +178,8 @@ const LabOrderModule = () => {
   const fetchStageAssigns = async () => {
     setLoadingStageAssigns(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/stage-assign`
+      const res = await apiClient.get(
+        `/stage-assign`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -248,8 +248,8 @@ const LabOrderModule = () => {
   const handleStageToggle = async (stageId: number, orderId: number, isCompleted: boolean) => {
     setUpdatingStage(stageId);
     try {
-      const response = await axios.post(
-        `${backendURL}/stage-assign/`,
+      const response = await apiClient.post(
+        `/stage-assign/`,
         {
           stage_id: stageId,
           order_id: orderId,
@@ -266,8 +266,8 @@ const LabOrderModule = () => {
         newStatus = "completed"
       }
 
-      const res2 = await axios.put(
-        `${backendURL}/orders/${orderId}`,
+      const res2 = await apiClient.put(
+        `/orders/${orderId}`,
         {
           status: newStatus
         },

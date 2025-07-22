@@ -129,7 +129,7 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
   onOrderDelete
 }) => {
   const router = useRouter();
-  const { isLoadingAuth, isLoggedIn, user, accessToken } = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
   const [orders, setOrders] = useState<Order[]>([]);
 
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -168,8 +168,8 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(
-        `${backendURL}/orders/forlab/${user.id}`
+      const response = await apiClient.get(
+        `/orders/forlab/${user.id}`
       );
       if (response.status == 500) {
         throw new Error('Failed to fetch orders');
@@ -188,8 +188,8 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
 
   const fetchStages = async () => {
     try {
-      const response = await axios.get(
-        `${backendURL}/stages`
+      const response = await apiClient.get(
+        `/stages`
       );
       if (response.status == 500) {
         throw new Error("Internal Server Error");
@@ -203,8 +203,8 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
 
   const fetchStageAssigns = async () => {
     try {
-      const res = await axios.get(
-        `${backendURL}/stage-assign`
+      const res = await apiClient.get(
+        `/stage-assign`
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");

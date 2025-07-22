@@ -29,7 +29,7 @@ const LabProfilePage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRequestingEdit, setIsRequestingEdit] = useState(false);
-  const { user, isLoadingAuth, isLoggedIn } = useContext(AuthContext);
+  const { user, isLoadingAuth, isLoggedIn, apiClient } = useContext(AuthContext);
   const [originalData, setOriginalData] = useState<LabProfile>({
     lab_id: '',
     name: '',
@@ -57,8 +57,8 @@ const LabProfilePage: React.FC = () => {
   const fetchLab = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(
-        `${backendURL}/labs/${user.id}`
+      const response = await apiClient.get(
+        `/labs/${user.id}`
       );
       setOriginalData(response.data);
       setFormData({ ...response.data, password: "" });
@@ -78,8 +78,8 @@ const LabProfilePage: React.FC = () => {
   const handleSave = async () => {
     setIsRequestingEdit(true);
     try {
-      const response = await axios.put(
-        `${backendURL}/labs/${user.id}`,
+      const response = await apiClient.put(
+        `/labs/${user.id}`,
         {
           formData
         },
