@@ -6,6 +6,7 @@ import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import axios from 'axios';
+import { ChatActionButton, ChatModal } from '@/components/ChatModal';
 
 // Types based on the database structure
 interface Doctor {
@@ -481,6 +482,9 @@ const MedicalStudyInterface: React.FC = () => {
     router.push(`/radiologist/workspace?study_id=${studyId}`);
   };
 
+  // Chat modal state
+  const [openChatStudyId, setOpenChatStudyId] = useState<number | null>(null);
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 overflow-auto">
       {loading && (
@@ -684,6 +688,12 @@ const MedicalStudyInterface: React.FC = () => {
                           >
                             <UserPlus className="w-4 h-4" />
                           </button>
+                          <ChatActionButton
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenChatStudyId(study.study_id);
+                            }}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -794,6 +804,12 @@ const MedicalStudyInterface: React.FC = () => {
                     >
                       <UserPlus className="w-4 h-4" />
                     </button>
+                    <ChatActionButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenChatStudyId(study.study_id);
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 space-y-1">
@@ -942,6 +958,14 @@ const MedicalStudyInterface: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Chat Modal for the selected study */}
+      <ChatModal
+        isOpen={openChatStudyId !== null}
+        onClose={() => setOpenChatStudyId(null)}
+        studyId={openChatStudyId}
+        participants={[]}
+        currentUser={user?.role || 'admin'}
+      />
     </div>
   );
 };
