@@ -345,18 +345,18 @@ export const ChatModal: FC<ChatModalProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button className="p-2 hover:bg-white hover:bg-opacity-10 rounded-full">
+            <button className="p-2 hover:bg-emerald-500 hover:bg-opacity-10 rounded-full">
               <Phone size={18} />
             </button>
-            <button className="p-2 hover:bg-white hover:bg-opacity-10 rounded-full">
+            <button className="p-2 hover:bg-emerald-500 hover:bg-opacity-10 rounded-full">
               <Video size={18} />
             </button>
-            <button className="p-2 hover:bg-white hover:bg-opacity-10 rounded-full">
+            <button className="p-2 hover:bg-emerald-500 hover:bg-opacity-10 rounded-full">
               <MoreVertical size={18} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white hover:bg-opacity-10 rounded-full"
+              className="p-2 hover:bg-emerald-500 hover:bg-opacity-10 rounded-full"
             >
               <X size={18} />
             </button>
