@@ -326,16 +326,16 @@ export const ChatModal: FC<ChatModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-full max-w-md sm:w-[380px] shadow-2xl">
-      <div className="bg-white text-gray-900 rounded-lg flex flex-col h-[600px] border border-gray-200">
+    <div className="fixed bottom-0 right-0 z-50 w-full max-w-md sm:w-[380px] sm:bottom-4 sm:right-4 shadow-2xl px-0 sm:px-0">
+      <div className="bg-white text-gray-900 rounded-t-lg sm:rounded-lg flex flex-col h-[60vh] max-h-[600px] sm:h-[600px] border border-gray-200 w-full">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 bg-emerald-600 text-white rounded-t-lg">
+        <div className="flex items-center justify-between p-3 sm:p-4 bg-emerald-600 text-white rounded-t-lg">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
               🏥
             </div>
             <div>
-              <h3 className="font-semibold">Study Discussion</h3>
+              <h3 className="font-semibold text-base sm:text-lg">Study Discussion</h3>
               <p className="text-xs opacity-90">
                 {participants.length > 0 
                   ? participants.map(p => p.name || p.role).join(', ')
@@ -364,14 +364,14 @@ export const ChatModal: FC<ChatModalProps> = ({
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-gray-50">
           {messages.map((message) => {
             const user = mockUsers[message.userId];
             const isOwn = message.userId === currentUser;
             
             return (
-              <div key={message.id} className={`mb-4 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2 max-w-xs`}>
+              <div key={message.id} className={`mb-3 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2 max-w-[80vw] sm:max-w-xs`}>
                   {!isOwn && (
                     <div className={`w-8 h-8 ${user?.color || 'bg-gray-500'} rounded-full flex items-center justify-center text-white text-sm flex-shrink-0`}>
                       {user?.avatar || '👤'}
@@ -382,14 +382,14 @@ export const ChatModal: FC<ChatModalProps> = ({
                       <span className="text-xs text-gray-600 mb-1 px-2">{user?.name || 'Unknown User'}</span>
                     )}
                     <div
-                      className={`px-3 py-2 rounded-lg ${
+                      className={`px-3 py-2 rounded-lg text-sm sm:text-base ${
                         isOwn
                           ? 'bg-emerald-100 text-emerald-700 rounded-br-none'
                           : 'bg-gray-100 text-gray-900 shadow-sm rounded-bl-none'
                       }`}
                     >
                       {message.type === 'text' && (
-                        <p className="text-sm">{message.message}</p>
+                        <p className="text-sm sm:text-base">{message.message}</p>
                       )}
                       {message.type === 'voice' && (
                         <VoiceMessage message={message} isOwn={isOwn} />
@@ -397,12 +397,10 @@ export const ChatModal: FC<ChatModalProps> = ({
                       {message.type === 'file' && (
                         <div className="flex items-center space-x-2">
                           <Paperclip size={16} />
-                          <span className="text-sm">{message.fileName}</span>
+                          <span className="text-sm sm:text-base">{message.fileName}</span>
                         </div>
                       )}
-                      <span className={`text-xs ${isOwn ? 'text-emerald-700/80' : 'text-gray-500'} block mt-1`}>
-                        {formatTime(message.timestamp)}
-                      </span>
+                      <span className={`text-xs ${isOwn ? 'text-emerald-700/80' : 'text-gray-500'} block mt-1`}> {formatTime(message.timestamp)} </span>
                     </div>
                   </div>
                 </div>
@@ -445,7 +443,7 @@ export const ChatModal: FC<ChatModalProps> = ({
         )}
 
         {/* Input Area */}
-        <div className="p-4 bg-gray-50 border-t border-gray-200">
+        <div className="p-2 sm:p-4 bg-gray-50 border-t border-gray-200">
           <div className="flex items-center space-x-2">
             {/*<button
               onClick={() => fileInputRef.current?.click()}
@@ -461,7 +459,7 @@ export const ChatModal: FC<ChatModalProps> = ({
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Type a message..."
-                className="w-full px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent bg-gray-50 text-gray-900 border-gray-200"
+                className="w-full px-3 py-2 sm:px-4 sm:py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent bg-gray-50 text-gray-900 border-gray-200 text-sm sm:text-base"
               />
               {/*<button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 <Smile size={20} />
@@ -515,4 +513,4 @@ export const ChatModal: FC<ChatModalProps> = ({
       />
     </div>
   );
-};  
+};   
