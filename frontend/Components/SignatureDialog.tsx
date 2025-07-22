@@ -140,7 +140,7 @@ export function SignatureDialog({ onSave, trigger, radiologistId, apiClient }: S
           <Button variant="outline" onClick={handleClear} disabled={isLoading}>
             Clear
           </Button>
-          <Button onClick={handleSave} disabled={isLoading}>
+          <Button className='bg-emerald-600 hover:bg-emerald-500 text-white' onClick={handleSave} disabled={isLoading}>
             {isLoading ? 'Saving...' : 'Save Signature'}
           </Button>
         </DialogFooter>
