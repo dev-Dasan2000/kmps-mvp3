@@ -65,7 +65,7 @@ const DentalDashboard: React.FC = () => {
 
   const router = useRouter();
 
-  const {isLoggedIn, isLoadingAuth, user, apiClient } = useContext(AuthContext);
+  const { isLoggedIn, isLoadingAuth, user, apiClient } = useContext(AuthContext);
   const [loadingMainCounts, setLoadingMainCounts] = useState(false);
   const [loadingAppointmentCounts, setLoadingAppointmentCounts] = useState(false);
   const [loadingPaymentTrends, setLoadingPaymentTrends] = useState(false);
@@ -148,7 +148,7 @@ const DentalDashboard: React.FC = () => {
 
   const filterAppointmentsByPeriod = (period: TimePeriod) => {
     let filteredAppointments = [...allAppointments];
-    
+
     if (period !== 'overall') {
       const now = new Date();
       let startDate = new Date();
@@ -191,19 +191,19 @@ const DentalDashboard: React.FC = () => {
 
   const fetchPaymentTrends = async () => {
     setLoadingPaymentTrends(true);
-    try{
+    try {
       const paymenttrends = await apiClient.get(
         `/payment-history/trends`
       );
-      if(paymenttrends.status == 500){
+      if (paymenttrends.status == 500) {
         throw new Error("internal Server Error");
       }
       setPaymentTrends(paymenttrends.data);
     }
-    catch(err: any){
+    catch (err: any) {
       toast.error(err.message);
     }
-    finally{
+    finally {
       setLoadingPaymentTrends(false);
     }
   }
@@ -220,22 +220,22 @@ const DentalDashboard: React.FC = () => {
     loadData();
   }, []);
 
-  useEffect(()=>{
-    if(!isLoadingAuth){
-      if(!isLoggedIn){
+  useEffect(() => {
+    if (!isLoadingAuth) {
+      if (!isLoggedIn) {
         toast.error("Session Error", {
           description: "Your session is expired, please login again"
         });
         router.push("/");
       }
-      else if(user.role != "admin"){
+      else if (user.role != "admin") {
         toast.error("Access Error", {
           description: "You do not have access, redirecting..."
         });
         router.push("/");
       }
     }
-  },[isLoadingAuth]);
+  }, [isLoadingAuth]);
 
   // Refs for chart canvases
   const pieChartRef = useRef<HTMLCanvasElement>(null);
@@ -414,9 +414,12 @@ const DentalDashboard: React.FC = () => {
                 },
                 ticks: {
                   color: '#666666',
+                  precision: 0,
                   font: { size: 12 },
+                  stepSize: 1000,
                   callback: function (value) {
-                    return 'Rs ' + (Number(value) / 1000).toFixed(0) + 'k';
+                    const kValue = Math.round(Number(value) / 1000);
+                    return `Rs. ${kValue}k`;
                   }
                 }
               }
@@ -542,7 +545,7 @@ const DentalDashboard: React.FC = () => {
         filterAppointmentsByPeriod('overall');
       }
     }, 100);
-    
+
     return () => clearTimeout(timer);
   }, [allAppointments]);
 
@@ -595,7 +598,7 @@ const DentalDashboard: React.FC = () => {
               </Card>
             );
           })}
-        
+
         </div>
 
         {/* Main Analytics Section */}
@@ -654,14 +657,14 @@ const DentalDashboard: React.FC = () => {
                 )}
               </div>
 
-             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {appointmentStatus.map((status, index) => (
                   <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                     <div
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: status.color }}
                     />
-                    
+
                     <div className="min-w-0">
                       <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
                         {status.name}
@@ -674,7 +677,7 @@ const DentalDashboard: React.FC = () => {
                 ))}
               </div>
             </CardHeader>
-            
+
           </Card>
 
           {/* Right Side - Payment Analysis */}
