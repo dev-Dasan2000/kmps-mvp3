@@ -3,89 +3,100 @@ import { PrismaClient } from '@prisma/client';
 import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
-const router = express.Router();
 
-// GET all rooms
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
-  try {
-    const rooms = await prisma.rooms.findMany();
-    res.json(rooms);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch rooms' });
-  }
-});
+const roomRouter = (io) => {
+  const router = express.Router();
 
-// GET one room by ID
-router.get('/:room_id',  /*authenticateToken,*/  async (req, res) => {
-  try {
-    const room = await prisma.rooms.findUnique({
-      where: { room_id: req.params.room_id }
-    });
-    if (!room) return res.status(404).json({ error: 'Room not found' });
-    res.json(room);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch room' });
-  }
-});
+  // GET all rooms
+  router.get('/',/*authenticateToken, */async (req, res) => {
+    try {
+      const rooms = await prisma.rooms.findMany();
+      res.json(rooms);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch rooms' });
+    }
+  });
 
-//room count
-router.get('/count/num', async (req, res) => {
-  try {
-    const count = await prisma.rooms.count();
-    res.json({ count });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to count rooms' });
-  }
-});
+  // GET one room by ID
+  router.get('/:room_id',/*authenticateToken, */async (req, res) => {
+    try {
+      const room = await prisma.rooms.findUnique({
+        where: { room_id: req.params.room_id }
+      });
+      if (!room) return res.status(404).json({ error: 'Room not found' });
+      res.json(room);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch room' });
+    }
+  });
 
+  // Room count
+  router.get('/count/num',/*authenticateToken, */async (req, res) => {
+    try {
+      const count = await prisma.rooms.count();
+      res.json({ count });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to count rooms' });
+    }
+  });
 
-// POST create a room
-router.post('/', async (req, res) => {
-  try {
-    const { room_id, description } = req.body;
+  // POST create a room
+  router.post('/',/*authenticateToken, */async (req, res) => {
+    try {
+      const { room_id, description } = req.body;
 
-    const newRoom = await prisma.rooms.create({
-      data: { room_id, description }
-    });
+      const newRoom = await prisma.rooms.create({
+        data: { room_id, description }
+      });
 
-    res.status(201).json(newRoom);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create room' });
-  }
-});
+      io.emit('room_created', newRoom);
 
-// PUT update a room
-router.put('/:room_id',  /*authenticateToken,*/  async (req, res) => {
-  try {
-    const { description } = req.body;
+      res.status(201).json(newRoom);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to create room' });
+    }
+  });
 
-    const updatedRoom = await prisma.rooms.update({
-      where: { room_id: req.params.room_id },
-      data: { description }
-    });
+  // PUT update a room
+  router.put('/:room_id',/*authenticateToken, */async (req, res) => {
+    try {
+      const { description } = req.body;
 
-    res.json(updatedRoom);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to update room' });
-  }
-});
+      const updatedRoom = await prisma.rooms.update({
+        where: { room_id: req.params.room_id },
+        data: { description }
+      });
 
-// DELETE a room
-router.delete('/:room_id',  /*authenticateToken,*/  async (req, res) => {
-  try {
-    await prisma.rooms.delete({
-      where: { room_id: req.params.room_id }
-    });
-    res.json({ message: 'Room deleted' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to delete room' });
-  }
-});
+      io.emit('room_updated', updatedRoom); // Optional
 
-export default router;
+      res.json(updatedRoom);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update room' });
+    }
+  });
+
+  // DELETE a room
+  router.delete('/:room_id',/*authenticateToken, */async (req, res) => {
+    try {
+      await prisma.rooms.delete({
+        where: { room_id: req.params.room_id }
+      });
+
+      io.emit('room_deleted', { room_id: req.params.room_id });
+
+      res.json({ message: 'Room deleted' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete room' });
+    }
+  });
+
+  return router;
+};
+
+export default roomRouter;

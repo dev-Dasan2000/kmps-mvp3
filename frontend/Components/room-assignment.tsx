@@ -15,6 +15,7 @@ import type { RoomAssignment } from "@/types/dentist"
 import axios from "axios"
 import { toast } from "sonner"
 import { AuthContext } from "@/context/auth-context"
+import socket from "@/hooks/socket"
 
 interface Dentist {
   dentist_id: string
@@ -114,9 +115,34 @@ export function RoomAssignmentInterface() {
 
   // Initialize data
   useEffect(() => {
-    fetchDentists()
-    fetchRooms()
-  }, [])
+    fetchDentists();
+    fetchRooms();
+
+    socket.on("room_created", (newRoom) => {
+      setRooms((prev) => [...prev, newRoom]);
+      toast.success(`New room added: ${newRoom.room_id}`);
+    });
+
+    socket.on("room_updated", (updatedRoom) => {
+      setRooms((prev) =>
+        prev.map((room) =>
+          room.room_id === updatedRoom.room_id ? updatedRoom : room
+        )
+      );
+      toast.success(`Room updated: ${updatedRoom.room_id}`);
+    });
+
+    socket.on("room_deleted", ({ room_id }) => {
+      setRooms((prev) => prev.filter((room) => room.room_id !== room_id));
+      toast.success(`Room deleted: ${room_id}`);
+    });
+
+    return () => {
+      socket.off("room_created");
+      socket.off("room_updated");
+      socket.off("room_deleted");
+    };
+  }, []);
 
   // Fetch assignments after dentists and rooms are loaded
   useEffect(() => {
