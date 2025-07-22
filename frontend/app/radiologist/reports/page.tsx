@@ -367,97 +367,187 @@ export default function ReportEditorPage() {
   const generatePdfPreview = () => {
     if (!editor || !studyData) return null;
     
+    // Process content to extract sections and calculate page breaks
+    const processedContent = calculatePageBreaks(editor.getHTML());
+    
     return (
-      <div id="pdf-preview" className={styles.previewContent}>
-        {/* PDF Header */}
-        <div className={styles.pdfHeader}>
-          <div className={styles.pdfLogo}>
-            {logoImage && <img src={logoImage} alt="Dentax Logo" />}
-            <h2>DENTAX</h2>
-          </div>
-          <div className={styles.pdfTitle}>
-            <h3>RADIOLOGY REPORT</h3>
-            <p>Study #{studyData.study_id}</p>
-          </div>
-        </div>
+      <div id="pdf-preview" className={styles.pagesContainer}>
+        {processedContent.pages.map((page, index) => (
+          <div key={index} className={styles.pagePreview}>
+            {/* Only add header on first page */}
+            {index === 0 && (
+              <>
+                {/* PDF Header */}
+                <div className={styles.pdfHeader}>
+                  <div className={styles.pdfLogo}>
+                    {logoImage && <img src={logoImage} alt="Dentax Logo" />}
+                    <h2>DENTAX</h2>
+                  </div>
+                  <div className={styles.pdfTitle}>
+                    <h3>RADIOLOGY REPORT</h3>
+                    <p>Study #{studyData.study_id}</p>
+                  </div>
+                </div>
 
-        {/* Report Header (Patient & Study Info) */}
-        <div className={styles.reportHeader}>
-          <div className={styles.reportTitle}>
-            <h1>RADIOLOGY REPORT</h1>
-          </div>
-          <div className={styles.infoGrid}>
-            {/* Patient Information */}
-            <div className={styles.infoSection}>
-              <h2>Patient Information</h2>
-              <dl>
-                <dt>Name</dt>
-                <dd><strong>{studyData?.patient?.name || 'N/A'}</strong></dd>
-                
-                <dt>Patient ID</dt>
-                <dd><strong>{studyData?.patient_id || 'N/A'}</strong></dd>
-                
-                <dt>Date of Birth</dt>
-                <dd>{formatDate(studyData?.patient?.date_of_birth)}</dd>
-                
-                <dt>Age</dt>
-                <dd>{calculateAge(studyData?.patient?.date_of_birth)}</dd>
-                
-                <dt>Gender</dt>
-                <dd>{studyData?.patient?.gender || 'N/A'}</dd>
-                
-                <dt>Blood Group</dt>
-                <dd>{studyData?.patient?.blood_group?.toUpperCase() || 'N/A'}</dd>
-              </dl>
+                {/* Report Header (Patient & Study Info) */}
+                <div className={styles.reportHeader}>
+                  <div className={styles.reportTitle}>
+                    <h1>RADIOLOGY REPORT</h1>
+                  </div>
+                  <div className={styles.infoGrid}>
+                    {/* Patient Information */}
+                    <div className={styles.infoSection}>
+                      <h2>Patient Information</h2>
+                      <dl>
+                        <dt>Name</dt>
+                        <dd><strong>{studyData?.patient?.name || 'N/A'}</strong></dd>
+                        
+                        <dt>Patient ID</dt>
+                        <dd><strong>{studyData?.patient_id || 'N/A'}</strong></dd>
+                        
+                        <dt>Date of Birth</dt>
+                        <dd>{formatDate(studyData?.patient?.date_of_birth)}</dd>
+                        
+                        <dt>Age</dt>
+                        <dd>{calculateAge(studyData?.patient?.date_of_birth)}</dd>
+                        
+                        <dt>Gender</dt>
+                        <dd>{studyData?.patient?.gender || 'N/A'}</dd>
+                        
+                        <dt>Blood Group</dt>
+                        <dd>{studyData?.patient?.blood_group?.toUpperCase() || 'N/A'}</dd>
+                      </dl>
+                    </div>
+
+                    {/* Study Information */}
+                    <div className={styles.infoSection}>
+                      <h2>Study Information</h2>
+                      <dl>
+                        <dt>Study ID</dt>
+                        <dd><strong>{studyData?.study_id || 'N/A'}</strong></dd>
+                        
+                        <dt>Date</dt>
+                        <dd><strong>{formatDate(studyData?.date)}</strong></dd>
+                        
+                        <dt>Time</dt>
+                        <dd>{formatTime(studyData?.time)}</dd>
+                        
+                        <dt>Modality</dt>
+                        <dd><strong>{studyData?.modality || 'N/A'}</strong></dd>
+                        
+                        <dt>Body Part</dt>
+                        <dd><strong>{studyData?.body_part || 'N/A'}</strong></dd>
+                        
+                        <dt>Radiologist</dt>
+                        <dd><strong>{studyData?.radiologist?.name || 'N/A'}</strong></dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Page Content */}
+            <div 
+              className={styles.reportContent} 
+              dangerouslySetInnerHTML={{ __html: page.content }}
+            />
+            
+            {/* PDF Footer */}
+            <div className={styles.pdfFooter}>
+              <div className={styles.radiologistInfo}>
+                <span><strong>Radiologist:</strong> {studyData.radiologist?.name || 'N/A'}</span>
+                <span><strong>Date:</strong> {formatDate(new Date().toISOString())}</span>
+              </div>
+              <div className={styles.pageInfo}>
+                Page {index + 1} of {processedContent.pages.length}
+              </div>
+              <div className={styles.systemInfo}>
+                Generated by Dentax Imaging System
+              </div>
             </div>
-
-            {/* Study Information */}
-            <div className={styles.infoSection}>
-              <h2>Study Information</h2>
-              <dl>
-                <dt>Study ID</dt>
-                <dd><strong>{studyData?.study_id || 'N/A'}</strong></dd>
-                
-                <dt>Date</dt>
-                <dd><strong>{formatDate(studyData?.date)}</strong></dd>
-                
-                <dt>Time</dt>
-                <dd>{formatTime(studyData?.time)}</dd>
-                
-                <dt>Modality</dt>
-                <dd><strong>{studyData?.modality || 'N/A'}</strong></dd>
-                
-                <dt>Body Part</dt>
-                <dd><strong>{studyData?.body_part || 'N/A'}</strong></dd>
-                
-                <dt>Radiologist</dt>
-                <dd><strong>{studyData?.radiologist?.name || 'N/A'}</strong></dd>
-              </dl>
+            
+            {/* Page Number Overlay */}
+            <div className={styles.pageNumber}>
+              {index + 1}
             </div>
           </div>
-        </div>
-
-        {/* Report Content with preserved styling and page breaks */}
-        <div 
-          className={styles.reportContent} 
-          dangerouslySetInnerHTML={{ __html: processContentWithPageBreaks(editor.getHTML()) }}
-        />
-        
-        {/* PDF Footer */}
-        <div className={styles.pdfFooter}>
-          <div className={styles.radiologistInfo}>
-            <span><strong>Radiologist:</strong> {studyData.radiologist?.name || 'N/A'}</span>
-            <span><strong>Date:</strong> {formatDate(new Date().toISOString())}</span>
-          </div>
-          <div className={styles.pageInfo}>
-            Page 1 of 1
-          </div>
-          <div className={styles.systemInfo}>
-            Generated by Dentax Imaging System
-          </div>
-        </div>
+        ))}
       </div>
     );
+  };
+
+  // Helper function to calculate page breaks and split content into pages
+  const calculatePageBreaks = (content: string): { pages: Array<{ content: string }> } => {
+    // Create a temporary div to process the content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = processContentWithPageBreaks(content);
+    
+    // Get all top-level elements for pagination
+    const elements = Array.from(tempDiv.children);
+    
+    // Estimate content height per element (rough approximation)
+    // In a real implementation, you would need a more sophisticated algorithm
+    // that measures actual rendered heights
+    const avgLineHeight = 25; // pixels
+    const linesPerPage = 35; // Estimate of lines that fit on a page after header/footer
+    const maxLinesFirstPage = 20; // First page has header which takes space
+    
+    const pages: Array<{ content: string }> = [];
+    let currentPage = document.createElement('div');
+    let currentPageLines = 0;
+    let maxLinesForCurrentPage = maxLinesFirstPage; // First page has header
+    
+    elements.forEach(element => {
+      // Rough estimate of lines needed for this element
+      let elementLines = 0;
+      
+      // Headings
+      if (/h[1-6]/i.test(element.tagName)) {
+        elementLines = 2;
+      } 
+      // Paragraphs - estimate based on text length
+      else if (element.tagName === 'P') {
+        const words = element.textContent?.split(' ').length || 0;
+        elementLines = Math.ceil(words / 10); // Assuming ~10 words per line
+      }
+      // Lists - count items
+      else if (['UL', 'OL'].includes(element.tagName)) {
+        elementLines = element.children.length + 1;
+      }
+      // Tables - count rows
+      else if (element.tagName === 'TABLE') {
+        elementLines = element.querySelectorAll('tr').length * 2;
+      }
+      // Default for other elements
+      else {
+        elementLines = 2;
+      }
+      
+      // If adding this element would exceed page capacity, start a new page
+      if (currentPageLines + elementLines > maxLinesForCurrentPage) {
+        pages.push({ content: currentPage.innerHTML });
+        currentPage = document.createElement('div');
+        currentPageLines = 0;
+        maxLinesForCurrentPage = linesPerPage; // Subsequent pages don't have header
+      }
+      
+      // Add the element to the current page
+      currentPage.appendChild(element.cloneNode(true));
+      currentPageLines += elementLines;
+    });
+    
+    // Add the final page if it has content
+    if (currentPage.innerHTML) {
+      pages.push({ content: currentPage.innerHTML });
+    }
+    
+    // Ensure we have at least one page
+    if (pages.length === 0) {
+      pages.push({ content: '' });
+    }
+    
+    return { pages };
   };
 
   // Helper function to process content and add page break indicators
@@ -1541,7 +1631,7 @@ export default function ReportEditorPage() {
             )}
           </div>
         </div>
-        
+
         {/* Footer with actions */}
         <div className="bg-white border-t shadow-sm">
           <div className="container mx-auto px-4 py-3">
@@ -1594,7 +1684,7 @@ export default function ReportEditorPage() {
           </div>
         </div>
       </div>
-      
+
       {/* Table Insert Dialog */}
       <Dialog open={isTableDialogOpen} onOpenChange={setIsTableDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">

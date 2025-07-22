@@ -150,18 +150,52 @@
   font-weight: 600;
 }
 
+/* Page Preview Styles */
+.pagePreview {
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto 30px;
+  padding: 20mm 15mm;
+  background-color: white;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  page-break-after: always;
+}
+
+.pagePreview:last-child {
+  margin-bottom: 50px;
+}
+
+.pagePreview .pageNumber {
+  position: absolute;
+  bottom: 10mm;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 10pt;
+  color: #666;
+}
+
+.pagesContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 30px 0;
+  background-color: #f0f0f0;
+}
+
 /* Preview Content Styles */
 .previewContent {
   background-color: white;
-  border-radius: 0.375rem;
-  padding: 1.5rem;
+  padding: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin: 0 auto;
-  max-width: 210mm;  /* A4 width */
-  min-height: 297mm; /* A4 height */
+  max-width: 100%;
   box-sizing: border-box;
-  overflow: hidden;
-  page-break-after: always;
+  overflow: visible;
 }
 
 /* For PDF output */
@@ -267,7 +301,7 @@
   border-bottom-right-radius: 0.375rem;
   margin-top: 2rem;
   border-top: 1px solid #e2e8f0;
-    max-width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
