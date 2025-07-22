@@ -1,0 +1,117 @@
+.pagesContainer {
+  background: white;
+  width: 794px; /* A4 width at 96 DPI */
+}
+
+.pagePreview {
+  width: 794px;
+  min-height: 1123px; /* A4 height at 96 DPI */
+  padding: 40px;
+  margin-bottom: 20px;
+  background: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  page-break-after: always;
+  position: relative;
+}
+
+.pageHeader {
+  margin-bottom: 30px;
+}
+
+.pdfHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #0d7d85;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.pdfLogo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdfLogo img {
+  height: 40px;
+  width: auto;
+}
+
+.pdfTitle {
+  text-align: right;
+}
+
+.reportHeader {
+  margin-bottom: 30px;
+}
+
+.reportTitle {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.infoSection {
+  padding: 15px;
+  background-color: #f8fafc;
+  border-radius: 8px;
+}
+
+.infoSection h2 {
+  color: #0d7d85;
+  margin-bottom: 10px;
+  font-size: 1.2em;
+}
+
+.infoSection dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+}
+
+.infoSection dt {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pageContentArea {
+  min-height: 600px;
+  padding: 20px 0;
+}
+
+.reportContent {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.pdfFooter {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 40px;
+  background-color: #f1f5f9;
+  font-size: 12px;
+}
+
+.footerLeft, .footerCenter, .footerRight {
+  flex: 1;
+}
+
+.footerCenter {
+  text-align: center;
+}
+
+.footerRight {
+  text-align: right;
+}
