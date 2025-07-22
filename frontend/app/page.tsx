@@ -72,6 +72,12 @@ export default function LoginPage() {
   };
 
   const handleRedirection = (role: string) => {
+    if(role === "patient"){
+      toast.error("Login Failed", {
+        description: "Invalid User Role"
+      });
+      return;
+    }
     toast.success("Login Successful", {
       description: `Logged in as a ${role}`
     });

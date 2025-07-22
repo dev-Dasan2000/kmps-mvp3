@@ -59,7 +59,7 @@ import hrAttendanceRouter from './routes/hr/attendance-routes.js';
 import hrLeaveRouter from './routes/hr/leave-routes.js';
 import hrPayrollRouter from './routes/hr/payroll-routes.js';
 import hrShiftsRouter from './routes/hr/shifts-routes.js';
-import notesRouter from './routes/note-routes.js';
+import createNotesRouter from './routes/note-routes.js';
 
 import passwordResetRouter from './routes/password-reset-routes.js';
 
@@ -112,7 +112,7 @@ app.use('/soap-notes', soapNotesRouter);
 app.use('/radiologist-security-question-answers', radioLogistSecurityQuestionsAnswersRouter);
 app.use('/rooms',createRoomsRouter(io));
 app.use('/rooms-assign',roomAssignRouter);
-app.use('/notes', notesRouter);
+app.use('/notes', createNotesRouter(io));
 
 app.use('/studies', studyRouter);
 app.use('/radiologists', radiologistRouter);

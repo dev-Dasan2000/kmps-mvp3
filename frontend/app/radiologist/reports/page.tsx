@@ -193,7 +193,7 @@ export default function ReportEditorPage() {
       <p>[Please provide your radiological impression here]</p>
 
       <h2>Recommendations</h2>
-      <p>[Please provide any recommendations for follow-up or additional studies if needed]</p>
+      <p>[Please provide any recommendations for follow-up or additional details if needed]</p>
     `;
   };
 

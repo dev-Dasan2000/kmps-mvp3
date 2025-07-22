@@ -267,6 +267,7 @@ model study {
   radiologist      radiologists? @relation(fields: [radiologist_id], references: [radiologist_id], onDelete: SetNull)
   report           reports?   @relation(fields: [report_id], references: [report_id], onDelete: SetNull)
   dentistAssigns  DentistAssign[]
+  notes            note[]
 }
 
 model DentistAssign {
@@ -575,8 +576,10 @@ model note{
   radiologist_id  String?
   note        String
   created_at  DateTime @default(now())
+  study_id    Int
 
   dentist     dentists? @relation(fields: [dentist_id], references: [dentist_id], onDelete: SetNull)
   radiologist     radiologists? @relation(fields: [radiologist_id], references: [radiologist_id], onDelete: SetNull)
+  study       study? @relation(fields: [study_id], references: [study_id], onDelete: Cascade)   
   @@map("note")
 }

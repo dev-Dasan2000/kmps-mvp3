@@ -27,6 +27,47 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
+// Update radiologist signature
+router.put('/:radiologist_id/signature', /*authenticateToken,*/ async (req, res) => {
+  try {
+    const radiologistId = req.params.radiologist_id;
+    const { signatureUrl } = req.body;
+
+    if (!signatureUrl) {
+      return res.status(400).json({ error: 'Signature URL is required' });
+    }
+
+    // Check if radiologist exists
+    const radiologist = await prisma.radiologists.findUnique({
+      where: { radiologist_id: radiologistId }
+    });
+
+    if (!radiologist) {
+      return res.status(404).json({ error: 'Radiologist not found' });
+    }
+
+    // Update the radiologist's signature
+    const updatedRadiologist = await prisma.radiologists.update({
+      where: { radiologist_id: radiologistId },
+      data: { signature: signatureUrl },
+      select: {
+        radiologist_id: true,
+        name: true,
+        email: true,
+        signature: true
+      }
+    });
+
+    res.json({
+      message: 'Signature updated successfully',
+      radiologist: updatedRadiologist
+    });
+  } catch (error) {
+    console.error('Error updating signature:', error);
+    res.status(500).json({ error: 'Failed to update signature' });
+  }
+});
+
 // Get radiologist by ID
 router.get('/:radiologist_id',  /*authenticateToken,*/  async (req, res) => {
   try {
