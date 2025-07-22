@@ -17,6 +17,7 @@ import {
 import axios from 'axios';
 import { toast } from 'sonner';
 import { AuthContext } from '@/context/auth-context';
+import socket from '@/hooks/socket';
 
 // Mock data for demonstration
 const mockUsers: { [key: string]: User } = {
@@ -190,6 +191,25 @@ export const ChatModal: FC<ChatModalProps> = ({
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const { user } = useContext(AuthContext);
 
+  useEffect(() => {
+    socket.on("note_created", (newNote) => {
+      setNote(prev => [...(prev || []), newNote]);
+    });
+    if (studyId) {
+      fetchNote(studyId);
+    }
+
+    socket.on("note_updated", (updatedRoom) => {
+
+    });
+
+    return () => {
+      socket.off("note_created");
+      socket.off("note_updated");
+      socket.off("note_deleted");
+    };
+  }, [studyId]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -267,21 +287,21 @@ export const ChatModal: FC<ChatModalProps> = ({
       };
 
       if (user.role === 'dentist') {
-        payload.dentist_id = currentUser;
+        payload.dentist_id = user.id;
       } else if (user.role === 'radiologist') {
-        payload.radiologist_id = currentUser;
+        payload.radiologist_id = user.id;
       }
 
       const response = await axios.post(
-        `${backendURL}/notes`,{
-          note: payload.note,
-          radiologist_id: payload.radiologist_id,
-          dentist_id: payload.dentist_id,
-          created_at: payload.created_at,
-          study_id: payload.study_id
-        },
+        `${backendURL}/notes`, {
+        note: payload.note,
+        radiologist_id: payload.radiologist_id,
+        dentist_id: payload.dentist_id,
+        created_at: payload.created_at,
+        study_id: payload.study_id
+      },
         {
-          headers:{
+          headers: {
             "content-type": "application/json"
           }
         }
@@ -290,18 +310,6 @@ export const ChatModal: FC<ChatModalProps> = ({
       if (response.status !== 201) {
         throw new Error("Failed to send message");
       }
-
-      const message: Message = {
-        id: Date.now(),
-        userId: currentUser,
-        message: newMessage,
-        timestamp: new Date().toISOString(),
-        type: 'text'
-      };
-      setMessages(prev => [...prev, message]);
-      setNewMessage('');
-
-      onSendMessage?.(message);
 
     } catch (err: any) {
       toast.error("Failed to send message: " + (err.response?.data?.message || err.message));
@@ -447,26 +455,29 @@ export const ChatModal: FC<ChatModalProps> = ({
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-gray-50">
           {note?.map((message) => {
-            const user = {
+            const userInside = {
               name: message.radiologist?.name || message.dentist?.name || 'Unknown',
               email: message.radiologist?.email || message.dentist?.email || 'unknown@example.com',
               color: 'bg-purple-500',
               avatar: ''
             };
 
-            const isOwn = message.radiologist?.radiologist_id === currentUser;
+            const isOwn =
+              (user.role === 'radiologist' && message.radiologist?.radiologist_id === user.id) ||
+              (user.role === 'dentist' && message.dentist?.dentist_id === user.id);
+
 
             return (
               <div key={message.note_id} className={`mb-3 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                 <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2 max-w-[80vw] sm:max-w-xs`}>
                   {!isOwn && (
-                    <div className={`w-8 h-8 ${user?.color || 'bg-gray-500'} rounded-full flex items-center justify-center text-white text-sm flex-shrink-0`}>
-                      {user?.avatar || '👤'}
+                    <div className={`w-8 h-8 ${userInside?.color || 'bg-gray-500'} rounded-full flex items-center justify-center text-white text-sm flex-shrink-0`}>
+                      {userInside?.avatar || '👤'}
                     </div>
                   )}
                   <div className={`${isOwn ? 'ml-2' : 'mr-2'} flex flex-col`}>
                     {!isOwn && (
-                      <span className="text-xs text-gray-600 mb-1 px-2">{user?.name || 'Unknown User'}</span>
+                      <span className="text-xs text-gray-600 mb-1 px-2">{userInside?.name || 'Unknown User'}</span>
                     )}
                     <div
                       className={`px-3 py-2 rounded-lg text-sm sm:text-base ${isOwn

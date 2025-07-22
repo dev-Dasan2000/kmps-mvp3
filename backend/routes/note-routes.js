@@ -77,18 +77,20 @@ const notesRouter = (io) => {
             const study_id = Number(req.params.study_id);
 
             const note = await prisma.note.findMany({
-                where: { study_id : study_id },
+                where: { study_id: study_id },
                 include: {
                     dentist: {
                         select: {
                             name: true,
-                            email: true
+                            email: true,
+                            dentist_id: true
                         }
                     },
                     radiologist: {
                         select: {
                             name: true,
-                            email: true
+                            email: true,
+                            radiologist_id: true
                         }
                     },
                     study: true
@@ -121,7 +123,7 @@ const notesRouter = (io) => {
 
             // Verify study exists
             const study = await prisma.study.findUnique({
-                where: { study_id }
+                where: { study_id: study_id }
             });
             if (!study) {
                 return res.status(404).json({ error: 'Study not found' });
@@ -147,7 +149,7 @@ const notesRouter = (io) => {
                 }
             }
 
-            const newNote = await prisma.note.create({
+            const createdNewNote = await prisma.note.create({
                 data: {
                     note,
                     dentist_id,
@@ -155,6 +157,28 @@ const notesRouter = (io) => {
                     study_id
                 }
             });
+
+            const newNote = await prisma.note.findUnique({
+                where: { note_id: createdNewNote.note_id },
+                include: {
+                    dentist: {
+                        select: {
+                            name: true,
+                            email: true,
+                            dentist_id: true
+                        }
+                    },
+                    radiologist: {
+                        select: {
+                            name: true,
+                            email: true,
+                            radiologist_id: true
+                        }
+                    },
+                    study: true
+                }
+            });
+            
             io.emit('note_created', newNote);
             res.status(201).json(newNote);
         } catch (error) {
@@ -224,7 +248,7 @@ const notesRouter = (io) => {
             await prisma.note.delete({
                 where: { note_id }
             });
-            io.emit('note_deleted', { note_id }); 
+            io.emit('note_deleted', { note_id });
             res.json({ message: 'Note deleted successfully' });
         } catch (error) {
             console.error('Error deleting note:', error);
