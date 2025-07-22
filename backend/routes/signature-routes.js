@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
+import { mkdirSync } from 'fs';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -13,10 +14,17 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
+// Multer storage config
 const storage = multer.diskStorage({
-  destination: UPLOAD_DIR,
+  destination: (req, file, cb) => {
+    cb(null, UPLOAD_DIR);
+  },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    const filePath = path.join(UPLOAD_DIR, file.originalname);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    cb(null, file.originalname);
   },
 });
 
@@ -25,6 +33,7 @@ const upload = multer({ storage });
 // Upload signature for radiologist
 router.post('/:radiologistId', upload.single('signature'), async (req, res) => {
   try {
+    console.debug('Received file:', req.file);
     const { radiologistId } = req.params;
 
     if (!req.file) {
