@@ -63,6 +63,8 @@ import createNotesRouter from './routes/note-routes.js';
 
 import passwordResetRouter from './routes/password-reset-routes.js';
 
+import signatureRouter from './routes/signature-routes.js';   
+
 
 import './routes/automated-routes.js';
 
@@ -113,6 +115,7 @@ app.use('/radiologist-security-question-answers', radioLogistSecurityQuestionsAn
 app.use('/rooms',createRoomsRouter(io));
 app.use('/rooms-assign',roomAssignRouter);
 app.use('/notes', createNotesRouter(io));
+app.use('/signature', signatureRouter);
 
 app.use('/studies', studyRouter);
 app.use('/radiologists', radiologistRouter);
