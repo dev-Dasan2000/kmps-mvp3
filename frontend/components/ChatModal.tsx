@@ -12,7 +12,8 @@ import {
   Smile,
   MicOff,
   Play,
-  Pause
+  Pause,
+  Loader
 } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -310,7 +311,8 @@ export const ChatModal: FC<ChatModalProps> = ({
       if (response.status !== 201) {
         throw new Error("Failed to send message");
       }
-
+      setNewMessage('');
+      scrollToBottom();
     } catch (err: any) {
       toast.error("Failed to send message: " + (err.response?.data?.message || err.message));
     } finally {
@@ -560,32 +562,13 @@ export const ChatModal: FC<ChatModalProps> = ({
               <Camera size={20} />
             </button>*/}
 
-            {newMessage.trim() ? (
-              <button
-                onClick={handleSendMessage}
-                className="p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-500"
-              >
-                <Send size={20} />
-              </button>
-            ) : (
-              <button
-                onClick={handleSendMessage}
-                className="p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-500"
-              >
-                <Send size={20} />
-              </button>
-              /*
-              <button
-                onClick={handleVoiceRecord}
-                className={`p-2 rounded-full ${
-                  isRecording 
-                    ? 'bg-red-500 text-white animate-pulse' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
-              </button>*/
-            )}
+            <button
+              onClick={handleSendMessage}
+              className="p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-500"
+              disabled={sending || !newMessage.trim()}
+            >
+              {sending? <Loader size={20}/> : <Send size={20} />}
+            </button>
           </div>
         </div>
       </div>
