@@ -90,7 +90,7 @@ export default function ExpenseManagement() {
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
-  const { isLoadingAuth, isLoggedIn, user } = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
 
   useEffect(() => {
     fetchExpenses();
@@ -122,8 +122,8 @@ export default function ExpenseManagement() {
   const fetchDentists = async () => {
     setIsLoadingDentists(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/dentists`
+      const res = await apiClient.get(
+        `/dentists`
       );
       if (res.status == 500) {
         throw new Error("Error fetching dentists");
@@ -140,8 +140,8 @@ export default function ExpenseManagement() {
   const fetchExpenses = async () => {
     setIsLoadingExpenses(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/expense`
+      const res = await apiClient.get(
+        `/expense`
       );
       if (res.status == 500) {
         throw new Error("Error fetching expense");
@@ -197,7 +197,7 @@ export default function ExpenseManagement() {
       if (file) {
         const fileForm = new FormData();
         fileForm.append('file', file);
-        const res = await axios.post(`${backendURL}/files`, fileForm, {
+        const res = await apiClient.post(`/files`, fileForm, {
           headers: { 'Content-Type': 'multipart/form-data' },
           withCredentials: true,
         });
@@ -217,8 +217,8 @@ export default function ExpenseManagement() {
 
       if (editingExpense) {
         // PUT: Update existing expense
-        const res = await axios.put(
-          `${backendURL}/expense/${editingExpense.expence_id}`,
+        const res = await apiClient.put(
+          `/expense/${editingExpense.expence_id}`,
           expenseData,
           {
             withCredentials: true,
@@ -236,8 +236,8 @@ export default function ExpenseManagement() {
           expense.expence_id === editingExpense.expence_id ? updatedExpense : expense
         ));
       } else {
-        const res = await axios.post(
-          `${backendURL}/expense`,
+        const res = await apiClient.post(
+          `/expense`,
           {
             date: expenseData.date,
             title: expenseData.title,

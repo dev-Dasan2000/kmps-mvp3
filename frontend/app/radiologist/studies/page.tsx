@@ -85,7 +85,7 @@ const MedicalStudyInterface: React.FC = () => {
   const dicomurlx = process.env.DICOM_URL;
   
 
-  const {user, isLoadingAuth, isLoggedIn, accessToken} = useContext(AuthContext);
+  const {user, isLoadingAuth, isLoggedIn, apiClient} = useContext(AuthContext);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL; 
   const searchParams = useSearchParams();
 
@@ -133,7 +133,7 @@ const MedicalStudyInterface: React.FC = () => {
   const openReportFile = async (reportId: number) => {
     try {
       // First fetch the report data to get the file URL and determine file type
-      const reportResponse = await axios.get(`${backendURL}/reports/${reportId}`);
+      const reportResponse = await apiClient.get(`/reports/${reportId}`);
       const reportData = reportResponse.data;
       
       const fileUrl = reportData.report_file_url;
@@ -297,7 +297,7 @@ const MedicalStudyInterface: React.FC = () => {
       const fetchedPatients: Record<string, any> = {};
       for (const id of idsToFetch) {
         try {
-          const response = await axios.get(`${backendURL}/patients/${id}`);
+          const response = await apiClient.get(`/patients/${id}`);
           const patient = response.data;
           fetchedPatients[patient.patient_id || id] = patient;
         } catch (error) {
@@ -317,7 +317,7 @@ const MedicalStudyInterface: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await axios.get(`${backendURL}/studies/radiologist/${radiologistID}`);
+        const response = await apiClient.get(`/studies/radiologist/${radiologistID}`);
         const data = response.data;
         const normalized = data.map((s: any) => normalizeStudy(s));
         // Keep only studies assigned to the radiologist in the URL
@@ -349,7 +349,7 @@ const MedicalStudyInterface: React.FC = () => {
     const fetchStaff = async () => {
       try {
         // Radiologists
-        const radRes = await axios.get(`${backendURL}/radiologists`);
+        const radRes = await apiClient.get(`/radiologists`);
         const radData = radRes.data;
         const mappedRads = radData.map((r: any) => ({
           id: r.radiologist_id ?? r.id,
@@ -359,7 +359,7 @@ const MedicalStudyInterface: React.FC = () => {
         setRadiologists(mappedRads);
 
         // Doctors (dentists)
-        const docRes = await axios.get(`${backendURL}/dentists`);
+        const docRes = await apiClient.get(`/dentists`);
         const docData = docRes.data;
         const mappedDocs = docData.map((d: any) => ({
           id: d.dentist_id ?? d.id,
@@ -388,7 +388,7 @@ const MedicalStudyInterface: React.FC = () => {
         doctor_ids: assignmentForm.doctor_ids
       };
 
-      const res = await axios.put(`${backendURL}/studies/${selectedStudyId}`, payload, {
+      const res = await apiClient.put(`/studies/${selectedStudyId}`, payload, {
         headers: {
           'Content-Type': 'application/json'
         }

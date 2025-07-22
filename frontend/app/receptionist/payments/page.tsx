@@ -65,7 +65,7 @@ const PaymentsInterface: React.FC = () => {
   const fetchPayments = async () => {
     setLoadingPayments(true);
     try {
-      const response = await axios.get(`${backendURL}/payment-history`);
+      const response = await apiClient.get(`/payment-history`);
 
       if (response.status === 500) {
         throw new Error("Internal Server Error");
@@ -118,7 +118,7 @@ const PaymentsInterface: React.FC = () => {
   },[]);
 
   const router = useRouter();
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
   
   useEffect(()=>{
     if(isLoadingAuth) return;

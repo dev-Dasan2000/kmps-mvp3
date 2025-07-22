@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Table as TableExtension } from '@tiptap/extension-table';
@@ -15,7 +15,7 @@ import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import styles from './reports.module.css';
 
 // UI Components
@@ -57,6 +57,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AuthContext } from '@/context/auth-context';
 
 // Types
 interface Study {
@@ -128,6 +129,20 @@ export default function ReportEditorPage() {
   const [imageSize, setImageSize] = useState(100); // percentage of original size
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const {isLoadingAuth, isLoggedIn, apiClient, user} = useContext(AuthContext);
+  const router = useRouter();
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Please Login");
+      router.push("/");
+    }
+    else if(user.role != "radiologist"){
+      toast.error("Access Denied");
+      router.push("/");
+    }
+  },[])
 
   // Fetch study and report data
   useEffect(() => {
@@ -136,12 +151,12 @@ export default function ReportEditorPage() {
     const fetchData = async () => {
       try {
         // Fetch study data
-        const studyResponse = await axios.get(`${backendURL}/studies/${studyId}`);
+        const studyResponse = await apiClient.get(`/studies/${studyId}`);
         setStudyData(studyResponse.data);
         
         // If study has a report, fetch it
         if (studyResponse.data.report_id) {
-          const reportResponse = await axios.get(`${backendURL}/reports/${studyResponse.data.report_id}`);
+          const reportResponse = await apiClient.get(`/reports/${studyResponse.data.report_id}`);
           setReportData(reportResponse.data);
           setReportStatus(reportResponse.data.status);
         }
@@ -309,13 +324,13 @@ export default function ReportEditorPage() {
       let response;
       if (reportData?.report_id) {
         // Update existing report
-        response = await axios.put(`${backendURL}/reports/${reportData.report_id}`, {
+        response = await apiClient.put(`/reports/${reportData.report_id}`, {
           content: reportContent,
           status: status
         });
       } else {
         // Create new report
-        response = await axios.post(`${backendURL}/reports`, {
+        response = await apiClient.post(`/reports`, {
           study_id: studyData.study_id,
           content: reportContent,
           status: status
@@ -841,7 +856,7 @@ export default function ReportEditorPage() {
       // Save to server if report exists
       if (reportData?.report_id) {
         try {
-          await axios.post(`${backendURL}/reports/export/${reportData.report_id}`, {
+          await apiClient.post(`/reports/export/${reportData.report_id}`, {
             html_content: editor.getHTML()
           });
         } catch (e) {
@@ -907,7 +922,7 @@ export default function ReportEditorPage() {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await axios.post(`${backendURL}/files`, formData, {
+      const response = await apiClient.post(`/files`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

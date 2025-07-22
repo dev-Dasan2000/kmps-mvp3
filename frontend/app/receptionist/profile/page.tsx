@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog";
+import axios from "axios";
 
 interface ReceptionistProfile {
   receptionist_id: string;
@@ -16,7 +17,7 @@ interface ReceptionistProfile {
 }
 
 export default function ReceptionistProfile() {
-  const { user, accessToken, isLoadingAuth } = useAuth();
+  const { user, accessToken, isLoadingAuth, apiClient } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState<ReceptionistProfile | null>(null);
   const [formData, setFormData] = useState<Partial<ReceptionistProfile>>({});
@@ -29,8 +30,8 @@ export default function ReceptionistProfile() {
           return;
         }
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/receptionists/${user.id}`,
+        const response = await apiClient.get(
+          `/receptionists/${user.id}`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -38,11 +39,7 @@ export default function ReceptionistProfile() {
           }
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch profile");
-        }
-
-        const data = await response.json();
+        const data = response.data;
         setProfile(data);
         setFormData(data);
       } catch (error) {
@@ -57,6 +54,7 @@ export default function ReceptionistProfile() {
       fetchProfile();
     }
   }, [user?.id, accessToken, isLoadingAuth]);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -94,37 +92,35 @@ export default function ReceptionistProfile() {
       // Only send the fields that can be updated
       const updateData = {
         name: formData.name,
-        phone_number: formData.phone_number
+        phone_number: formData.phone_number,
       };
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/receptionists/${user?.id}`,
+      const response = await apiClient.put(
+        `/receptionists/${user?.id}`,
+        updateData,
         {
-          method: "PUT",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
           },
-          body: JSON.stringify(updateData),
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update profile");
-      }
-      
-      const updatedProfile = await response.json();
+      const updatedProfile = response.data;
       setProfile(updatedProfile);
       setFormData(updatedProfile);
       setIsEditing(false);
       toast.success("Profile updated successfully");
-     
-    } catch (error) {
+
+    } catch (error: any) {
       console.error("Profile update error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to update profile");
+      const message =
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to update profile";
+      toast.error(message);
     }
   };
+
 
   // Show loading state while auth is being checked
   if (isLoadingAuth || isLoading) {
@@ -259,7 +255,7 @@ export default function ReceptionistProfile() {
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
                   className="bg-emerald-500 hover:bg-emerald-600 text-white"
                 >

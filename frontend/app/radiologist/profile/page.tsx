@@ -23,7 +23,7 @@ interface radiologistData {
 
 const ProfilePage = () => {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { user, isLoadingAuth, accessToken, isLoggedIn } = useContext(AuthContext);
+  const { user, isLoadingAuth, apiClient, isLoggedIn } = useContext(AuthContext);
   const [radiologistData, setradiologistData] = useState<radiologistData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -58,8 +58,8 @@ const ProfilePage = () => {
 
   const fetchradiologistData = async () => {
     try {
-      const response = await axios.get(
-        `${backendURL}/radiologists/${user?.id}`
+      const response = await apiClient.get(
+        `/radiologists/${user?.id}`
       );
 
       setradiologistData(response.data);
@@ -150,8 +150,8 @@ const ProfilePage = () => {
         const formData = new FormData();
         formData.append('image', editedData.newProfilePicture);
 
-        const uploadResponse = await axios.post(
-          `${backendURL}/photos`,
+        const uploadResponse = await apiClient.post(
+          `/photos`,
           formData,
           {
             headers: {
@@ -166,7 +166,7 @@ const ProfilePage = () => {
       }
 
       // Update radiologist information
-      const response = await axios.put(`${backendURL}/radiologists/${user.id}`, {
+      const response = await apiClient.put(`/radiologists/${user.id}`, {
         name: `${editedData.firstName} ${editedData.lastName}`.trim(),
         phone_number: editedData.phone_number,
         profile_picture: profilePicturePath,

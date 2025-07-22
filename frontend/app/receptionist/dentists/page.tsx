@@ -29,7 +29,6 @@ interface Dentist {
   appointment_fee?: number;
 }
 
-
 interface DentistDirectoryProps {
   params: Promise<{
     receptionistID: string;
@@ -37,20 +36,21 @@ interface DentistDirectoryProps {
 }
 
 export default function DentistDirectory() {
-  
-  const { receptionistID } = useParams();
+
   const [dentists, setDentists] = useState<Dentist[]>([]);
   const [filteredDentists, setFilteredDentists] = useState<Dentist[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
-   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const router = useRouter();
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
 
 
   useEffect(() => {
     const fetchDentists = async () => {
       try {
-        const response = await axios.get(`${backendURL}/dentists`);
+        const response = await apiClient.get(`/dentists`);
         console.log("Fetched dentists:", response.data);
         setDentists(response.data);
         setFilteredDentists(response.data);
@@ -63,7 +63,7 @@ export default function DentistDirectory() {
 
     fetchDentists();
   }, []);
-  
+
   useEffect(() => {
     const filtered = dentists.filter(
       dentist =>
@@ -74,30 +74,28 @@ export default function DentistDirectory() {
     setFilteredDentists(filtered);
   }, [searchTerm, dentists]);
 
-  const router = useRouter();
-  const {isLoadingAuth, isLoggedIn, user} = useContext(AuthContext);
-  
-  useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn){
-      toast.error("Session Expired", {description:"Please Login"});
+
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
+      toast.error("Session Expired", { description: "Please Login" });
       router.push("/");
     }
-    else if(user.role != "receptionist"){
-      toast.error("Access Denied", {description:"You do not have access to this user role"});
+    else if (user.role != "receptionist") {
+      toast.error("Access Denied", { description: "You do not have access to this user role" });
       router.push("/");
     }
-  },[isLoadingAuth]);
+  }, [isLoadingAuth]);
 
   const formatWorkingHours = (dentist: Dentist) => {
     if (!dentist.work_days_from || !dentist.work_time_from) return 'Not specified';
-    
-    const days = dentist.work_days_from === dentist.work_days_to 
-      ? dentist.work_days_from 
+
+    const days = dentist.work_days_from === dentist.work_days_to
+      ? dentist.work_days_from
       : `${dentist.work_days_from} - ${dentist.work_days_to}`;
-    
+
     const time = `${dentist.work_time_from} - ${dentist.work_time_to}`;
-    
+
     return `${days}, ${time}`;
   };
 
@@ -126,7 +124,7 @@ export default function DentistDirectory() {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-     <div className="mb-8 md:hidden">
+        <div className="mb-8 md:hidden">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dentist Directory</h1>
             <p className="text-gray-600 mt-1"> Dentist details</p>
@@ -134,7 +132,7 @@ export default function DentistDirectory() {
         </div>
 
 
-     
+
         {/* Search Bar */}
         <div className="mb-8">
           <div className="relative w-full">
@@ -157,8 +155,8 @@ export default function DentistDirectory() {
                 <div className="flex items-start space-x-4">
                   <div className="relative">
                     <Avatar className="h-12 w-12">
-                      <AvatarImage 
-                        src={dentist.profile_picture ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}` : "/placeholder.svg"} 
+                      <AvatarImage
+                        src={dentist.profile_picture ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}` : "/placeholder.svg"}
                         alt={dentist.name}
                         className="object-cover"
                         onError={(e) => {
@@ -220,94 +218,94 @@ export default function DentistDirectory() {
         </div>
 
         {/* Desktop Table View */}
-        
-         <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">         
+
+        <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
-              <table className="w-full">
-               <thead className="bg-green-50 border-b border-gray-200">
+            <table className="w-full">
+              <thead className="bg-green-50 border-b border-gray-200">
                 <tr>
                   <th className="text-left py-4 px-6 font-medium text-gray-700 text-sm">Dentist</th>
                   <th className="text-left py-4 px-6 font-medium text-gray-700 text-sm">Specialty</th>
                   <th className="text-left py-4 px-6 font-medium text-gray-700 text-sm">Service Fee</th>
                   <th className="text-left py-4 px-6 font-medium text-gray-700 text-sm">Working Hours</th>
-               
+
                 </tr>
               </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredDentists.map((dentist) => (
-                    <tr key={dentist.dentist_id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="relative">
-                            <Avatar className="h-10 w-10 ">
-                              <AvatarImage 
-                                src={dentist.profile_picture ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}` : "/placeholder.svg"} 
-                                alt={dentist.name}
-                                className="object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.style.display = 'none';
-                                  const fallback = target.nextElementSibling as HTMLElement;
-                                  if (fallback) {
-                                    fallback.style.display = 'flex';
-                                  }
-                                }}
-                              />
-                              <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-medium">
-                                {getInitials(dentist.name)}
-                              </AvatarFallback>
-                            </Avatar>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredDentists.map((dentist) => (
+                  <tr key={dentist.dentist_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="relative">
+                          <Avatar className="h-10 w-10 ">
+                            <AvatarImage
+                              src={dentist.profile_picture ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${dentist.profile_picture}` : "/placeholder.svg"}
+                              alt={dentist.name}
+                              className="object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) {
+                                  fallback.style.display = 'flex';
+                                }
+                              }}
+                            />
+                            <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-medium">
+                              {getInitials(dentist.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {dentist.name}
                           </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">
-                              {dentist.name}
-                            </div>
+                          <div className="text-sm text-gray-500">
+                            {dentist.email}
+                          </div>
+                          {dentist.phone_number && (
                             <div className="text-sm text-gray-500">
-                              {dentist.email}
+                              {dentist.phone_number}
                             </div>
-                            {dentist.phone_number && (
-                              <div className="text-sm text-gray-500">
-                                {dentist.phone_number}
-                              </div>
-                            )}
-                          </div>
+                          )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {dentist.service_types?.split(',').map((service, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {service.trim()}
-                            </Badge>
-                          ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {dentist.service_types?.split(',').map((service, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {service.trim()}
+                          </Badge>
+                        ))}
+                      </div>
+                      {dentist.language && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Languages: {dentist.language}
                         </div>
-                        {dentist.language && (
-                          <div className="text-xs text-gray-500 mt-1">
-                            Languages: {dentist.language}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          Rs {Number(dentist.appointment_fee).toFixed(2)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
-                          {formatWorkingHours(dentist)}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {dentist.appointment_duration} min appointments
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-         
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        Rs {Number(dentist.appointment_fee).toFixed(2)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm text-gray-900">
+                        {formatWorkingHours(dentist)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {dentist.appointment_duration} min appointments
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
         </div>
-     
+
 
         {/* No Results */}
         {filteredDentists.length === 0 && !loading && (
@@ -319,7 +317,7 @@ export default function DentistDirectory() {
             </div>
           </div>
         )}
-      
+
       </div>
     </div>
   );

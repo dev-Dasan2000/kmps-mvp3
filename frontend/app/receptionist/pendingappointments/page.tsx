@@ -49,7 +49,7 @@ export default function AppointmentsPage() {
   const [receptionistId, setReceptionistId] = useState<string>('123')
   const [loading, setLoading] = useState(true);
 
-  const { user, isLoadingAuth, isLoggedIn } = useContext(AuthContext);
+  const { user, isLoadingAuth, isLoggedIn, apiClient } = useContext(AuthContext);
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -57,7 +57,7 @@ export default function AppointmentsPage() {
 
   const fetchPendingAppointments = async () => {
     try {
-      const response = await axios.get(`${backendURL}/appointments/pending`);
+      const response = await apiClient.get(`/appointments/pending`);
 
       // Filter out appointments where patient or dentist is null/undefined
       const validAppointments = response.data.filter(
@@ -75,8 +75,8 @@ export default function AppointmentsPage() {
 
   const handleAcceptance = async (appointment_id: number) => {
     try {
-      const response = await axios.put(
-        `${backendURL}/appointments/${appointment_id}`,
+      const response = await apiClient.put(
+        `/appointments/${appointment_id}`,
         {
           status: "confirmed"
         }

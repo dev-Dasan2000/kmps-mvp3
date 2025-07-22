@@ -41,7 +41,7 @@ interface Appointment {
 }
 
 export default function ReceptionistDashboard() {
-  const { user, isLoadingAuth, isLoggedIn, accessToken } = useContext(AuthContext);
+  const { user, isLoadingAuth, isLoggedIn, apiClient } = useContext(AuthContext);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const router = useRouter();
 
@@ -56,13 +56,10 @@ export default function ReceptionistDashboard() {
   const fetchAllCounts = async () => {
     setLoading(true);
     try {
-      const todayCount = await axios.get(
-        `${backendURL}/appointments/count/today`,
+      const todayCount = await apiClient.get(
+        `/appointments/count/today`,
         {
           withCredentials: true,
-          headers:{
-            "bearer":accessToken
-          }
         }
       );
       if (todayCount.status == 500) {
@@ -70,24 +67,24 @@ export default function ReceptionistDashboard() {
       }
       setTodaysAppointments(todayCount.data);
 
-      const pendingCount = await axios.get(
-        `${backendURL}/appointments/pending-count`
+      const pendingCount = await apiClient.get(
+        `/appointments/pending-count`
       );
       if (pendingCount.status == 500) {
         throw new Error("Error Counting Pending Appointments");
       }
       setPendingAppointments(pendingCount.data);
 
-      const todaysCheckedInCount = await axios.get(
-        `${backendURL}/appointments/count/today-checked-in`
+      const todaysCheckedInCount = await apiClient.get(
+        `/appointments/count/today-checked-in`
       );
       if (todaysCheckedInCount.status == 500) {
         throw new Error("Error Counting Todays Checked In Appointments");
       }
       setTodaysCheckedIn(todaysCheckedInCount.data);
 
-      const todaysNotCheckedInCount = await axios.get(
-        `${backendURL}/appointments/count/today-not-checked-in`
+      const todaysNotCheckedInCount = await apiClient.get(
+        `/appointments/count/today-not-checked-in`
       );
       if (todaysNotCheckedInCount.status == 500) {
         throw new Error("Error Counting Todays Not Checked In Appointments");
@@ -104,7 +101,7 @@ export default function ReceptionistDashboard() {
 
   const fetchUpcomingAppointments = async () => {
     try {
-      const response = await axios.get(`${backendURL}/appointments/today`);
+      const response = await apiClient.get(`/appointments/today`);
       if (response.status === 200) {
         const now = new Date();
   
@@ -143,8 +140,8 @@ export default function ReceptionistDashboard() {
   const handleCheckIn = async (appointment_id: number) => {
     setCheckingIn(true);
     try {
-      const response = await axios.put(
-        `${backendURL}/appointments/${appointment_id}`,
+      const response = await apiClient.put(
+        `/appointments/${appointment_id}`,
         {
           status: "checkedin"
         }
