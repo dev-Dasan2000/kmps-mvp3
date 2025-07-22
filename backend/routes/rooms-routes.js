@@ -87,7 +87,7 @@ const roomRouter = (io) => {
         where: { room_id: req.params.room_id }
       });
 
-      io.emit('room_deleted', { room_id: req.params.room_id }); // Optional
+      io.emit('room_deleted', { room_id: req.params.room_id });
 
       res.json({ message: 'Room deleted' });
     } catch (err) {
