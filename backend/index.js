@@ -65,7 +65,6 @@ import passwordResetRouter from './routes/password-reset-routes.js';
 
 import signatureRouter from './routes/signature-routes.js';   
 
-
 import './routes/automated-routes.js';
 
 dotenv.config();

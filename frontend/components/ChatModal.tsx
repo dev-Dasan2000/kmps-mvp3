@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect, FC, MouseEvent, ChangeEvent, KeyboardEvent } from 'react';
-import { 
-  MessageCircle, 
-  Send, 
-  Mic, 
-  Camera, 
-  Paperclip, 
-  X, 
+import React, { useState, useRef, useEffect, FC, MouseEvent, ChangeEvent, KeyboardEvent, useContext } from 'react';
+import {
+  MessageCircle,
+  Send,
+  Mic,
+  Camera,
+  Paperclip,
+  X,
   Phone,
   Video,
   MoreVertical,
@@ -14,6 +14,9 @@ import {
   Play,
   Pause
 } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { AuthContext } from '@/context/auth-context';
 
 // Mock data for demonstration
 const mockUsers: { [key: string]: User } = {
@@ -65,6 +68,15 @@ interface Message {
   fileUrl?: string;
   fileName?: string;
   fileSize?: number;
+}
+
+interface NoteType {
+  note_id: number;
+  note: string;
+  dentist: { name: string, email: string, dentist_id: string },
+  radiologist: { name: string, email: string, radiologist_id: string },
+  created_at: string;
+  study: { study_id: number };
 }
 
 interface ChatActionButtonProps {
@@ -123,8 +135,8 @@ const VoiceMessage: FC<VoiceMessageProps> = ({ message, isOwn }) => {
       </button>
       <div className="flex-1">
         <div className="w-16 h-1 bg-white bg-opacity-30 rounded">
-          <div 
-            className="h-1 bg-white rounded" 
+          <div
+            className="h-1 bg-white rounded"
             style={{ width: `${(currentTime / (message.duration || 30)) * 100}%` }}
           ></div>
         </div>
@@ -150,31 +162,62 @@ interface ChatModalProps {
   onTyping?: (isTyping: boolean) => void;
 }
 
-export const ChatModal: FC<ChatModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  studyId, 
-  participants = [], 
+export const ChatModal: FC<ChatModalProps> = ({
+  isOpen,
+  onClose,
+  studyId,
+  participants = [],
   currentUser = 'admin',
   onSendMessage,
-  onTyping 
+  onTyping
 }) => {
   const [messages, setMessages] = useState<Message[]>(mockMessages);
   const [newMessage, setNewMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [gettingNotes, setGettingNotes] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
+  const [sending, setSending] = useState(false);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
-  
+  const [note, setNote] = useState<NoteType[] | null>([]);
+
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const { user } = useContext(AuthContext);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const fetchNote = async (study_id: number) => {
+    setGettingNotes(true);
+    try {
+      const res = await axios.get(
+        `${backendURL}/notes/bystudy/${study_id}`,
+      );
+      if (res.status == 500) {
+        throw new Error("Internal Server Error");
+      }
+      setNote(res.data);
+    }
+    catch (err: any) {
+      toast.error("Failed to fetch notes: " + (err.response?.data?.message || err.message));
+    }
+    finally {
+      setGettingNotes(false);
+    }
+  }
+
+  useEffect(() => {
+    if (studyId) {
+      fetchNote(studyId);
+    }
+  }, [studyId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -198,7 +241,7 @@ export const ChatModal: FC<ChatModalProps> = ({
       setIsTyping(true);
       onTyping?.(true);
     }
-    
+
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       if (isTyping) {
@@ -212,8 +255,42 @@ export const ChatModal: FC<ChatModalProps> = ({
     };
   }, [newMessage, isTyping, onTyping]);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
+  const handleSendMessage = async () => {
+    setSending(true);
+    try {
+      const payload: any = {
+        note: newMessage,
+        study_id: studyId,
+        dentist_id: null,
+        radiologist_id: null,
+        created_at: new Date().toISOString()
+      };
+
+      if (user.role === 'dentist') {
+        payload.dentist_id = currentUser;
+      } else if (user.role === 'radiologist') {
+        payload.radiologist_id = currentUser;
+      }
+
+      const response = await axios.post(
+        `${backendURL}/notes`,{
+          note: payload.note,
+          radiologist_id: payload.radiologist_id,
+          dentist_id: payload.dentist_id,
+          created_at: payload.created_at,
+          study_id: payload.study_id
+        },
+        {
+          headers:{
+            "content-type": "application/json"
+          }
+        }
+      );
+
+      if (response.status !== 201) {
+        throw new Error("Failed to send message");
+      }
+
       const message: Message = {
         id: Date.now(),
         userId: currentUser,
@@ -223,9 +300,13 @@ export const ChatModal: FC<ChatModalProps> = ({
       };
       setMessages(prev => [...prev, message]);
       setNewMessage('');
-      
-      // Call parent callback for socket.io integration
+
       onSendMessage?.(message);
+
+    } catch (err: any) {
+      toast.error("Failed to send message: " + (err.response?.data?.message || err.message));
+    } finally {
+      setSending(false);
     }
   };
 
@@ -242,16 +323,16 @@ export const ChatModal: FC<ChatModalProps> = ({
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const mediaRecorder = new MediaRecorder(stream);
         mediaRecorderRef.current = mediaRecorder;
-        
+
         const audioChunks: Blob[] = [];
         mediaRecorder.ondataavailable = (event: BlobEvent) => {
           audioChunks.push(event.data);
         };
-        
+
         mediaRecorder.onstop = () => {
           const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
           const audioUrl = URL.createObjectURL(audioBlob);
-          
+
           const voiceMessage: Message = {
             id: Date.now(),
             userId: currentUser,
@@ -264,7 +345,7 @@ export const ChatModal: FC<ChatModalProps> = ({
           setMessages(prev => [...prev, voiceMessage]);
           onSendMessage?.(voiceMessage);
         };
-        
+
         mediaRecorder.start();
         setIsRecording(true);
       } catch (error) {
@@ -336,12 +417,12 @@ export const ChatModal: FC<ChatModalProps> = ({
             </div>
             <div>
               <h3 className="font-semibold text-base sm:text-lg">Study Discussion</h3>
-              <p className="text-xs opacity-90">
-                {participants.length > 0 
-                  ? participants.map(p => p.name || p.role).join(', ')
+              {/*<p className="text-xs opacity-90">
+                {note && note.length > 0
+                  ? note.map(p => p.dentist.name || p.role).join(', ')
                   : 'Admin, Dr. Smith, Dr. Johnson'
                 }
-              </p>
+              </p>*/}
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -365,12 +446,18 @@ export const ChatModal: FC<ChatModalProps> = ({
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-gray-50">
-          {messages.map((message) => {
-            const user = mockUsers[message.userId];
-            const isOwn = message.userId === currentUser;
-            
+          {note?.map((message) => {
+            const user = {
+              name: message.radiologist?.name || message.dentist?.name || 'Unknown',
+              email: message.radiologist?.email || message.dentist?.email || 'unknown@example.com',
+              color: 'bg-purple-500',
+              avatar: ''
+            };
+
+            const isOwn = message.radiologist?.radiologist_id === currentUser;
+
             return (
-              <div key={message.id} className={`mb-3 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
+              <div key={message.note_id} className={`mb-3 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                 <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2 max-w-[80vw] sm:max-w-xs`}>
                   {!isOwn && (
                     <div className={`w-8 h-8 ${user?.color || 'bg-gray-500'} rounded-full flex items-center justify-center text-white text-sm flex-shrink-0`}>
@@ -382,32 +469,21 @@ export const ChatModal: FC<ChatModalProps> = ({
                       <span className="text-xs text-gray-600 mb-1 px-2">{user?.name || 'Unknown User'}</span>
                     )}
                     <div
-                      className={`px-3 py-2 rounded-lg text-sm sm:text-base ${
-                        isOwn
-                          ? 'bg-emerald-100 text-emerald-700 rounded-br-none'
-                          : 'bg-gray-100 text-gray-900 shadow-sm rounded-bl-none'
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-sm sm:text-base ${isOwn
+                        ? 'bg-emerald-100 text-emerald-700 rounded-br-none'
+                        : 'bg-gray-100 text-gray-900 shadow-sm rounded-bl-none'
+                        }`}
                     >
-                      {message.type === 'text' && (
-                        <p className="text-sm sm:text-base">{message.message}</p>
-                      )}
-                      {message.type === 'voice' && (
-                        <VoiceMessage message={message} isOwn={isOwn} />
-                      )}
-                      {message.type === 'file' && (
-                        <div className="flex items-center space-x-2">
-                          <Paperclip size={16} />
-                          <span className="text-sm sm:text-base">{message.fileName}</span>
-                        </div>
-                      )}
-                      <span className={`text-xs ${isOwn ? 'text-emerald-700/80' : 'text-gray-500'} block mt-1`}> {formatTime(message.timestamp)} </span>
+                      <p className="text-sm sm:text-base">{message.note}</p>
+
+                      <span className={`text-xs ${isOwn ? 'text-emerald-700/80' : 'text-gray-500'} block mt-1`}> {formatTime(message.created_at)} </span>
                     </div>
                   </div>
                 </div>
               </div>
             );
           })}
-          
+
           {/* Typing Indicator */}
           {typingUsers.length > 0 && (
             <div className="flex items-center space-x-2 text-gray-500">
@@ -419,7 +495,7 @@ export const ChatModal: FC<ChatModalProps> = ({
               <span className="text-sm">{typingUsers.join(', ')} typing...</span>
             </div>
           )}
-          
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -451,7 +527,7 @@ export const ChatModal: FC<ChatModalProps> = ({
             >
               <Paperclip size={20} />
             </button>*/}
-            
+
             <div className="flex-1 relative">
               <input
                 type="text"
