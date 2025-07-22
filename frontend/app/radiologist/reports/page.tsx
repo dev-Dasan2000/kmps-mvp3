@@ -235,15 +235,20 @@ export default function ReportEditorPage() {
     extensions: [
       StarterKit.configure({
         heading: {
-          levels: [1, 2, 3]
+          levels: [1, 2, 3],
+          HTMLAttributes: {
+            1: { class: 'text-[#0d7d85] text-[1.8rem] font-bold' },
+            2: { class: 'text-[#0d7d85] text-[1.4rem] font-bold' },
+            3: { class: 'text-[#0d7d85] text-[1.2rem] font-bold' }
+          }
         },
         bulletList: {
           keepMarks: true,
-          keepAttributes: true, // Important for text alignment
+          keepAttributes: true,
         },
         orderedList: {
           keepMarks: true,
-          keepAttributes: true, // Important for text alignment
+          keepAttributes: true,
         },
       }),
       Underline,
@@ -269,7 +274,7 @@ export default function ReportEditorPage() {
         },
       }),
       Image.configure({
-        inline: false, // Change to block image for better alignment
+        inline: false,
         allowBase64: true,
         HTMLAttributes: {
           class: 'cursor-pointer hover:outline hover:outline-2 hover:outline-blue-500 max-w-full',
@@ -769,11 +774,16 @@ export default function ReportEditorPage() {
       tempDiv.innerHTML = editor.getHTML();
       
       // Extract sections
-      const sections = [];
+      interface Section {
+        title: string;
+        content: string;
+      }
+
+      const sections: Section[] = [];
       const headings = tempDiv.querySelectorAll('h1, h2, h3');
       
       headings.forEach(heading => {
-        let section = {
+        let section: Section = {
           title: heading.textContent || '',
           content: ''
         };
@@ -829,7 +839,7 @@ export default function ReportEditorPage() {
       }
       
       // Add footer on each page
-      const totalPages = pdf.internal.getNumberOfPages();
+      const totalPages = pdf.getNumberOfPages();
       
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
@@ -1633,10 +1643,12 @@ export default function ReportEditorPage() {
                 </div>
 
                 {/* Editor Content */}
-                <EditorContent 
-                  editor={editor} 
-                  className={`${styles.editorContent} prose max-w-none bg-white rounded-lg shadow-sm min-h-full`} 
-                />
+                <div className={styles.editor}>
+                  <EditorContent 
+                    editor={editor} 
+                    className={`${styles.editorContent} prose max-w-none bg-white rounded-lg shadow-sm min-h-full`} 
+                  />
+                </div>
               </>
             ) : (
               <div id="report-preview">
