@@ -63,7 +63,6 @@ import createNotesRouter from './routes/note-routes.js';
 
 import passwordResetRouter from './routes/password-reset-routes.js';
 
-
 import './routes/automated-routes.js';
 
 dotenv.config();
