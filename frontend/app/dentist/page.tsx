@@ -492,9 +492,18 @@ const DentalDashboard = () => {
       <div className="bg-white rounded-lg shadow-sm border h-full flex flex-col">
         <div className="p-4 md:p-6 flex-shrink-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-            <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-2 sm:mb-0">Today's Schedule</h2>
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-2 sm:mb-0">
+              {isShowingSelectedDate 
+                ? `Schedule for ${selectedDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}` 
+                : "Today's Schedule"}
+            </h2>
             <div className="text-sm text-gray-500">
-              {new Date().toLocaleDateString('en-US', {
+              {(isShowingSelectedDate ? selectedDate : new Date()).toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',

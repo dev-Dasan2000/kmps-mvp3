@@ -2164,6 +2164,9 @@ export default function DentistDashboard({ params }: DashboardProps) {
                           className='h-10 w-10 cursor-pointer'
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (selectedPatient?.patient_id !== patient.patient_id) {
+                              handlePatientSelect(patient);
+                            }
                             setIsDetailsOverlayOpen(true);
                           }}
                         >
