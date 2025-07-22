@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Table as TableExtension } from '@tiptap/extension-table';
@@ -128,6 +128,9 @@ export default function ReportEditorPage() {
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const [imageSize, setImageSize] = useState(100); // percentage of original size
 
+  // Add state for tracking selected image attributes
+  const [selectedImageAttrs, setSelectedImageAttrs] = useState<ImageAttributes | null>(null);
+
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const {isLoadingAuth, isLoggedIn, apiClient, user} = useContext(AuthContext);
   const router = useRouter();
@@ -194,41 +197,19 @@ export default function ReportEditorPage() {
     `;
   };
 
-  // Function to handle image selection
-  const handleImageClick = (view: any, event: MouseEvent) => {
-    const target = event.target as HTMLElement;
-    if (target.tagName === 'IMG') {
-      const img = target as HTMLImageElement;
-      
-      // Remove selected class from any previously selected image
-      document.querySelectorAll('.ProseMirror img.selected').forEach(el => {
-        el.classList.remove('selected');
-      });
-      
-      // Add selected class to current image
-      img.classList.add('selected');
-      
-      setSelectedImage(img);
-      
-      // Calculate current size percentage
-      const currentWidth = img.width;
-      const naturalWidth = img.naturalWidth;
-      const currentSize = Math.round((currentWidth / naturalWidth) * 100);
-      setImageSize(currentSize);
-      
-      return true;
-    } else {
-      // Only remove selection if clicking outside the toolbar
-      const clickTarget = event.target as HTMLElement;
-      if (!clickTarget.closest('.image-toolbar')) {
-        setSelectedImage(null);
-        document.querySelectorAll('.ProseMirror img.selected').forEach(el => {
-          el.classList.remove('selected');
-        });
-      }
-    }
-    return false;
-  };
+  // Image handling types
+  interface ImageAttributes {
+    src: string;
+    alt?: string;
+    title?: string;
+    width?: number;
+    alignment?: 'left' | 'center' | 'right';
+  }
+
+  interface ImageNode {
+    type: { name: string };
+    attrs: ImageAttributes;
+  }
 
   // Set up TipTap editor
   const editor = useEditor({
@@ -236,22 +217,57 @@ export default function ReportEditorPage() {
       StarterKit.configure({
         heading: {
           levels: [1, 2, 3],
-          HTMLAttributes: {
-            1: { class: 'text-[#0d7d85] text-[1.8rem] font-bold' },
-            2: { class: 'text-[#0d7d85] text-[1.4rem] font-bold' },
-            3: { class: 'text-[#0d7d85] text-[1.2rem] font-bold' }
+          HTMLAttributes: (level: number) => {
+            switch (level) {
+              case 1:
+                return { class: 'text-[#0d7d85] text-[1.8rem] font-bold' };
+              case 2:
+                return { class: 'text-[#0d7d85] text-[1.4rem] font-bold' };
+              case 3:
+                return { class: 'text-[#0d7d85] text-[1.2rem] font-bold' };
+              default:
+                return {};
+            }
           }
         },
         bulletList: {
           keepMarks: true,
           keepAttributes: true,
+          HTMLAttributes: {
+            class: 'list-disc ml-6 space-y-2'
+          }
         },
         orderedList: {
           keepMarks: true,
           keepAttributes: true,
+          HTMLAttributes: {
+            class: 'list-decimal ml-6 space-y-2'
+          }
         },
+        listItem: {
+          HTMLAttributes: {
+            class: 'pl-2'
+          }
+        }
       }),
       Underline,
+      Image.configure({
+        inline: false,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'cursor-pointer hover:outline hover:outline-2 hover:outline-blue-500 max-w-full'
+        },
+        renderHTML: ({ HTMLAttributes }) => {
+          const { alignment, width, ...rest } = HTMLAttributes;
+          const style = `
+            display: block;
+            width: ${width || 100}%;
+            ${alignment === 'center' ? 'margin: 0 auto;' : 
+              alignment === 'right' ? 'margin-left: auto;' : ''}
+          `;
+          return ['img', { ...rest, style }];
+        }
+      }),
       TableExtension.configure({
         resizable: true,
         HTMLAttributes: {
@@ -273,13 +289,6 @@ export default function ReportEditorPage() {
           class: 'border border-black bg-slate-50 p-2 font-bold'
         },
       }),
-      Image.configure({
-        inline: false,
-        allowBase64: true,
-        HTMLAttributes: {
-          class: 'cursor-pointer hover:outline hover:outline-2 hover:outline-blue-500 max-w-full',
-        },
-      }),
       TextAlign.configure({
         types: ['heading', 'paragraph', 'image'],
         alignments: ['left', 'center', 'right'],
@@ -289,7 +298,39 @@ export default function ReportEditorPage() {
     content: '',
     editorProps: {
       handleDOMEvents: {
-        click: handleImageClick,
+        click: (view: any, event: MouseEvent) => {
+          const target = event.target as HTMLElement;
+          if (target.tagName === 'IMG') {
+            const { state } = view;
+            const { selection } = state;
+            
+            // Find image node in selection
+            let imagePos = -1;
+            let imageNode: ImageNode | null = null;
+            
+            state.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
+              if (node.type.name === 'image') {
+                imagePos = pos;
+                imageNode = node;
+                return false;
+              }
+            });
+
+            if (imagePos > -1 && imageNode) {
+              // Set node selection
+              editor?.chain()
+                .focus()
+                .setNodeSelection(imagePos)
+                .run();
+              
+              // Update UI state
+              const width = imageNode.attrs.width || 100;
+              setImageSize(width);
+              return true;
+            }
+          }
+          return false;
+        },
       },
       attributes: {
         class: 'prose max-w-none p-4 h-full focus:outline-none'
@@ -303,7 +344,259 @@ export default function ReportEditorPage() {
     },
     immediatelyRender: false
   });
-  
+
+  // Function to get selected image node
+  const getSelectedImageNode = useCallback(() => {
+    if (!editor) return null;
+    
+    const { state } = editor;
+    const { selection } = state;
+    
+    // Find image node in selection
+    let imagePos = -1;
+    let imageNode: ImageNode | null = null;
+    
+    state.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
+      if (node.type.name === 'image') {
+        imagePos = pos;
+        imageNode = node;
+        return false;
+      }
+    });
+    
+    return imagePos > -1 ? { node: imageNode, pos: imagePos } : null;
+  }, [editor]);
+
+  // Update image attributes tracking when selection changes
+  useEffect(() => {
+    if (!editor) return;
+
+    const updateSelectedImage = () => {
+      if (editor.isActive('image')) {
+        const attrs = editor.getAttributes('image');
+        setSelectedImageAttrs({
+          src: attrs.src,
+          width: attrs.width || 100,
+          alignment: attrs.alignment || 'left'
+        });
+        setImageSize(attrs.width || 100);
+      } else {
+        setSelectedImageAttrs(null);
+        setImageSize(100);
+      }
+    };
+
+    // Update on selection change
+    editor.on('selectionUpdate', updateSelectedImage);
+    // Update on transaction (content change)
+    editor.on('transaction', updateSelectedImage);
+
+    return () => {
+      editor.off('selectionUpdate', updateSelectedImage);
+      editor.off('transaction', updateSelectedImage);
+    };
+  }, [editor]);
+
+  // Function to update image attributes
+  const updateImageAttributes = useCallback((attrs: Partial<ImageAttributes>) => {
+    if (!editor) return;
+    
+    editor.chain()
+      .focus()
+      .updateAttributes('image', attrs)
+      .run();
+
+    // Update local state
+    setSelectedImageAttrs(prev => prev ? { ...prev, ...attrs } : null);
+    if (attrs.width) {
+      setImageSize(attrs.width);
+    }
+  }, [editor]);
+
+  // Image upload handler
+  const handleImageUpload = async () => {
+    if (!selectedFile || !editor) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const response = await axios.post(`${backendURL}/files`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.url) {
+        const imageUrl = `${backendURL}${response.data.url}`;
+        
+        // Insert image with initial attributes
+        editor.chain().focus().setImage({ 
+          src: imageUrl,
+          alt: selectedFile.name,
+          title: selectedFile.name,
+          width: 100,
+          alignment: 'left' // Set default alignment
+        }).run();
+
+        setIsImageDialogOpen(false);
+        toast.success('Image uploaded successfully');
+      }
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setIsUploading(false);
+      setSelectedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Function to handle URL image insertion
+  const handleUrlImage = async () => {
+    if (!imageUrl || !editor) {
+      toast.error('Please enter an image URL');
+      return;
+    }
+
+    try {
+      // Test if the URL is valid
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error('Invalid image URL');
+      }
+
+      // Check if the content type is an image
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.startsWith('image/')) {
+        throw new Error('URL does not point to a valid image');
+      }
+
+      // Insert image into editor
+      editor.chain().focus().setImage({ 
+        src: imageUrl,
+        alt: 'Image from URL',
+        title: 'Image from URL'
+      }).run();
+
+      setIsImageDialogOpen(false);
+      setImageUrl('');
+      toast.success('Image inserted successfully');
+    } catch (error) {
+      console.error('Error inserting image:', error);
+      toast.error('Failed to insert image. Please check the URL and try again.');
+    }
+  };
+
+  // Helper function for inserting tables
+  const insertTable = () => {
+    if (!editor) return;
+    
+    editor.chain()
+      .focus()
+      .insertTable({
+        rows: tableRows,
+        cols: tableColumns,
+        withHeaderRow: includeHeader
+      })
+      .updateAttributes('table', {
+        class: 'border-collapse table-fixed w-full'
+      })
+      .run();
+  };
+
+  // Function to handle table insertion with validation
+  const handleTableInsert = () => {
+    if (tableRows < 1 || tableColumns < 1) {
+      toast.error('Rows and columns must be at least 1');
+      return;
+    }
+    if (tableRows > 50 || tableColumns > 10) {
+      toast.error('Maximum size: 50 rows and 10 columns');
+      return;
+    }
+    insertTable();
+    setIsTableDialogOpen(false);
+  };
+
+  const setTextAlign = (alignment: 'left' | 'center' | 'right' | 'justify') => {
+    if (!editor) return;
+    editor.chain().focus().setTextAlign(alignment).run();
+  };
+
+  // Helper function to check if a format is active
+  const isFormatActive = (format: string, attrs = {}) => {
+    if (!editor) return false;
+    if (Object.keys(attrs).length > 0) {
+      return editor.isActive(format, attrs);
+    }
+    return editor.isActive(format);
+  };
+
+  // Helper function for text alignment
+  const isAlignmentActive = (alignment: string) => {
+    if (!editor) return false;
+    return editor.isActive({ textAlign: alignment });
+  };
+
+  // Helper function for keyboard shortcuts
+  const getShortcut = (key: string) => {
+    const isMac = typeof window !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    return isMac ? `⌘+${key}` : `Ctrl+${key}`;
+  };
+
+  // Image resize handler
+  const resizeImage = useCallback((increase: boolean) => {
+    if (!editor || !selectedImageAttrs) return;
+    
+    const currentWidth = selectedImageAttrs.width || 100;
+    const newSize = Math.min(Math.max(increase ? currentWidth + 10 : currentWidth - 10, 10), 200);
+    
+    updateImageAttributes({ width: newSize });
+  }, [editor, selectedImageAttrs, updateImageAttributes]);
+
+  // Image alignment handler
+  const alignImage = useCallback((position: 'left' | 'center' | 'right') => {
+    if (!editor) return;
+
+    // Get the current image node
+    const imageInfo = getSelectedImageNode();
+    if (!imageInfo || !imageInfo.node) return;
+
+    // Get current attributes
+    const currentAttrs = editor.getAttributes('image');
+    
+    // Update image attributes
+    editor.chain()
+      .focus()
+      .setNodeSelection(imageInfo.pos)
+      .updateAttributes('image', {
+        ...currentAttrs,
+        alignment: position
+      })
+      .run();
+
+    // Update local state
+    setSelectedImageAttrs(prev => prev ? { ...prev, alignment: position } : null);
+  }, [editor, getSelectedImageNode]);
+
+  // Image delete handler
+  const deleteImage = useCallback(() => {
+    if (!editor) return;
+    
+    const imageInfo = getSelectedImageNode();
+    if (!imageInfo) return;
+    
+    editor.chain()
+      .focus()
+      .setNodeSelection(imageInfo.pos)
+      .deleteSelection()
+      .run();
+  }, [editor, getSelectedImageNode]);
+
   // Update editor content when data is available
   useEffect(() => {
     if (editor && reportData?.content) {
@@ -894,14 +1187,16 @@ export default function ReportEditorPage() {
     editor.chain().focus().toggleHeading({ level }).run();
   };
 
-  const toggleList = (type: 'bullet' | 'ordered') => {
+  // List toggle handlers
+  const toggleBulletList = useCallback(() => {
     if (!editor) return;
-    if (type === 'bullet') {
-      editor.chain().focus().toggleBulletList().run();
-    } else {
-      editor.chain().focus().toggleOrderedList().run();
-    }
-  };
+    editor.chain().focus().toggleBulletList().run();
+  }, [editor]);
+
+  const toggleOrderedList = useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().toggleOrderedList().run();
+  }, [editor]);
 
   // Function to handle file selection
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -921,243 +1216,6 @@ export default function ReportEditorPage() {
 
       setSelectedFile(file);
     }
-  };
-
-  // Function to handle image upload
-  const handleImageUpload = async () => {
-    if (!selectedFile || !editor) return;
-
-    try {
-      setIsUploading(true);
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-
-      const response = await apiClient.post(`/files`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.data.url) {
-        // Create a temporary URL for preview
-        const imageUrl = `${backendURL}${response.data.url}`;
-        
-        // Insert image into editor
-        editor.chain().focus().setImage({ 
-          src: imageUrl,
-          alt: selectedFile.name,
-          title: selectedFile.name
-        }).run();
-
-        setIsImageDialogOpen(false);
-        toast.success('Image uploaded successfully');
-      }
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
-    } finally {
-      setIsUploading(false);
-      setSelectedFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  // Function to handle URL image insertion
-  const handleUrlImage = async () => {
-    if (!imageUrl || !editor) {
-      toast.error('Please enter an image URL');
-      return;
-    }
-
-    try {
-      // Test if the URL is valid
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error('Invalid image URL');
-      }
-
-      // Check if the content type is an image
-      const contentType = response.headers.get('content-type');
-      if (!contentType?.startsWith('image/')) {
-        throw new Error('URL does not point to a valid image');
-      }
-
-      // Insert image into editor
-      editor.chain().focus().setImage({ 
-        src: imageUrl,
-        alt: 'Image from URL',
-        title: 'Image from URL'
-      }).run();
-
-      setIsImageDialogOpen(false);
-      setImageUrl('');
-      toast.success('Image inserted successfully');
-    } catch (error) {
-      console.error('Error inserting image:', error);
-      toast.error('Failed to insert image. Please check the URL and try again.');
-    }
-  };
-
-  // Helper function for inserting tables
-  const insertTable = () => {
-    if (!editor) return;
-    
-    editor.chain()
-      .focus()
-      .insertTable({
-        rows: tableRows,
-        cols: tableColumns,
-        withHeaderRow: includeHeader
-      })
-      .updateAttributes('table', {
-        class: 'border-collapse table-fixed w-full'
-      })
-      .run();
-  };
-
-  // Function to handle table insertion with validation
-  const handleTableInsert = () => {
-    if (tableRows < 1 || tableColumns < 1) {
-      toast.error('Rows and columns must be at least 1');
-      return;
-    }
-    if (tableRows > 50 || tableColumns > 10) {
-      toast.error('Maximum size: 50 rows and 10 columns');
-      return;
-    }
-    insertTable();
-    setIsTableDialogOpen(false);
-  };
-
-  const setTextAlign = (alignment: 'left' | 'center' | 'right' | 'justify') => {
-    if (!editor) return;
-    editor.chain().focus().setTextAlign(alignment).run();
-  };
-
-  // Helper function to check if a format is active
-  const isFormatActive = (format: string, attrs = {}) => {
-    if (!editor) return false;
-    if (Object.keys(attrs).length > 0) {
-      return editor.isActive(format, attrs);
-    }
-    return editor.isActive(format);
-  };
-
-  // Helper function for text alignment
-  const isAlignmentActive = (alignment: string) => {
-    if (!editor) return false;
-    return editor.isActive({ textAlign: alignment });
-  };
-
-  // Helper function for keyboard shortcuts
-  const getShortcut = (key: string) => {
-    const isMac = typeof window !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-    return isMac ? `⌘+${key}` : `Ctrl+${key}`;
-  };
-
-  // Function to resize image
-  const resizeImage = (increase: boolean) => {
-    if (!selectedImage || !editor) return;
-
-    const newSize = increase ? imageSize + 10 : imageSize - 10;
-    if (newSize < 10 || newSize > 200) return; // Limit size between 10% and 200%
-
-    // Get the current node position
-    const pos = editor.view.posAtDOM(selectedImage, 0);
-    if (pos === null) return;
-
-    const naturalWidth = selectedImage.naturalWidth;
-    const newWidth = Math.round(naturalWidth * (newSize / 100));
-
-    // Update the image width directly
-    selectedImage.style.width = `${newWidth}px`;
-    setImageSize(newSize);
-
-    // Mark the document as changed
-    editor.view.dispatch(editor.view.state.tr.setMeta('addToHistory', false));
-  };
-
-  // Function to align image
-  const alignImage = (position: 'left' | 'center' | 'right') => {
-    if (!selectedImage || !editor) return;
-
-    // Store current image size
-    const currentWidth = selectedImage.style.width || selectedImage.width + 'px';
-
-    // Find the parent node that contains the image
-    const parentNode = selectedImage.closest('p, div, h1, h2, h3, h4, h5, h6');
-    if (!(parentNode instanceof HTMLElement)) return;
-
-    // Update alignment
-    parentNode.style.textAlign = position;
-    
-    // Maintain image size
-    selectedImage.style.width = currentWidth;
-    selectedImage.style.display = 'inline-block';
-    
-    // Update margins based on alignment
-    switch (position) {
-      case 'left':
-        selectedImage.style.margin = '0';
-        break;
-      case 'center':
-        selectedImage.style.margin = '0 auto';
-        break;
-      case 'right':
-        selectedImage.style.margin = '0 0 0 auto';
-        break;
-    }
-
-    // Update editor state using commands
-    editor
-      .chain()
-      .focus()
-      .command(({ tr, dispatch }) => {
-        if (!dispatch) return false;
-
-        const pos = editor.view.posAtDOM(selectedImage, 0);
-        if (pos === null) return false;
-
-        const $pos = tr.doc.resolve(pos);
-        const node = $pos.node();
-        
-        if (!node) return false;
-
-        // Find the parent paragraph node
-        let depth = $pos.depth;
-        while (depth > 0 && $pos.node(depth).type.name !== 'paragraph') {
-          depth -= 1;
-        }
-
-        // If we found a paragraph, update its alignment
-        if (depth > 0) {
-          const paragraphPos = $pos.before(depth);
-          tr.setNodeMarkup(paragraphPos, undefined, {
-            ...$pos.node(depth).attrs,
-            style: `text-align: ${position};`,
-          });
-          dispatch(tr);
-          return true;
-        }
-
-        return false;
-      })
-      .run();
-  };
-
-  // Function to delete image
-  const deleteImage = () => {
-    if (!selectedImage || !editor) return;
-    
-    const pos = editor.view.posAtDOM(selectedImage, 0);
-    if (pos === null) return;
-
-    // Remove the entire node containing the image
-    const tr = editor.view.state.tr.delete(pos - 1, pos + 1);
-    editor.view.dispatch(tr);
-    setSelectedImage(null);
   };
 
   // Update CSS for image containers
@@ -1215,6 +1273,65 @@ export default function ReportEditorPage() {
       };
     }
   }, [editor]);
+
+  // Add CSS for image alignment
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .ProseMirror img[style*="margin: 0 auto"] {
+        display: block;
+        margin: 0 auto;
+      }
+      .ProseMirror img[style*="margin-left: auto"] {
+        display: block;
+        margin-left: auto;
+      }
+      .ProseMirror img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  // Add CSS for lists
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .ProseMirror ul {
+        list-style-type: disc;
+        padding-left: 1.5rem;
+        margin: 0.5rem 0;
+      }
+      .ProseMirror ol {
+        list-style-type: decimal;
+        padding-left: 1.5rem;
+        margin: 0.5rem 0;
+      }
+      .ProseMirror li {
+        margin: 0.25rem 0;
+        padding-left: 0.5rem;
+      }
+      .ProseMirror li p {
+        margin: 0;
+      }
+      .ProseMirror li.task-list-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   // Function to format date
   const formatDate = (dateString?: string) => {
@@ -1508,8 +1625,8 @@ export default function ReportEditorPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => toggleList('bullet')}
-                          className={`${getActiveButtonClass(isFormatActive('bulletList'))} border`}
+                          onClick={toggleBulletList}
+                          className={`${getActiveButtonClass(editor?.isActive('bulletList'))} border`}
                           disabled={!editor?.can().chain().focus().toggleBulletList().run()}
                         >
                           <List size={16} />
@@ -1525,8 +1642,8 @@ export default function ReportEditorPage() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          onClick={() => toggleList('ordered')}
-                          className={`${getActiveButtonClass(isFormatActive('orderedList'))} border`}
+                          onClick={toggleOrderedList}
+                          className={`${getActiveButtonClass(editor?.isActive('orderedList'))} border`}
                           disabled={!editor?.can().chain().focus().toggleOrderedList().run()}
                         >
                           <ListOrdered size={16} />
@@ -1649,6 +1766,130 @@ export default function ReportEditorPage() {
                     className={`${styles.editorContent} prose max-w-none bg-white rounded-lg shadow-sm min-h-full`} 
                   />
                 </div>
+
+                {/* Image Toolbar - Show when image is selected */}
+                {editor?.isActive('image') && (
+                  <div 
+                    className="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg border border-gray-200 p-2 z-50 flex items-center gap-2"
+                  >
+                    {/* Size Controls */}
+                    <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-md">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => resizeImage(false)}
+                              className="border hover:bg-slate-100"
+                            >
+                              <Minimize2 size={16} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Decrease Size</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <span className="text-sm font-medium w-12 text-center">
+                        {selectedImageAttrs?.width || 100}%
+                      </span>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => resizeImage(true)}
+                              className="border hover:bg-slate-100"
+                            >
+                              <Maximize2 size={16} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Increase Size</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+
+                    <div className="border-r h-6"></div>
+
+                    {/* Alignment Controls */}
+                    <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-md">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => alignImage('left')}
+                              className={`border hover:bg-slate-100 ${
+                                selectedImageAttrs?.alignment === 'left' ? 'bg-slate-200' : ''
+                              }`}
+                            >
+                              <MoveLeft size={16} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Align Left</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => alignImage('center')}
+                              className={`border hover:bg-slate-100 ${
+                                selectedImageAttrs?.alignment === 'center' ? 'bg-slate-200' : ''
+                              }`}
+                            >
+                              <ImageCenter size={16} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Align Center</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => alignImage('right')}
+                              className={`border hover:bg-slate-100 ${
+                                selectedImageAttrs?.alignment === 'right' ? 'bg-slate-200' : ''
+                              }`}
+                            >
+                              <MoveRight size={16} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Align Right</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+
+                    <div className="border-r h-6"></div>
+
+                    {/* Delete Button */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={deleteImage}
+                            className="border hover:bg-red-100 text-red-600"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete Image</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
               </>
             ) : (
               <div id="report-preview">
@@ -1844,138 +2085,6 @@ export default function ReportEditorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Image Toolbar */}
-      {selectedImage && activeTab === 'edit' && (
-        <div 
-          className="image-toolbar"
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-          }}
-        >
-          <div className="flex items-center gap-2">
-            {/* Size Controls */}
-            <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-md">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => resizeImage(false)}
-                      className="border hover:bg-slate-100"
-                    >
-                      <Minimize2 size={16} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Decrease Size</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <span className="text-sm font-medium w-12 text-center">
-                {imageSize}%
-              </span>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => resizeImage(true)}
-                      className="border hover:bg-slate-100"
-                    >
-                      <Maximize2 size={16} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Increase Size</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-
-            <div className="border-r h-6"></div>
-
-            {/* Alignment Controls */}
-            <div className="flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-md">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => alignImage('left')}
-                      className={`border hover:bg-slate-100 ${
-                        selectedImage?.closest('p')?.style.textAlign === 'left' ? 'bg-slate-200' : ''
-                      }`}
-                    >
-                      <MoveLeft size={16} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Align Left</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => alignImage('center')}
-                      className={`border hover:bg-slate-100 ${
-                        selectedImage?.closest('p')?.style.textAlign === 'center' ? 'bg-slate-200' : ''
-                      }`}
-                    >
-                      <ImageCenter size={16} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Align Center</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => alignImage('right')}
-                      className={`border hover:bg-slate-100 ${
-                        selectedImage?.closest('p')?.style.textAlign === 'right' ? 'bg-slate-200' : ''
-                      }`}
-                    >
-                      <MoveRight size={16} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Align Right</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-
-            <div className="border-r h-6"></div>
-
-            {/* Delete Button */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={deleteImage}
-                    className="border hover:bg-red-100 text-red-600"
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Delete Image</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
