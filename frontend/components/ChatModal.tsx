@@ -345,7 +345,7 @@ export const ChatModal: FC<ChatModalProps> = ({
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            <button className="p-2 hover:bg-emerald-500 hover:bg-opacity-10 rounded-full">
+            {/*<button className="p-2 hover:bg-emerald-500 hover:bg-opacity-10 rounded-full">
               <Phone size={18} />
             </button>
             <button className="p-2 hover:bg-emerald-500 hover:bg-opacity-10 rounded-full">
@@ -353,7 +353,7 @@ export const ChatModal: FC<ChatModalProps> = ({
             </button>
             <button className="p-2 hover:bg-emerald-500 hover:bg-opacity-10 rounded-full">
               <MoreVertical size={18} />
-            </button>
+            </button>*/}
             <button
               onClick={onClose}
               className="p-2 hover:bg-emerald-500 hover:bg-opacity-10 rounded-full"
@@ -447,12 +447,12 @@ export const ChatModal: FC<ChatModalProps> = ({
         {/* Input Area */}
         <div className="p-4 bg-gray-50 border-t border-gray-200">
           <div className="flex items-center space-x-2">
-            <button
+            {/*<button
               onClick={() => fileInputRef.current?.click()}
               className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
             >
               <Paperclip size={20} />
-            </button>
+            </button>*/}
             
             <div className="flex-1 relative">
               <input
@@ -463,17 +463,17 @@ export const ChatModal: FC<ChatModalProps> = ({
                 placeholder="Type a message..."
                 className="w-full px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent bg-gray-50 text-gray-900 border-gray-200"
               />
-              <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              {/*<button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
                 <Smile size={20} />
-              </button>
+              </button>*/}
             </div>
 
-            <button
+            {/*<button
               onClick={handleCameraAccess}
               className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full"
             >
               <Camera size={20} />
-            </button>
+            </button>*/}
 
             {newMessage.trim() ? (
               <button
@@ -484,6 +484,13 @@ export const ChatModal: FC<ChatModalProps> = ({
               </button>
             ) : (
               <button
+                onClick={handleSendMessage}
+                className="p-2 bg-emerald-600 text-white rounded-full hover:bg-emerald-500"
+              >
+                <Send size={20} />
+              </button>
+              /*
+              <button
                 onClick={handleVoiceRecord}
                 className={`p-2 rounded-full ${
                   isRecording 
@@ -492,7 +499,7 @@ export const ChatModal: FC<ChatModalProps> = ({
                 }`}
               >
                 {isRecording ? <MicOff size={20} /> : <Mic size={20} />}
-              </button>
+              </button>*/
             )}
           </div>
         </div>
