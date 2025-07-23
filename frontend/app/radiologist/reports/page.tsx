@@ -128,6 +128,9 @@ export default function ReportEditorPage() {
   const [selectedImage, setSelectedImage] = useState<HTMLImageElement | null>(null);
   const [imageSize, setImageSize] = useState(100); // percentage of original size
 
+  // Add ref for the preview container
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+
   // Add state for tracking selected image attributes
   const [selectedImageAttrs, setSelectedImageAttrs] = useState<ImageAttributes | null>(null);
 
@@ -256,16 +259,6 @@ export default function ReportEditorPage() {
         allowBase64: true,
         HTMLAttributes: {
           class: 'cursor-pointer hover:outline hover:outline-2 hover:outline-blue-500 max-w-full'
-        },
-        renderHTML: ({ HTMLAttributes }) => {
-          const { alignment, width, ...rest } = HTMLAttributes;
-          const style = `
-            display: block;
-            width: ${width || 100}%;
-            ${alignment === 'center' ? 'margin: 0 auto;' : 
-              alignment === 'right' ? 'margin-left: auto;' : ''}
-          `;
-          return ['img', { ...rest, style }];
         }
       }),
       TableExtension.configure({
@@ -354,7 +347,7 @@ export default function ReportEditorPage() {
     
     // Find image node in selection
     let imagePos = -1;
-    let imageNode: ImageNode | null = null;
+    let imageNode: any = null;
     
     state.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
       if (node.type.name === 'image') {
@@ -435,9 +428,7 @@ export default function ReportEditorPage() {
         editor.chain().focus().setImage({ 
           src: imageUrl,
           alt: selectedFile.name,
-          title: selectedFile.name,
-          width: 100,
-          alignment: 'left' // Set default alignment
+          title: selectedFile.name
         }).run();
 
         setIsImageDialogOpen(false);
@@ -566,17 +557,11 @@ export default function ReportEditorPage() {
     const imageInfo = getSelectedImageNode();
     if (!imageInfo || !imageInfo.node) return;
 
-    // Get current attributes
-    const currentAttrs = editor.getAttributes('image');
-    
-    // Update image attributes
+    // Update using TextAlign extension instead
     editor.chain()
       .focus()
       .setNodeSelection(imageInfo.pos)
-      .updateAttributes('image', {
-        ...currentAttrs,
-        alignment: position
-      })
+      .setTextAlign(position)
       .run();
 
     // Update local state
@@ -677,317 +662,406 @@ export default function ReportEditorPage() {
   }, [editor, reportStatus]);
 
   // Create preview component for PDF generation that includes header and footer
-const generatePdfPreview = () => {
-  if (!editor || !studyData) return null;
-  
-  // Get the raw HTML content from editor
-  const editorContent = editor.getHTML();
-  
-  // Process content to extract sections and calculate page breaks
-  const processedContent = calculatePageBreaks(editorContent);
-  
-  return (
-    <div id="pdf-preview" className={styles.pagesContainer}>
-      {processedContent.pages.map((page, index) => (
-        <div key={index} className={`${styles.pagePreview} ${styles.printPage}`}>
-          {/* Page Header - Only on first page */}
-          {index === 0 && (
-            <div className={styles.pageHeader}>
-              {/* PDF Header */}
-              <div className={styles.pdfHeader}>
-                <div className={styles.pdfLogo}>
-                  {logoImage && <img src={logoImage} alt="Dentax Logo" />}
-                  <h2>DENTAX</h2>
-                </div>
-                <div className={styles.pdfTitle}>
-                  <h3>RADIOLOGY REPORT</h3>
-                  <p>Study #{studyData.study_id}</p>
-                </div>
-              </div>
-
-              {/* Report Header (Patient & Study Info) */}
-              <div className={styles.reportHeader}>
-                <div className={styles.reportTitle}>
-                  <h1>RADIOLOGY REPORT</h1>
-                </div>
-                <div className={styles.infoGrid}>
-                  {/* Patient Information */}
-                  <div className={styles.infoSection}>
-                    <h2>Patient Information</h2>
-                    <dl>
-                      <dt>Name</dt>
-                      <dd><strong>{studyData?.patient?.name || 'N/A'}</strong></dd>
-                      
-                      <dt>Patient ID</dt>
-                      <dd><strong>{studyData?.patient_id || 'N/A'}</strong></dd>
-                      
-                      <dt>Date of Birth</dt>
-                      <dd>{formatDate(studyData?.patient?.date_of_birth)}</dd>
-                      
-                      <dt>Age</dt>
-                      <dd>{calculateAge(studyData?.patient?.date_of_birth)}</dd>
-                      
-                      <dt>Gender</dt>
-                      <dd>{studyData?.patient?.gender || 'N/A'}</dd>
-                      
-                      <dt>Blood Group</dt>
-                      <dd>{studyData?.patient?.blood_group?.toUpperCase() || 'N/A'}</dd>
-                    </dl>
+  const generatePdfPreview = () => {
+    if (!editor || !studyData) return null;
+    
+    // Get the raw HTML content from editor
+    const editorContent = editor.getHTML();
+    
+    // Basic content division into pages
+    const dividedContent = divideContentIntoPages(editorContent);
+    
+    console.log(`Generated ${dividedContent.length} preview pages`);
+    
+    return (
+      <div 
+        id="pdf-preview" 
+        className={styles.pagesContainer} 
+        data-page-count={dividedContent.length}
+        ref={previewContainerRef}
+        data-preview-container="true"
+      >
+        {dividedContent.map((pageContent, pageIndex) => (
+          <div 
+            key={pageIndex} 
+            className={`${styles.pagePreview} printPage pdf-page`}
+            data-page-number={pageIndex + 1}
+            data-is-preview-page="true"
+            id={`preview-page-${pageIndex + 1}`}
+          >
+            {/* Page Header - Only on first page */}
+            {pageIndex === 0 && (
+              <div className={styles.pageHeader}>
+                {/* PDF Header */}
+                <div className={styles.pdfHeader}>
+                  <div className={styles.pdfLogo}>
+                    {logoImage && <img src={logoImage} alt="Dentax Logo" />}
+                    <h2>DENTAX</h2>
                   </div>
-
-                  {/* Study Information */}
-                  <div className={styles.infoSection}>
-                    <h2>Study Information</h2>
-                    <dl>
-                      <dt>Study ID</dt>
-                      <dd><strong>{studyData?.study_id || 'N/A'}</strong></dd>
-                      
-                      <dt>Date</dt>
-                      <dd><strong>{formatDate(studyData?.date)}</strong></dd>
-                      
-                      <dt>Time</dt>
-                      <dd>{formatTime(studyData?.time)}</dd>
-                      
-                      <dt>Modality</dt>
-                      <dd><strong>{studyData?.modality || 'N/A'}</strong></dd>
-                      
-                      <dt>Body Part</dt>
-                      <dd><strong>{studyData?.body_part || 'N/A'}</strong></dd>
-                      
-                      <dt>Radiologist</dt>
-                      <dd><strong>{studyData?.radiologist?.name || 'N/A'}</strong></dd>
-                    </dl>
+                  <div className={styles.pdfTitle}>
+                    <h3>RADIOLOGY REPORT</h3>
+                    <p>Study #{studyData.study_id}</p>
                   </div>
                 </div>
+
+                {/* Report Header (Patient & Study Info) */}
+                <div className={styles.reportHeader}>
+                  <div className={styles.reportTitle}>
+                    <h1>RADIOLOGY REPORT</h1>
+                  </div>
+                  <div className={styles.infoGrid}>
+                    {/* Patient Information */}
+                    <div className={styles.infoSection}>
+                      <h2>Patient Information</h2>
+                      <dl>
+                        <dt>Name</dt>
+                        <dd><strong>{studyData?.patient?.name || 'N/A'}</strong></dd>
+                        
+                        <dt>Patient ID</dt>
+                        <dd><strong>{studyData?.patient_id || 'N/A'}</strong></dd>
+                        
+                        <dt>Date of Birth</dt>
+                        <dd>{formatDate(studyData?.patient?.date_of_birth)}</dd>
+                        
+                        <dt>Age</dt>
+                        <dd>{calculateAge(studyData?.patient?.date_of_birth)}</dd>
+                        
+                        <dt>Gender</dt>
+                        <dd>{studyData?.patient?.gender || 'N/A'}</dd>
+                        
+                        <dt>Blood Group</dt>
+                        <dd>{studyData?.patient?.blood_group?.toUpperCase() || 'N/A'}</dd>
+                      </dl>
+                    </div>
+
+                    {/* Study Information */}
+                    <div className={styles.infoSection}>
+                      <h2>Study Information</h2>
+                      <dl>
+                        <dt>Study ID</dt>
+                        <dd><strong>{studyData?.study_id || 'N/A'}</strong></dd>
+                        
+                        <dt>Date</dt>
+                        <dd><strong>{formatDate(studyData?.date)}</strong></dd>
+                        
+                        <dt>Time</dt>
+                        <dd>{formatTime(studyData?.time)}</dd>
+                        
+                        <dt>Modality</dt>
+                        <dd><strong>{studyData?.modality || 'N/A'}</strong></dd>
+                        
+                        <dt>Body Part</dt>
+                        <dd><strong>{studyData?.body_part || 'N/A'}</strong></dd>
+                        
+                        <dt>Radiologist</dt>
+                        <dd><strong>{studyData?.radiologist?.name || 'N/A'}</strong></dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Page Content Area */}
+            <div className={styles.pageContentArea}>
+              <div 
+                className={styles.reportContent} 
+                dangerouslySetInnerHTML={{ __html: pageContent }}
+              />
+            </div>
+            
+            {/* PDF Footer */}
+            <div className={styles.pdfFooter}>
+              <div className={styles.footerLeft}>
+                <div><strong>Radiologist:</strong> {studyData?.radiologist?.name || 'N/A'}</div>
+                <div><strong>Date:</strong> {formatDate(new Date().toISOString())}</div>
+              </div>
+              <div className={styles.footerCenter}>
+                <strong>Page {pageIndex + 1} of {dividedContent.length}</strong>
+              </div>
+              <div className={styles.footerRight}>
+                <div>Generated by</div>
+                <div><strong>Dentax Imaging System</strong></div>
               </div>
             </div>
-          )}
-
-          {/* Page Content Area */}
-          <div className={styles.pageContentArea}>
-            <div 
-              className={styles.reportContent} 
-              dangerouslySetInnerHTML={{ __html: page.content }}
-            />
           </div>
-          
-          {/* PDF Footer - On every page */}
-          <div className={styles.pdfFooter}>
-            <div className={styles.footerLeft}>
-              <div><strong>Radiologist:</strong> {studyData?.radiologist?.name || 'N/A'}</div>
-              <div><strong>Date:</strong> {formatDate(new Date().toISOString())}</div>
-            </div>
-            <div className={styles.footerCenter}>
-              <strong>Page {index + 1} of {processedContent.pages.length}</strong>
-            </div>
-            <div className={styles.footerRight}>
-              <div>Generated by</div>
-              <div><strong>Dentax Imaging System</strong></div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-// Significantly improved helper function to calculate page breaks
-const calculatePageBreaks = (content: string): { pages: Array<{ content: string }> } => {
-  if (!content || content.trim() === '') {
-    return { pages: [{ content: '<p>No content available</p>' }] };
-  }
-
-  // Clean and prepare content
-  const cleanContent = preprocessContent(content);
-  
-  // Create temporary measuring container
-  const measuringContainer = createMeasuringContainer();
-  measuringContainer.innerHTML = cleanContent;
-  document.body.appendChild(measuringContainer);
-
-  try {
-    const pages: Array<{ content: string }> = [];
-    const elements = Array.from(measuringContainer.children) as HTMLElement[];
-    
-    // Page configuration (A4 at 96 DPI)
-    const config = {
-      pageHeight: 1056, // A4 height in pixels (297mm * 3.78)
-      headerHeight: 280, // Header height on first page
-      footerHeight: 80,  // Footer height
-      margin: 60,        // Top/bottom margins
-      minContentHeight: 100, // Minimum content to justify a page
-      maxElementsPerChunk: 50 // Prevent infinite loops
-    };
-    
-    const firstPageContentHeight = config.pageHeight - config.headerHeight - config.footerHeight - (config.margin * 2);
-    const subsequentPageContentHeight = config.pageHeight - config.footerHeight - (config.margin * 2);
-    
-    let currentPageElements: HTMLElement[] = [];
-    let currentPageHeight = 0;
-    let isFirstPage = true;
-    let elementIndex = 0;
-    
-    while (elementIndex < elements.length) {
-      const element = elements[elementIndex];
-      const elementHeight = getElementHeight(element, measuringContainer);
-      const maxHeight = isFirstPage ? firstPageContentHeight : subsequentPageContentHeight;
-      
-      // Check if we should start a new page
-      const shouldBreak = shouldStartNewPage(
-        currentPageHeight,
-        elementHeight,
-        maxHeight,
-        element,
-        currentPageElements.length
-      );
-      
-      if (shouldBreak && currentPageElements.length > 0) {
-        // Create page from current elements
-        const pageContent = createPageContent(currentPageElements);
-        if (pageContent.trim()) {
-          pages.push({ content: pageContent });
-        }
-        
-        // Reset for new page
-        currentPageElements = [];
-        currentPageHeight = 0;
-        isFirstPage = false;
-        
-        // Don't increment elementIndex, reprocess current element for new page
-        continue;
-      }
-      
-      // Add element to current page
-      currentPageElements.push(element.cloneNode(true) as HTMLElement);
-      currentPageHeight += elementHeight + getElementSpacing(element);
-      elementIndex++;
-      
-      // Safety check to prevent infinite loops
-      if (currentPageElements.length > config.maxElementsPerChunk) {
-        console.warn('Too many elements on single page, forcing page break');
-        const pageContent = createPageContent(currentPageElements);
-        if (pageContent.trim()) {
-          pages.push({ content: pageContent });
-        }
-        currentPageElements = [];
-        currentPageHeight = 0;
-        isFirstPage = false;
-      }
-    }
-    
-    // Add final page if it has meaningful content
-    if (currentPageElements.length > 0) {
-      const pageContent = createPageContent(currentPageElements);
-      if (pageContent.trim() && getTotalTextLength(currentPageElements) > 20) {
-        pages.push({ content: pageContent });
-      }
-    }
-    
-    // Ensure we have at least one page with content
-    if (pages.length === 0) {
-      pages.push({ content: '<p>Content is being processed...</p>' });
-    }
-    
-    return { pages };
-    
-  } finally {
-    // Clean up measuring container
-    if (measuringContainer.parentNode) {
-      document.body.removeChild(measuringContainer);
-    }
-  }
-};
-
-// Helper functions for improved page break logic
-
-const createMeasuringContainer = (): HTMLElement => {
-  const container = document.createElement('div');
-  container.style.cssText = `
-    position: absolute;
-    top: -10000px;
-    left: -10000px;
-    width: 794px;
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    line-height: 1.6;
-    visibility: hidden;
-    overflow: hidden;
-  `;
-  return container;
-};
-
-const preprocessContent = (content: string): string => {
-  return content
-    .replace(/<br\s*\/?>/gi, '<br>')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
-
-const getElementHeight = (element: HTMLElement, container: HTMLElement): number => {
-  const clone = element.cloneNode(true) as HTMLElement;
-  clone.style.cssText = 'margin: 0; padding: 8px 0; width: 100%;';
-  
-  const tempDiv = document.createElement('div');
-  tempDiv.style.cssText = container.style.cssText;
-  tempDiv.appendChild(clone);
-  document.body.appendChild(tempDiv);
-  
-  const height = tempDiv.offsetHeight;
-  document.body.removeChild(tempDiv);
-  
-  return Math.max(height, getMinElementHeight(element));
-};
-
-const getMinElementHeight = (element: HTMLElement): number => {
-  const tagName = element.tagName.toLowerCase();
-  const heightMap: Record<string, number> = {
-    'h1': 40, 'h2': 35, 'h3': 30, 'h4': 25, 'h5': 22, 'h6': 20,
-    'p': 25,
-    'ul': 30, 'ol': 30, 'li': 20,
-    'table': 50,
-    'div': 20,
-    'blockquote': 30,
-    'hr': 15
+        ))}
+      </div>
+    );
   };
-  return heightMap[tagName] || 20;
+
+// Simple helper function to divide content into pages
+const divideContentIntoPages = (htmlContent: string): string[] => {
+  if (!htmlContent || htmlContent.trim() === '') {
+    return ['<p>No content available</p>'];
+  }
+
+  // Create a temporary DOM element to parse HTML
+  const tempContainer = document.createElement('div');
+  tempContainer.innerHTML = htmlContent;
+  
+  // Find all major section headings (h1, h2)
+  const majorHeadings = Array.from(tempContainer.querySelectorAll('h1, h2'));
+  
+  // Group content by major sections
+  const sections: { heading: HTMLElement | null, content: HTMLElement[] }[] = [];
+  
+  if (majorHeadings.length === 0) {
+    // No major headings - treat all content as one section
+    sections.push({
+      heading: null,
+      content: Array.from(tempContainer.children) as HTMLElement[]
+    });
+  } else {
+    // Process content by sections with headings
+    majorHeadings.forEach((heading, index) => {
+      const sectionContent: HTMLElement[] = [heading as HTMLElement];
+      let currentElement = heading.nextElementSibling;
+      
+      // Collect all elements until the next major heading
+      while (currentElement && 
+             (index === majorHeadings.length - 1 || currentElement !== majorHeadings[index + 1])) {
+        sectionContent.push(currentElement as HTMLElement);
+        currentElement = currentElement.nextElementSibling;
+      }
+      
+      sections.push({
+        heading: heading as HTMLElement,
+        content: sectionContent
+      });
+    });
+  }
+  
+  // Now distribute sections across pages
+  const pages: string[] = [];
+  let currentPageContent: HTMLElement[] = [];
+  const maxPageContent = 16; // Adjusted based on A4 page capacity for typical content
+  let currentPageSize = 0;
+  
+  // Function to get a more accurate estimate of content size
+  const getContentSize = (elements: HTMLElement[]) => {
+    let size = 0;
+    elements.forEach(el => {
+      // Base size by element type
+      const tagName = el.tagName.toLowerCase();
+      
+      // Calculate size based on element type and content
+      if (tagName === 'h1') size += 3;
+      else if (tagName === 'h2') size += 2.5;
+      else if (tagName === 'h3') size += 2;
+      else if (tagName === 'p') {
+        // Size based on text length
+        const textLength = el.textContent?.length || 0;
+        size += 1 + Math.min(textLength / 150, 3);
+      }
+      else if (tagName === 'table') {
+        // Tables take more space
+        const rows = el.querySelectorAll('tr').length;
+        size += 2 + (rows * 1.2);
+      }
+      else if (tagName === 'ul' || tagName === 'ol') {
+        // Lists based on item count
+        const items = el.querySelectorAll('li').length;
+        size += 1 + (items * 0.8);
+      }
+      else if (tagName === 'img') size += 5; // Images take significant space
+      else size += 1; // Default size for other elements
+      
+      // Add for complex nested content
+      if (el.children.length > 3) {
+        size += (el.children.length - 3) * 0.3;
+      }
+    });
+    return size;
+  };
+  
+  // Process each section
+  sections.forEach((section) => {
+    const sectionContent = section.content;
+    const sectionSize = getContentSize(sectionContent);
+    
+    // If this section would make the page too full and we already have content,
+    // start a new page - but only if the section isn't tiny
+    if (currentPageSize > 0 && 
+        currentPageSize + sectionSize > maxPageContent && 
+        sectionSize > 2) {
+      pages.push(createPageContent(currentPageContent));
+      currentPageContent = [];
+      currentPageSize = 0;
+    }
+    
+    // Special case: If section is very large (more than 80% of a page),
+    // consider splitting it further
+    if (sectionSize > maxPageContent * 0.8) {
+      // Split large sections by subsections or logical breaks
+      let subsectionStart = 0;
+      
+      // First try to split by subsections (h3, h4)
+      const subsectionHeadings = sectionContent.reduce((indexes, el, idx) => {
+        if ((el.tagName === 'H3' || el.tagName === 'H4') && idx > 0) {
+          indexes.push(idx);
+        }
+        return indexes;
+      }, [] as number[]);
+      
+      // If we have subsection headings, use them to split
+      if (subsectionHeadings.length > 0) {
+        subsectionHeadings.forEach((headingIndex, idx) => {
+          const subsectionContent = sectionContent.slice(subsectionStart, headingIndex);
+          const subsectionSize = getContentSize(subsectionContent);
+          
+          // Check if adding this subsection would overflow the page
+          if (currentPageSize + subsectionSize > maxPageContent && currentPageContent.length > 0) {
+            // Start new page if it doesn't fit
+            pages.push(createPageContent(currentPageContent));
+            currentPageContent = [];
+            currentPageSize = 0;
+          }
+          
+          // Add subsection to current page
+          currentPageContent.push(...subsectionContent);
+          currentPageSize += subsectionSize;
+          subsectionStart = headingIndex;
+          
+          // Handle the last subsection
+          if (idx === subsectionHeadings.length - 1) {
+            const lastSubsection = sectionContent.slice(subsectionStart);
+            const lastSubsectionSize = getContentSize(lastSubsection);
+            
+            // Check if it fits on the current page
+            if (currentPageSize + lastSubsectionSize > maxPageContent && currentPageContent.length > 0) {
+              pages.push(createPageContent(currentPageContent));
+              currentPageContent = [];
+              currentPageSize = 0;
+            }
+            
+            currentPageContent.push(...lastSubsection);
+            currentPageSize += lastSubsectionSize;
+          }
+        });
+      } else {
+        // No subsections - use more generic splitting based on content types
+        let currentSubsection: HTMLElement[] = [];
+        let currentSubsectionSize = 0;
+        
+        sectionContent.forEach((element) => {
+          const elementSize = getElementSize(element);
+          
+          // If adding this element would overflow, add current subsection to page
+          if (currentSubsectionSize > 0 && 
+              currentPageSize + currentSubsectionSize + elementSize > maxPageContent) {
+            // Don't split between headings and their immediate next element
+            const isHeading = ['H1', 'H2', 'H3', 'H4'].includes(element.tagName);
+            const isPreviousHeading = currentSubsection.length > 0 && 
+                                    ['H1', 'H2', 'H3', 'H4'].includes(
+                                      currentSubsection[currentSubsection.length - 1].tagName
+                                    );
+            
+            if (!isHeading && !isPreviousHeading) {
+              // Safe to add current subsection to page
+              currentPageContent.push(...currentSubsection);
+              currentPageSize += currentSubsectionSize;
+              
+              // Start a new page if needed
+              if (currentPageSize > 0 && currentPageSize + elementSize > maxPageContent) {
+                pages.push(createPageContent(currentPageContent));
+                currentPageContent = [];
+                currentPageSize = 0;
+              }
+              
+              // Reset subsection
+              currentSubsection = [element];
+              currentSubsectionSize = elementSize;
+            } else {
+              // Keep heading with its content - add to current subsection
+              currentSubsection.push(element);
+              currentSubsectionSize += elementSize;
+            }
+          } else {
+            // Element fits in current subsection
+            currentSubsection.push(element);
+            currentSubsectionSize += elementSize;
+          }
+        });
+        
+        // Add the last subsection
+        if (currentSubsection.length > 0) {
+          // Check if it fits on current page
+          if (currentPageSize + currentSubsectionSize > maxPageContent && currentPageContent.length > 0) {
+            pages.push(createPageContent(currentPageContent));
+            currentPageContent = [];
+            currentPageSize = 0;
+          }
+          
+          currentPageContent.push(...currentSubsection);
+          currentPageSize += currentSubsectionSize;
+        }
+      }
+    } else {
+      // Normal-sized section - add it to the current page
+      currentPageContent.push(...sectionContent);
+      currentPageSize += sectionSize;
+    }
+  });
+  
+  // Add the last page if it has content
+  if (currentPageContent.length > 0) {
+    pages.push(createPageContent(currentPageContent));
+  }
+  
+  // Ensure we have at least one page
+  if (pages.length === 0) {
+    pages.push('<p>No content available</p>');
+  }
+  
+  return pages;
 };
 
-const getElementSpacing = (element: HTMLElement): number => {
+// Helper function to estimate the "size" of an element for pagination
+const getElementSize = (element: HTMLElement): number => {
   const tagName = element.tagName.toLowerCase();
-  if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName)) return 15;
-  if (['p', 'div', 'ul', 'ol', 'table'].includes(tagName)) return 10;
-  return 5;
-};
-
-const shouldStartNewPage = (
-  currentHeight: number,
-  elementHeight: number,
-  maxHeight: number,
-  element: HTMLElement,
-  currentElementCount: number
-): boolean => {
-  // Don't break if this is the first element
-  if (currentElementCount === 0) return false;
   
-  // Check for explicit page break
-  if (element.getAttribute('data-page-break') === 'before' || 
-      element.classList?.contains('page-break')) {
-    return true;
+  // Assign size values to different element types
+  const sizeMap: Record<string, number> = {
+    'h1': 2.5,
+    'h2': 2,
+    'h3': 1.5,
+    'h4': 1.2,
+    'p': 1,
+    'ul': 2,
+    'ol': 2,
+    'li': 0.8,
+    'table': 3,
+    'img': 5,
+    'blockquote': 2
+  };
+  
+  // Get base size from tag type
+  let size = sizeMap[tagName] || 1;
+  
+  // Adjust size based on content length for text elements
+  if (['p', 'h1', 'h2', 'h3', 'h4'].includes(tagName)) {
+    const textLength = element.textContent?.length || 0;
+    size += Math.min(textLength / 200, 1.5); // Add up to 1.5 size units based on text length
   }
   
-  // Check if adding this element would exceed page height
-  const totalHeight = currentHeight + elementHeight;
-  const exceedsHeight = totalHeight > maxHeight;
-  
-  // For headings, prefer to keep them with following content
-  const isHeading = /^h[1-6]$/i.test(element.tagName);
-  if (isHeading && exceedsHeight && elementHeight < maxHeight * 0.3) {
-    return true;
+  // Tables need special handling
+  if (tagName === 'table') {
+    const rows = element.querySelectorAll('tr').length;
+    const cols = element.querySelector('tr')?.children.length || 0;
+    size += (rows * cols) / 4; // Adjust size based on table dimensions
   }
   
-  return exceedsHeight;
+  // Lists need special handling based on number of items
+  if (tagName === 'ul' || tagName === 'ol') {
+    const items = element.querySelectorAll('li').length;
+    size += items * 0.5;
+  }
+  
+  return size;
 };
 
+// Helper function to convert elements to HTML string
 const createPageContent = (elements: HTMLElement[]): string => {
   if (elements.length === 0) return '';
   
@@ -996,264 +1070,182 @@ const createPageContent = (elements: HTMLElement[]): string => {
   return container.innerHTML;
 };
 
-const getTotalTextLength = (elements: HTMLElement[]): number => {
-  return elements.reduce((total, el) => total + (el.textContent?.length || 0), 0);
-};
+// Removed all the complex page break calculation functions
+// Removed all the helper functions for page break logic
 
   // Export report as PDF
   const exportToPdf = async () => {
-    if (!editor || !studyData) return;
-    return;
+    if (!editor || !studyData) {
+      toast.error("Missing editor or study data");
+      return;
+    }
+    
     try {
       setExportingPdf(true);
       
-      // Simple approach - create PDF directly without relying on complex color parsing
+      // First ensure we're in preview mode
+      if (activeTab !== 'preview') {
+        setActiveTab('preview');
+        // Wait for the state update and rendering to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      // Force a re-render cycle to ensure the preview is generated
+      setIsEditorReady(prev => !prev);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Try to get the preview container
+      let previewContainer = previewContainerRef.current || document.getElementById('pdf-preview');
+      
+      if (!previewContainer) {
+        toast.error("Cannot find preview content. Please refresh and try again.");
+        setExportingPdf(false);
+        return;
+      }
+      
+      // Add a temporary style to fix oklch colors
+      const tempStyle = document.createElement('style');
+      tempStyle.textContent = `
+        /* Replace all oklch colors with hex equivalents */
+        .pdfHeader, h1, h2, h3, .reportTitle, .infoSection h2, 
+        .reportContent h1, .reportContent h2, .reportContent h3 {
+          color: #0d7d85 !important;
+        }
+        .pdfHeader {
+          background-color: #0d7d85 !important;
+        }
+        .reportTitle {
+          border-bottom-color: #0d7d85 !important;
+        }
+      `;
+      document.head.appendChild(tempStyle);
+      
+      // Find all pages or just treat the whole preview as one page
+      const previewPages = previewContainer.querySelectorAll('.pagePreview, .printPage, .pdf-page');
+      const pagesToProcess = previewPages.length > 0 ? Array.from(previewPages) : [previewContainer];
+      
+      console.log(`Found ${pagesToProcess.length} pages/elements to process`);
+      
+      // Create and configure the PDF
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4',
+        format: 'a4'
       });
       
-      // Set basic information
-      const pageWidth = pdf.internal.pageSize.width;
-      const pageHeight = pdf.internal.pageSize.height;
-      const margin = 15;
-      const contentWidth = pageWidth - (margin * 2);
-      
-      // Reset cursor position
-      let yPosition = margin;
-      
-      // Add header - simple text version instead of image
-      pdf.setFillColor(13, 125, 133); // #0d7d85 in RGB
-      pdf.rect(0, 0, pageWidth, 25, 'F');
-      
-      // Add DENTAX title
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(16);
-      pdf.text("DENTAX", margin, 15);
-      
-      // Add report title
-      pdf.setFontSize(14);
-      pdf.text("RADIOLOGY REPORT", pageWidth - margin - 45, 15);
-      
-      yPosition = 35; // Move position below header
-      
-      // Add report title
-      pdf.setTextColor(13, 125, 133); // #0d7d85 in RGB
-      pdf.setFontSize(18);
-      pdf.text("RADIOLOGY REPORT", pageWidth / 2, yPosition, { align: 'center' });
-      
-      yPosition += 10;
-      
-      // Draw a separator line
-      pdf.setDrawColor(13, 125, 133); // #0d7d85 in RGB
-      pdf.setLineWidth(0.5);
-      pdf.line(margin, yPosition, pageWidth - margin, yPosition);
-      
-      yPosition += 10;
-      
-      // Patient Information Section
-      pdf.setTextColor(13, 125, 133);
-      pdf.setFontSize(14);
-      pdf.text("Patient Information", margin, yPosition);
-      
-      yPosition += 7;
-      
-      // Reset to normal text
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(11);
-      
-      // Patient details
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Name:", margin, yPosition);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${studyData.patient?.name || 'N/A'}`, margin + 30, yPosition);
-      
-      yPosition += 6;
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Patient ID:", margin, yPosition);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${studyData.patient_id || 'N/A'}`, margin + 30, yPosition);
-      
-      yPosition += 6;
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Date of Birth:", margin, yPosition);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${formatDate(studyData.patient?.date_of_birth) || 'N/A'}`, margin + 30, yPosition);
-      
-      yPosition += 6;
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Gender:", margin, yPosition);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${studyData.patient?.gender || 'N/A'}`, margin + 30, yPosition);
-      
-      // Study Information (right column)
-      const rightColumn = pageWidth / 2 + 10;
-      
-      // Reset y position for the right column
-      let rightColumnY = yPosition - 18;
-      
-      pdf.setTextColor(13, 125, 133);
-      pdf.setFontSize(14);
-      pdf.text("Study Information", rightColumn, rightColumnY);
-      
-      rightColumnY += 7;
-      
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFontSize(11);
-      
-      // Study details
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Study ID:", rightColumn, rightColumnY);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${studyData.study_id || 'N/A'}`, rightColumn + 30, rightColumnY);
-      
-      rightColumnY += 6;
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Date:", rightColumn, rightColumnY);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${formatDate(studyData.date) || 'N/A'}`, rightColumn + 30, rightColumnY);
-      
-      rightColumnY += 6;
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Modality:", rightColumn, rightColumnY);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${studyData.modality || 'N/A'}`, rightColumn + 30, rightColumnY);
-      
-      rightColumnY += 6;
-      
-      pdf.setFont("helvetica", "bold");
-      pdf.text("Radiologist:", rightColumn, rightColumnY);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${studyData.radiologist?.name || 'N/A'}`, rightColumn + 30, rightColumnY);
-      
-      // Update position to the maximum of both columns
-      yPosition = Math.max(yPosition, rightColumnY) + 10;
-      
-      // Convert HTML report content to plain text to avoid parsing issues
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = editor.getHTML();
-      
-      // Extract sections
-      interface Section {
-        title: string;
-        content: string;
-      }
-
-      const sections: Section[] = [];
-      const headings = tempDiv.querySelectorAll('h1, h2, h3');
-      
-      headings.forEach(heading => {
-        let section: Section = {
-          title: heading.textContent || '',
-          content: ''
-        };
+      // Process each page/element
+      for (let i = 0; i < pagesToProcess.length; i++) {
+        const originalElement = pagesToProcess[i] as HTMLElement;
+        console.log(`Processing page ${i+1}:`, originalElement);
         
-        // Get all next siblings until the next heading
-        let nextNode = heading.nextElementSibling;
-        while (nextNode && !['H1', 'H2', 'H3'].includes(nextNode.tagName)) {
-          // If it's a paragraph, add its text content
-          if (nextNode.tagName === 'P') {
-            section.content += nextNode.textContent + '\n\n';
-          }
-          // If it's a list, process its items
-          else if (['UL', 'OL'].includes(nextNode.tagName)) {
-            const items = nextNode.querySelectorAll('li');
-            items.forEach((item, index) => {
-              section.content += `• ${item.textContent}\n`;
-            });
-            section.content += '\n';
-          }
-          nextNode = nextNode.nextElementSibling;
-        }
-        
-        sections.push(section);
-      });
-      
-      // Add sections to PDF
-      for (const section of sections) {
-        // Check if we need a new page
-        if (yPosition > pageHeight - 40) {
-          pdf.addPage();
-          yPosition = margin;
-        }
-        
-        // Add section title
-        pdf.setTextColor(13, 125, 133);
-        pdf.setFontSize(14);
-        pdf.setFont("helvetica", "bold");
-        pdf.text(section.title, margin, yPosition);
-        
-        yPosition += 7;
-        
-        // Add section content
-        pdf.setTextColor(0, 0, 0);
-        pdf.setFontSize(12);
-        pdf.setFont("helvetica", "normal");
-        
-        // Split text into lines to manage wrapping
-        const textLines = pdf.splitTextToSize(section.content, contentWidth);
-        pdf.text(textLines, margin, yPosition);
-        
-        // Update position for next section
-        yPosition += textLines.length * 6 + 10;
-      }
-      
-      // Add footer on each page
-      const totalPages = pdf.getNumberOfPages();
-      
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i);
-        
-        // Add footer background
-        pdf.setFillColor(241, 245, 249); // #f1f5f9 in RGB
-        pdf.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-        
-        // Add footer text
-        pdf.setTextColor(100, 100, 100);
-        pdf.setFontSize(9);
-        pdf.setFont("helvetica", "normal");
-        
-        // Radiologist info
-        pdf.text(`Radiologist: ${studyData.radiologist?.name || 'N/A'}`, margin, pageHeight - 5);
-        
-        // Page number
-        pdf.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-        
-        // System info
-        pdf.text("Generated by Dentax Imaging System", pageWidth - margin, pageHeight - 5, { align: 'right' });
-      }
-      
-      // Save to server if report exists
-      if (reportData?.report_id) {
         try {
-          await apiClient.post(`/reports/export/${reportData.report_id}`, {
-            html_content: editor.getHTML()
+          // Ensure white background
+          originalElement.style.backgroundColor = '#ffffff';
+          
+          // Use simplified html2canvas options
+          const canvas = await html2canvas(originalElement, {
+            scale: 1.5,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: true
           });
-        } catch (e) {
-          console.error('Error saving report to server:', e);
+          
+          console.log("Canvas generated with dimensions:", canvas.width, "x", canvas.height);
+          
+          // Calculate dimensions to fit on A4
+          const pageWidth = pdf.internal.pageSize.getWidth();
+          const pageHeight = pdf.internal.pageSize.getHeight();
+          
+          // Get image data
+          const imgData = canvas.toDataURL('image/jpeg', 0.92); // Use JPEG for better compatibility
+          
+          // Add new page if this isn't the first page
+          if (i > 0) {
+            pdf.addPage();
+          }
+          
+          // Calculate dimensions that maintain aspect ratio and fit on the page
+          const imgWidth = pageWidth;
+          const imgHeight = Math.min(pageHeight, canvas.height * pageWidth / canvas.width);
+          
+          // Add the image to the PDF with proper scaling
+          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+          console.log(`Added page ${i+1} to PDF`);
+        } catch (err) {
+          console.error(`Error processing page ${i+1}:`, err);
+          toast.error(`Error on page ${i+1}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
       
-      // Download the PDF with a meaningful name
+      // Clean up the temporary style
+      document.head.removeChild(tempStyle);
+      
+      // Save the PDF
       const patientName = studyData.patient?.name?.replace(/\s+/g, '_') || 'Patient';
       const currentDate = new Date().toISOString().slice(0,10);
       pdf.save(`Dentax_Report_${patientName}_${studyData.study_id}_${currentDate}.pdf`);
       
-      toast.success('Report exported as PDF');
+      toast.success(`Report exported as PDF with ${pagesToProcess.length} pages`);
     } catch (error) {
       console.error('Error exporting to PDF:', error);
-      toast.error('Failed to export report as PDF');
+      toast.error('PDF export failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setExportingPdf(false);
     }
   };
+
+// Helper function to process colors for PDF export
+const processColorsForPdf = (element: HTMLElement) => {
+  // Create a temporary div for computed style access
+  const tempDiv = document.createElement('div');
+  document.body.appendChild(tempDiv);
+  
+  // Replace oklch colors for this element and all descendants
+  const processElement = (el: HTMLElement) => {
+    // Process styles directly
+    try {
+      // Copy the element's style
+      const computedStyle = getComputedStyle(el);
+      const styleProperties = [
+        'backgroundColor', 
+        'color', 
+        'borderColor', 
+        'borderLeftColor', 
+        'borderRightColor',
+        'borderTopColor', 
+        'borderBottomColor'
+      ];
+      
+      // Apply computed RGB values directly
+      styleProperties.forEach(prop => {
+        try {
+          const computedValue = computedStyle[prop as any];
+          if (computedValue && (computedValue.includes('rgb') || computedValue.includes('#'))) {
+            el.style[prop as any] = computedValue;
+          }
+        } catch (e) {
+          // Ignore errors
+        }
+      });
+    } catch (e) {
+      // Ignore errors on this element
+    }
+    
+    // Process all children recursively
+    Array.from(el.children).forEach(child => {
+      if (child instanceof HTMLElement) {
+        processElement(child);
+      }
+    });
+  };
+  
+  // Process the element and its children
+  processElement(element);
+  
+  // Clean up
+  document.body.removeChild(tempDiv);
+};
 
   // Helper functions for editor commands
   const toggleHeading = (level: 1 | 2 | 3) => {
@@ -2017,9 +2009,10 @@ const getTotalTextLength = (elements: HTMLElement[]): number => {
                   variant="outline"
                   onClick={exportToPdf}
                   disabled={exportingPdf}
+                  className={exportingPdf ? "opacity-50" : ""}
                 >
                   <FileDown className="h-4 w-4 mr-2" />
-                  Export as PDF
+                  {exportingPdf ? "Exporting..." : "Export as PDF"}
                 </Button>
               </div>
             </div>
