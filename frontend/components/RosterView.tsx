@@ -108,15 +108,15 @@ export default function RosterView({ employees, shifts, loading = false }: Roste
         <Card className="border-2 border-gray-200">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px] border-collapse border border-gray-300">
+              <table className="w-full border-collapse border border-gray-300">
                 {/* Table Header */}
                 <thead>
                   <tr className="border-b border-gray-300">
-                    <th className="text-left p-3 bg-white border-r border-gray-300 sticky left-0 z-10">Employee</th>
+                    <th className="text-left p-3 bg-white border-r border-gray-300 sticky left-0 z-10 min-w-[150px]">Employee</th>
                     {weekDays.map((day, index) => (
-                      <th key={index} className="p-2 text-center border-r border-gray-300 min-w-[120px]">
+                      <th key={index} className="p-2 text-center border-r border-gray-300 min-w-[130px]">
                         <div className="font-medium">{format(day, 'EEE')}</div>
-                        <div className="text-xs text-gray-500">Jul {format(day, 'd')}</div>
+                        <div className="text-xs text-gray-500 -mt-1">Jul {format(day, 'd')}</div>
                       </th>
                     ))}
                   </tr>
@@ -133,7 +133,7 @@ export default function RosterView({ employees, shifts, loading = false }: Roste
                   ) : (
                     partTimeEmployees.map((employee) => (
                       <tr key={employee.eid} className="border-b border-gray-300 hover:bg-gray-50">
-                        <td className="p-3 border-r border-gray-300 font-medium sticky left-0 bg-white z-10">
+                        <td className="p-3 border-r border-gray-300 font-medium sticky left-0 bg-white z-10 min-w-[150px]">
                           <div className="font-semibold">{employee.name}</div>
                         </td>
                         
@@ -185,3 +185,4 @@ export default function RosterView({ employees, shifts, loading = false }: Roste
     </div>
   );
 }
+

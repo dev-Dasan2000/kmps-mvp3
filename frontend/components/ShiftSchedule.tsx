@@ -181,7 +181,7 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
       </div>
       
       <Dialog open={rosterOpen} onOpenChange={setRosterOpen}>
-        <DialogContent className="sm:max-w-[90vw] w-[90vw] max-h-[90vh] flex flex-col" style={{ maxWidth: '90vw' }}>
+        <DialogContent className="sm:max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader className="pb-2 border-b">
             <DialogTitle className="text-xl flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
@@ -206,7 +206,7 @@ export default function ShiftSchedule({ shifts = [], loading = false, partTimeEm
               </button>
             </div>
           </div>
-          <div className="py-4">
+          <div className="flex-1 overflow-auto py-0">
             {viewMode === 'week' ? (
               <RosterView 
                 employees={partTimeEmployees} 
