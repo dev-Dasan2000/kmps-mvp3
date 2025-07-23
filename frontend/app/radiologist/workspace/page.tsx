@@ -108,7 +108,7 @@ const RadiologistWorkspace: React.FC = () => {
   // Add state for critical conditions
   const [criticalConditions, setCriticalConditions] = useState<CriticalCondition[]>([]);
   
-  const { user, isLoggedIn, accessToken } = useContext(AuthContext);
+  const { user, isLoggedIn, isLoadingAuth, apiClient } = useContext(AuthContext);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const dicomurlx = process.env.NEXT_PUBLIC_DICOM_URL;
   const radiologistId = user?.id;
@@ -132,7 +132,7 @@ const RadiologistWorkspace: React.FC = () => {
   const fetchStudyById = async (studyId: number) => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`${backendURL}/studies/${studyId}`);
+      const response = await apiClient.get(`/studies/${studyId}`);
       setSelectedStudy(response.data);
       
       // Fetch patient's critical conditions when a study is selected
@@ -151,7 +151,7 @@ const RadiologistWorkspace: React.FC = () => {
   // New function to fetch patient critical conditions
   const fetchPatientCriticalConditions = async (patientId: string) => {
     try {
-      const response = await axios.get(`${backendURL}/medical-history/${patientId}`);
+      const response = await apiClient.get(`/medical-history/${patientId}`);
 
       if (response.status === 200) {
         // Check for critical conditions
@@ -205,7 +205,7 @@ const RadiologistWorkspace: React.FC = () => {
 
     try {
       setIsSearching(true);
-      const response = await axios.get(`${backendURL}/studies/search/radiologist/${radiologistId}`, {
+      const response = await apiClient.get(`/studies/search/radiologist/${radiologistId}`, {
         params: { term }
       });
       setSearchResults(response.data);
@@ -265,6 +265,18 @@ const RadiologistWorkspace: React.FC = () => {
       return timeString; // Return as-is if parsing fails
     }
   };
+
+  useEffect(()=>{
+      if(isLoadingAuth) return;
+      if(!isLoggedIn){
+        toast.error("You are not logged in");
+        router.push("/")
+      }
+      else if(user.role != "radiologist"){
+        toast.error("Access Denied");
+        router.push("/")
+      }
+    },[isLoadingAuth]);
 
   return (
     <div className="p-6 space-y-6">

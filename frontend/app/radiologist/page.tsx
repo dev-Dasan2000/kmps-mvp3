@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import axios from 'axios';
 
 // Types based on the database structure
 interface Doctor {
@@ -87,9 +88,9 @@ const MedicalStudyInterface: React.FC = () => {
   const [studyToEdit, setStudyToEdit] = useState<Study | null>(null);
   const [expandedStudyId, setExpandedStudyId] = useState<number | null>(null);
   const dicomurlx = process.env.DICOM_URL;
-  
-  const {user, isLoadingAuth, isLoggedIn, accessToken} = useContext(AuthContext);
-  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL; 
+
+  const { user, isLoadingAuth, isLoggedIn, apiClient } = useContext(AuthContext);
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   const openDicomInNewTab = (dicomUrl: string) => {
     if (!dicomUrl) return;
@@ -134,34 +135,28 @@ const MedicalStudyInterface: React.FC = () => {
   // Helper to open or download report files based on file type
   const openReportFile = async (reportId: number) => {
     try {
-      // First fetch the report data to get the file URL and determine file type
-      const reportResponse = await fetch(`${backendURL}/reports/${reportId}`);
-      if (!reportResponse.ok) {
-        throw new Error(`Failed to fetch report: ${reportResponse.status}`);
-      }
-      
-      const reportData = await reportResponse.json();
+      // Fetch the report data using Axios
+      const reportResponse = await apiClient.get(`/reports/${reportId}`);
+      const reportData = reportResponse.data;
       const fileUrl = reportData.report_file_url;
-      
+
       if (!fileUrl) {
         toast.error('Report file URL is missing');
         return;
       }
-      
-      // Check file type based on extension
+
+      // Determine the file extension
       const fileExtension = fileUrl.split('.').pop()?.toLowerCase();
-      
+      const fullUrl = `${backendURL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
+
       if (fileExtension === 'pdf') {
-        // For PDF files, open in a new tab
-        window.open(`${backendURL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`, '_blank');
+        // Open PDF in a new tab
+        window.open(fullUrl, '_blank');
       } else {
-        // For Word documents and other files, trigger download
-        const fullUrl = `${backendURL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
-        
-        // Create a temporary anchor element to trigger download
+        // Trigger download for other file types
         const link = document.createElement('a');
         link.href = fullUrl;
-        link.setAttribute('download', ''); // This will force download instead of navigation
+        link.setAttribute('download', '');
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -174,7 +169,7 @@ const MedicalStudyInterface: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-    
+
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', {
@@ -223,9 +218,9 @@ const MedicalStudyInterface: React.FC = () => {
   // Helper to convert API study payload into UI-friendly shape
   const normalizeStudy = (raw: any): Study => {
     const doctorsList: Doctor[] = (raw.dentistAssigns ?? []).map((da: any) => ({
-      id: da.dentist?.dentist_id 
-          ? (typeof da.dentist.dentist_id === 'string' ? da.dentist.dentist_id : da.dentist.dentist_id.toString())
-          : (da.dentist_id ?? '0'),
+      id: da.dentist?.dentist_id
+        ? (typeof da.dentist.dentist_id === 'string' ? da.dentist.dentist_id : da.dentist.dentist_id.toString())
+        : (da.dentist_id ?? '0'),
       name: da.dentist?.name ?? da.dentist?.email ?? 'Dentist',
       specialization: da.dentist?.specialization ?? ''
     }));
@@ -250,55 +245,52 @@ const MedicalStudyInterface: React.FC = () => {
   useEffect(() => {
     if (studies.length > 0 && radiologistID) {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      
+
       // Calculate assigned today count (only for this radiologist)
       setAssignedTodayCount(calculateAssignedToday(studies));
-      
+
       // Calculate pending review count (only studies assigned to this radiologist AND at least one doctor)
-      const pendingReviewCount = studies.filter(study => 
-        study.radiologist_id?.toString() === radiologistID && 
-        study.doctors && 
+      const pendingReviewCount = studies.filter(study =>
+        study.radiologist_id?.toString() === radiologistID &&
+        study.doctors &&
         study.doctors.length > 0
       ).length;
       setTodayCount(pendingReviewCount);
-      
+
       // Calculate reported today count (studies with reports assigned to this radiologist)
       const reportedToday = studies.filter(study => {
-        return study.report_id && 
-               study.radiologist_id?.toString() === radiologistID;
+        return study.report_id &&
+          study.radiologist_id?.toString() === radiologistID;
       }).length;
-      
+
       setReportedTodayCount(reportedToday);
     }
   }, [studies, radiologistID]);
 
-  useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn){
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
       toast.error("You are not logged in");
       router.push("/")
     }
-    else if(user.role != "radiologist"){
+    else if (user.role != "radiologist") {
       toast.error("Access Denied");
       router.push("/")
     }
     if (user && user.id) {
       setRadiologistID(user.id);
     }
-  },[isLoadingAuth, user, isLoggedIn]);
+  }, [isLoadingAuth]);
 
   // New effect to fetch report counts by status
   useEffect(() => {
     const fetchReportCounts = async () => {
       if (!radiologistID) return;
-      
+
       try {
-        const response = await fetch(`${backendURL}/radiologists/${radiologistID}/study-counts`);
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-        
-        const counts = await response.json();
+        const response = await apiClient.get(`/radiologists/${radiologistID}/study-counts`);
+        const counts = response.data;
+
         setNotReportedCount(counts.notReported);
         setDraftCount(counts.draft);
         setFinalizedCount(counts.finalized);
@@ -316,41 +308,44 @@ const MedicalStudyInterface: React.FC = () => {
       const idsToFetch = patientIds.filter(id => !patients[id]);
       if (idsToFetch.length === 0) return;
 
-      // Fetch patients individually
       const fetchedPatients: Record<string, any> = {};
+
       for (const id of idsToFetch) {
         try {
-          const response = await fetch(`${backendURL}/patients/${id}`);
-          if (response.ok) {
-            const patient = await response.json();
-            fetchedPatients[patient.patient_id || id] = patient;
-          }
+          const response = await apiClient.get(`/patients/${id}`);
+          const patient = response.data;
+          fetchedPatients[patient.patient_id || id] = patient;
         } catch (error) {
           console.error(`Error fetching patient ${id}:`, error);
         }
       }
+
       setPatients(prev => ({ ...prev, ...fetchedPatients }));
     } catch (err) {
       console.error('Error in fetchPatients:', err);
     }
   };
 
+
   // Fetch studies from the backend
   useEffect(() => {
     const fetchStudies = async () => {
       setLoading(true);
       setError(null);
+
       try {
-        const response = await fetch(`${backendURL}/studies`);
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-        const data = await response.json();
+        const response = await apiClient.get(`/studies`);
+        const data = response.data;
+
         const normalized = data.map((s: any) => normalizeStudy(s));
-        // Keep only studies assigned to the radiologist in the URL
-        const filtered = radiologistID ? normalized.filter((s: Study) => s.radiologist_id?.toString() === radiologistID) : normalized;
+
+        // Filter studies assigned to the radiologist (if applicable)
+        const filtered = radiologistID
+          ? normalized.filter((s: Study) => s.radiologist_id?.toString() === radiologistID)
+          : normalized;
+
         setStudies(filtered);
-        
+
         // Extract unique patient IDs and fetch their details
         const patientIdsSet = new Set<string>();
         normalized.forEach((s: Study) => {
@@ -358,10 +353,12 @@ const MedicalStudyInterface: React.FC = () => {
             patientIdsSet.add(s.patient_id);
           }
         });
+
         const patientIds = Array.from(patientIdsSet);
         if (patientIds.length > 0) {
           fetchPatients(patientIds);
         }
+
       } catch (err) {
         console.error('Failed to fetch studies:', err);
         setError('Failed to load studies. Please try again later.');
@@ -377,16 +374,13 @@ const MedicalStudyInterface: React.FC = () => {
   useEffect(() => {
     const fetchRecentStudies = async () => {
       if (!radiologistID) return;
-      
+
       setLoading(true);
       setError(null);
+
       try {
-        const response = await fetch(`${backendURL}/radiologists/${radiologistID}/recent-studies`);
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-        const data = await response.json();
-        setRecentStudies(data);
+        const response = await apiClient.get(`/radiologists/${radiologistID}/recent-studies`);
+        setRecentStudies(response.data);
       } catch (err) {
         console.error('Failed to fetch recent studies:', err);
         setError('Failed to load recent studies. Please try again later.');
@@ -402,28 +396,24 @@ const MedicalStudyInterface: React.FC = () => {
     const fetchStaff = async () => {
       try {
         // Radiologists
-        const radRes = await fetch(`${backendURL}/radiologists`);
-        if (radRes.ok) {
-          const data = await radRes.json();
-          const mapped = data.map((r: any) => ({
-            id: r.radiologist_id ?? r.id,
-            name: r.name ?? `${r.first_name ?? ''} ${r.last_name ?? ''}`.trim(),
-            specialization: r.specialization ?? r.email ?? ''
-          }));
-          setRadiologists(mapped);
-        }
+        const radRes = await apiClient.get(`/radiologists`);
+        const radiologistsData = radRes.data;
+        const mappedRadiologists = radiologistsData.map((r: any) => ({
+          id: r.radiologist_id ?? r.id,
+          name: r.name ?? `${r.first_name ?? ''} ${r.last_name ?? ''}`.trim(),
+          specialization: r.specialization ?? r.email ?? ''
+        }));
+        setRadiologists(mappedRadiologists);
 
         // Doctors (dentists)
-        const docRes = await fetch(`${backendURL}/dentists`);
-        if (docRes.ok) {
-          const data = await docRes.json();
-          const mapped = data.map((d: any) => ({
-            id: d.dentist_id ?? d.id,
-            name: d.name ?? `${d.first_name ?? ''} ${d.last_name ?? ''}`.trim(),
-            specialization: d.specialization ?? d.email ?? ''
-          }));
-          setDoctors(mapped);
-        }
+        const docRes = await apiClient.get(`/dentists`);
+        const dentistsData = docRes.data;
+        const mappedDoctors = dentistsData.map((d: any) => ({
+          id: d.dentist_id ?? d.id,
+          name: d.name ?? `${d.first_name ?? ''} ${d.last_name ?? ''}`.trim(),
+          specialization: d.specialization ?? d.email ?? ''
+        }));
+        setDoctors(mappedDoctors);
       } catch (err) {
         console.error('Error fetching staff:', err);
       }
@@ -487,24 +477,16 @@ const MedicalStudyInterface: React.FC = () => {
         doctor_ids: assignmentForm.doctor_ids
       };
 
-      const res = await fetch(`${backendURL}/studies/${selectedStudyId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
+      const res = await apiClient.put(`/studies/${selectedStudyId}`, payload);
 
-      if (!res.ok) {
-        throw new Error('Failed to assign staff');
-      }
-
-      const updatedRaw = await res.json();
+      const updatedRaw = res.data;
       const updatedStudy: Study = normalizeStudy(updatedRaw);
 
-      setStudies(prev => prev.map(study =>
-        study.study_id === updatedStudy.study_id ? updatedStudy : study
-      ));
+      setStudies(prev =>
+        prev.map(study =>
+          study.study_id === updatedStudy.study_id ? updatedStudy : study
+        )
+      );
 
       // Close modal and reset form
       setIsAssignModalOpen(false);
@@ -518,6 +500,7 @@ const MedicalStudyInterface: React.FC = () => {
       toast.error('Error assigning staff');
     }
   };
+
 
   const handleEditStudy = (studyId: number) => {
     const study = studies.find(s => s.study_id === studyId);
@@ -550,16 +533,13 @@ const MedicalStudyInterface: React.FC = () => {
         return;
       }
 
-      // Only handle report file if a new one was uploaded
       let reportFileUrl = '';
+
       // If there's an existing report, get its file URL
       if (studyToEdit.report_id) {
         try {
-          const reportResponse = await fetch(`${backendURL}/reports/${studyToEdit.report_id}`);
-          if (reportResponse.ok) {
-            const reportData = await reportResponse.json();
-            reportFileUrl = reportData.report_file_url || '';
-          }
+          const reportResponse = await apiClient.get(`/reports/${studyToEdit.report_id}`);
+          reportFileUrl = reportResponse.data.report_file_url || '';
         } catch (error) {
           console.error('Error fetching existing report:', error);
         }
@@ -567,39 +547,24 @@ const MedicalStudyInterface: React.FC = () => {
 
       if (newStudy.report_files.length > 0) {
         try {
-          // Delete the old report file if it exists
+          // Delete old report file if exists
           if (reportFileUrl) {
-            try {
-              const fileName = reportFileUrl.split('/').pop();
-              if (fileName) {
-                const deleteResponse = await fetch(`${backendURL}/files/${fileName}`, {
-                  method: 'DELETE'
-                });
-
-                if (!deleteResponse.ok) {
-                  console.warn(`Warning: Could not delete old report file: ${deleteResponse.status}`);
-                }
+            const fileName = reportFileUrl.split('/').pop();
+            if (fileName) {
+              try {
+                await apiClient.delete(`/files/${fileName}`);
+              } catch (deleteError: any) {
+                console.warn(`Warning: Could not delete old report file: ${deleteError.response?.status}`);
               }
-            } catch (error) {
-              console.error('Error deleting old report file:', error);
             }
           }
 
-          // Upload the new report file
+          // Upload new report file
           const reportFormData = new FormData();
           reportFormData.append('file', newStudy.report_files[0]);
 
-          const reportResponse = await fetch(`${backendURL}/files`, {
-            method: 'POST',
-            body: reportFormData
-          });
-
-          if (!reportResponse.ok) {
-            throw new Error(`Report file upload failed with status: ${reportResponse.status}`);
-          }
-
-          const reportData = await reportResponse.json();
-          reportFileUrl = reportData.url;
+          const uploadRes = await apiClient.post(`/files`, reportFormData);
+          reportFileUrl = uploadRes.data.url;
           console.log('Report file uploaded successfully:', reportFileUrl);
 
           // Update or create report
@@ -611,50 +576,37 @@ const MedicalStudyInterface: React.FC = () => {
           const reportPayload = {
             report_file_url: reportFileUrl,
             status: reportStatus,
-            study_id: studyToEdit.study_id,  // use the original study ID
+            study_id: studyToEdit.study_id
           };
 
-          const reportMethod = studyToEdit.report_id ? 'PUT' : 'POST';
-          const reportEndpoint = studyToEdit.report_id
-            ? `${backendURL}/reports/${studyToEdit.report_id}`
-            : `${backendURL}/reports`;
-
-          const reportUpdateResponse = await fetch(reportEndpoint, {
-            method: reportMethod,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(reportPayload)
-          });
-
-          if (!reportUpdateResponse.ok) {
-            console.error(`Report ${reportMethod} failed with status: ${reportUpdateResponse.status}`);
+          let reportUpdateRes;
+          if (studyToEdit.report_id) {
+            reportUpdateRes = await apiClient.put(`/reports/${studyToEdit.report_id}`, reportPayload);
           } else {
-            const reportUpdateData = await reportUpdateResponse.json();
-            console.log(`Report ${reportMethod === 'POST' ? 'created' : 'updated'} successfully:`, reportUpdateData);
-
-            // Refetch the study to update the UI
-            const studyResponse = await fetch(`${backendURL}/studies/${studyToEdit.study_id}`);
-            if (studyResponse.ok) {
-              const studyData = await studyResponse.json();
-              const normalizedStudy = normalizeStudy(studyData);
-
-              setStudies(prev => prev.map(study =>
-                study.study_id === normalizedStudy.study_id ? normalizedStudy : study
-              ));
-            }
+            reportUpdateRes = await apiClient.post(`/reports`, reportPayload);
           }
+
+          const reportUpdateData = reportUpdateRes.data;
+          console.log(`Report ${studyToEdit.report_id ? 'updated' : 'created'} successfully:`, reportUpdateData);
+
+          // Refetch updated study
+          const studyRes = await apiClient.get(`/studies/${studyToEdit.study_id}`);
+          const normalizedStudy = normalizeStudy(studyRes.data);
+
+          setStudies(prev =>
+            prev.map(study =>
+              study.study_id === normalizedStudy.study_id ? normalizedStudy : study
+            )
+          );
         } catch (error) {
           console.error('Error uploading report file:', error);
-          // Report is optional, so we can continue without it
           console.warn('Continuing without report file');
         }
       }
 
-      // Show success message
       toast.success('Study updated successfully');
 
-      // Reset state and close modal
+      // Reset form and close modal
       setIsAddStudyOpen(false);
       setIsEditMode(false);
       setStudyToEdit(null);
@@ -848,17 +800,17 @@ const MedicalStudyInterface: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${study.modality === 'CT' ? 'bg-purple-100 text-purple-800' : 
-                          study.modality === 'MRI' ? 'bg-indigo-100 text-indigo-800' : 
-                          'bg-green-100 text-green-800'}`}>
+                        ${study.modality === 'CT' ? 'bg-purple-100 text-purple-800' :
+                          study.modality === 'MRI' ? 'bg-indigo-100 text-indigo-800' :
+                            'bg-green-100 text-green-800'}`}>
                         {study.modality}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${study.report?.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                          study.report?.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-gray-100 text-gray-800'}`}>
+                        ${study.report?.status === 'completed' ? 'bg-green-100 text-green-800' :
+                          study.report?.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'}`}>
                         {study.report?.status ? study.report.status.replace('_', ' ') : 'Not Started'}
                       </span>
                     </td>
@@ -903,9 +855,9 @@ const MedicalStudyInterface: React.FC = () => {
                       <h3 className="text-lg leading-6 font-medium text-gray-900">{study.patient_name}</h3>
                     </div>
                     <span className={`px-2.5 py-0.5 inline-flex text-xs leading-4 font-medium rounded-full 
-                      ${study.modality === 'CT' ? 'bg-purple-100 text-purple-800' : 
-                        study.modality === 'MRI' ? 'bg-indigo-100 text-indigo-800' : 
-                        'bg-green-100 text-green-800'}`}>
+                      ${study.modality === 'CT' ? 'bg-purple-100 text-purple-800' :
+                        study.modality === 'MRI' ? 'bg-indigo-100 text-indigo-800' :
+                          'bg-green-100 text-green-800'}`}>
                       {study.modality}
                     </span>
                   </div>
@@ -913,11 +865,10 @@ const MedicalStudyInterface: React.FC = () => {
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       {study.patient_id}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      study.report?.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                      study.report?.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${study.report?.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      study.report?.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
                       {study.report?.status ? study.report.status.replace('_', ' ') : 'Not Started'}
                     </span>
                   </div>
