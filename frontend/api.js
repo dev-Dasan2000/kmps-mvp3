@@ -21,14 +21,18 @@ export const createAPIClient = ({ accessToken, setAccessToken, setUser }) => {
     (error) => Promise.reject(error)
   );
 
-  // Handle 401 and refresh token
+  // Handle 401 and 403 token refresh
   api.interceptors.response.use(
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
 
+      const isTokenExpired403 =
+        error.response?.status === 403 &&
+        (error.response?.data === 'Invalid token' || error.response?.data?.error === 'Invalid token');
+
       if (
-        error.response?.status === 401 &&
+        (error.response?.status === 401 || isTokenExpired403) &&
         !originalRequest._retry
       ) {
         originalRequest._retry = true;
@@ -61,6 +65,10 @@ export const createAPIClient = ({ accessToken, setAccessToken, setUser }) => {
 
           return Promise.reject(refreshError);
         }
+      }
+
+      if (error.response?.status === 403 && !isTokenExpired403) {
+        toast.error('You do not have permission to perform this action.');
       }
 
       return Promise.reject(error);

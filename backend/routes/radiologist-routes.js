@@ -201,7 +201,7 @@ router.get('/:radiologist_id/study-counts',  authenticateToken,  async (req, res
 });
 
 // Create new radiologist
-router.post('/',  authenticateToken,  async (req, res) => {
+router.post('/',  async (req, res) => {
   try {
     const { name, email, password, phone_number, profile_picture } = req.body;
 

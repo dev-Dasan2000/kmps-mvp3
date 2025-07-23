@@ -588,7 +588,7 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm font-medium text-gray-600">File Types:</span>
-                        <span className="text-sm text-gray-900">{selectedOrder?.file_types || 'Unknown file types'}</span>
+                        <span className="text-sm text-gray-900">{selectedOrder?.file_types}</span>
                       </div>
                     </div>
                   </div>
@@ -692,7 +692,7 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                             </span>
                           </div>
                           <a
-                            href={file.url}
+                            href={backendURL + file.url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1.5 rounded-md bg-blue-50 hover:bg-blue-100 transition-colors duration-150 flex items-center"

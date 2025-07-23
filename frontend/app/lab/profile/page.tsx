@@ -8,16 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Edit3, Save, X, Phone, Mail, MapPin, Stethoscope, Building2 } from 'lucide-react';
+import { Edit3, Save, X, Phone, Mail, MapPin, Stethoscope, Building2, Lock } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context'
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
 import axios from 'axios';
 
 interface LabProfile {
   lab_id: string;
   name: string;
-  password: string;
   contact_person: string;
   contact_number: string;
   email: string;
@@ -33,7 +33,6 @@ const LabProfilePage: React.FC = () => {
   const [originalData, setOriginalData] = useState<LabProfile>({
     lab_id: '',
     name: '',
-    password: '',
     contact_person: '',
     contact_number: '',
     email: '',
@@ -43,7 +42,6 @@ const LabProfilePage: React.FC = () => {
   const [formData, setFormData] = useState<LabProfile>({
     lab_id: '',
     name: '',
-    password: '',
     contact_person: '',
     contact_number: '',
     email: '',
@@ -218,20 +216,23 @@ const LabProfilePage: React.FC = () => {
                     )}
                   </div>
 
-                  {isEditing && (
-                    <div>
-                      <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  {/* Password Section */}
+                  <div>
+                    <div className="flex items-center space-x-3 mb-2">
+                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <Lock className="w-4 h-4" />
                         Password
                       </Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={formData?.password}
-                        onChange={(e) => handleInputChange('password', e.target.value)}
-                        className="mt-1"
-                      />
+                      <ChangePasswordDialog userType="lab" />
                     </div>
-                  )}
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-1">
+                        <div className="text-gray-400 text-sm sm:text-base tracking-wider">
+                          ••••••••••••••••••••••••••••••••
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

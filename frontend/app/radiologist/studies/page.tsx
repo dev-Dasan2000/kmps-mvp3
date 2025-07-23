@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { ChatActionButton, ChatModal } from '@/components/ChatModal';
-import socket from '@/hooks/socket';
 
 // Types based on the database structure
 interface Doctor {
@@ -85,10 +84,9 @@ const MedicalStudyInterface: React.FC = () => {
   const [studyToEdit, setStudyToEdit] = useState<Study | null>(null);
   const [expandedStudyId, setExpandedStudyId] = useState<number | null>(null);
   const dicomurlx = process.env.DICOM_URL;
-
-
-  const { user, isLoadingAuth, isLoggedIn, apiClient } = useContext(AuthContext);
-  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  
+  const {user, isLoadingAuth, isLoggedIn, apiClient} = useContext(AuthContext);
+  const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL; 
   const searchParams = useSearchParams();
 
   const openDicomInNewTab = (dicomUrl: string) => {
@@ -137,24 +135,24 @@ const MedicalStudyInterface: React.FC = () => {
       // First fetch the report data to get the file URL and determine file type
       const reportResponse = await apiClient.get(`/reports/${reportId}`);
       const reportData = reportResponse.data;
-
+      
       const fileUrl = reportData.report_file_url;
-
+      
       if (!fileUrl) {
         toast.error('Report file URL is missing');
         return;
       }
-
+      
       // Check file type based on extension
       const fileExtension = fileUrl.split('.').pop()?.toLowerCase();
-
+      
       if (fileExtension === 'pdf') {
         // For PDF files, open in a new tab
         window.open(`${backendURL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`, '_blank');
       } else {
         // For Word documents and other files, trigger download
         const fullUrl = `${backendURL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`;
-
+        
         // Create a temporary anchor element to trigger download
         const link = document.createElement('a');
         link.href = fullUrl;
@@ -171,7 +169,7 @@ const MedicalStudyInterface: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
-
+    
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('en-US', {
@@ -210,16 +208,14 @@ const MedicalStudyInterface: React.FC = () => {
   const [radiologists, setRadiologists] = useState<Radiologist[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [patients, setPatients] = useState<Record<string, any>>({});
-  const [hasNewNote, setHasNewNote] = useState(false);
-  const [newNoteStudyID, setNewNoteStudyID] = useState<number | null>(null);
   const router = useRouter();
 
   // Helper to convert API study payload into UI-friendly shape
   const normalizeStudy = (raw: any): Study => {
     const doctorsList: Doctor[] = (raw.dentistAssigns ?? []).map((da: any) => ({
-      id: da.dentist?.dentist_id
-        ? (typeof da.dentist.dentist_id === 'string' ? da.dentist.dentist_id : da.dentist.dentist_id.toString())
-        : (da.dentist_id ?? '0'),
+      id: da.dentist?.dentist_id 
+          ? (typeof da.dentist.dentist_id === 'string' ? da.dentist.dentist_id : da.dentist.dentist_id.toString())
+          : (da.dentist_id ?? '0'),
       name: da.dentist?.name ?? da.dentist?.email ?? 'Dentist',
       specialization: da.dentist?.specialization ?? ''
     }));
@@ -248,40 +244,40 @@ const MedicalStudyInterface: React.FC = () => {
   useEffect(() => {
     if (studies.length > 0 && radiologistID) {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-
+      
       // Calculate assigned today count (only for this radiologist)
       setAssignedTodayCount(calculateAssignedToday(studies));
-
+      
       // Calculate pending review count (only studies assigned to this radiologist AND at least one doctor)
-      const pendingReviewCount = studies.filter(study =>
-        study.radiologist_id?.toString() === radiologistID &&
-        study.doctors &&
+      const pendingReviewCount = studies.filter(study => 
+        study.radiologist_id?.toString() === radiologistID && 
+        study.doctors && 
         study.doctors.length > 0
       ).length;
       setTodayCount(pendingReviewCount);
-
+      
       // Calculate reported today count (studies with reports assigned to this radiologist)
       const reportedToday = studies.filter(study => {
-        return study.report_id &&
-          study.radiologist_id?.toString() === radiologistID;
+        return study.report_id && 
+               study.radiologist_id?.toString() === radiologistID;
       }).length;
-
+      
       setReportedTodayCount(reportedToday);
     }
   }, [studies, radiologistID]);
 
-  useEffect(() => {
-    if (isLoadingAuth) return;
-    if (!isLoggedIn) {
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
       toast.error("You are not logged in");
       router.push("/")
     }
-    else if (user.role != "radiologist") {
+    else if(user.role != "radiologist"){
       toast.error("Access Denied");
       router.push("/")
     }
     setRadiologistID(user.id)
-  }, [isLoadingAuth]);
+  },[isLoadingAuth]);
 
   useEffect(() => {
     const searchFromQuery = searchParams?.get('search');
@@ -290,23 +286,6 @@ const MedicalStudyInterface: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-
-  useEffect(() => {
-    socket.on("note_created", (newNote) => {
-      setHasNewNote(true);
-      setNewNoteStudyID(newNote.study_id);
-    });
-
-    socket.on("note_updated", (updatedNote) => {
-
-    });
-
-    return () => {
-      socket.off("note_created");
-      socket.off("note_updated");
-      socket.off("note_deleted");
-    };
-  }, []);
 
   // Function to fetch patient data
   const fetchPatients = async (patientIds: string[]) => {
@@ -334,7 +313,7 @@ const MedicalStudyInterface: React.FC = () => {
   // Fetch studies from the backend
   useEffect(() => {
     const fetchStudies = async () => {
-      if (radiologistID == "") return;
+      if(radiologistID == "") return;
       setLoading(true);
       setError(null);
       try {
@@ -344,7 +323,7 @@ const MedicalStudyInterface: React.FC = () => {
         // Keep only studies assigned to the radiologist in the URL
         const filtered = radiologistID ? normalized.filter((s: Study) => s.radiologist_id?.toString() === radiologistID) : normalized;
         setStudies(filtered);
-
+        
         // Extract unique patient IDs and fetch their details
         const studyPatientIds: string[] = [];
         normalized.forEach((s: Study) => {
@@ -352,7 +331,7 @@ const MedicalStudyInterface: React.FC = () => {
             studyPatientIds.push(s.patient_id);
           }
         });
-
+        
         const uniquePatientIds = Array.from(new Set(studyPatientIds));
         fetchPatients(uniquePatientIds);
       } catch (err) {
@@ -731,7 +710,7 @@ const MedicalStudyInterface: React.FC = () => {
                                   <p className="text-xs text-gray-600"><span className="font-medium">Description:</span> {study.description || 'No description'}</p>
                                 </div>
                               </div>
-
+                    
                               {/* Staff Assignment */}
                               <div className="space-y-2">
                                 <h4 className="font-medium text-sm text-gray-700">Staff Assignment</h4>
@@ -746,7 +725,7 @@ const MedicalStudyInterface: React.FC = () => {
                                   </p>
                                 </div>
                               </div>
-
+                    
                               {/* Actions */}
                               <div className="space-y-2">
                                 <h4 className="font-medium text-sm text-gray-700">Actions</h4>
@@ -761,7 +740,7 @@ const MedicalStudyInterface: React.FC = () => {
                                       <ScanLine className="w-3 h-3" /> View DICOM
                                     </button>
                                   )}
-
+                    
                                   {/* Modified button for report or workspace */}
                                   {study.report_id ? (
                                     <button
@@ -795,7 +774,7 @@ const MedicalStudyInterface: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                      </tr>
+                      </tr>                                    
                     )}
                   </React.Fragment>
                 ))}
@@ -824,17 +803,12 @@ const MedicalStudyInterface: React.FC = () => {
                     >
                       <UserPlus className="w-4 h-4" />
                     </button>
-                    <div
-                      className={hasNewNote && newNoteStudyID === study.study_id ? 'text-red-500 animate-pulse' : ''}
-                    >
-                      <ChatActionButton
-
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenChatStudyId(study.study_id);
-                        }}
-                      />
-                    </div>
+                    <ChatActionButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenChatStudyId(study.study_id);
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="text-sm text-gray-600 space-y-1">
@@ -860,7 +834,7 @@ const MedicalStudyInterface: React.FC = () => {
                         <ScanLine className="w-3 h-3" /> View DICOM
                       </button>
                     )}
-
+      
                     {/* Modified mobile button for report or workspace */}
                     {study.report_id ? (
                       <button
