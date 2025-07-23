@@ -85,14 +85,8 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
     setIsVerifyingPassword(true);
     try {
       const response = await apiClient.post(`/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: user?.id,
-          password: formData.currentPassword,
-        }),
+        id: user?.id,
+        password: formData.currentPassword,
       });
 
       if (!response.data.successful) {
