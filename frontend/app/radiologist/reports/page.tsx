@@ -666,6 +666,7 @@ export default function ReportEditorPage() {
         setSaving(false);
         setSaveProgress(0);
       }, 1000);
+      router.push(`/radiologist/workspace?study_id=${studyData.study_id}`);
     }
   };
 
