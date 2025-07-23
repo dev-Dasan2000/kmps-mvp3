@@ -69,7 +69,7 @@ interface NewAppointmentFormProps {
   patientSearchTerm: string;
   setPatientSearchTerm: (value: string) => void;
   patientSearchResults: any[];
-  setPatientSearchResults: (value: any[]) => void;
+  setPatientSearchResults: React.Dispatch<React.SetStateAction<any[]>>;
   showPatientDropdown: boolean;
   setShowPatientDropdown: (value: boolean) => void;
   date: string;
@@ -112,7 +112,7 @@ const NewAppointmentForm = ({
   patientErrorMessage,
   setPatientErrorMessage
 }: NewAppointmentFormProps) => (
-  <DialogContent className=" max-h-screen overflow-y-auto">
+  <DialogContent className="max-h-screen overflow-y-auto">
     <DialogHeader>
       <DialogTitle>New Appointment</DialogTitle>
     </DialogHeader>
@@ -127,21 +127,28 @@ const NewAppointmentForm = ({
             const value = e.target.value;
             setPatientSearchTerm(value);
             
-            // Reset patientId if the input field is cleared or modified
-            if (!value || (patient_id && !value.includes(patient_id))) {
+            if (!value) {
+              // Clear everything if input is empty
+              setPatient_id('');
+              setPatientValidated(true);
+              setPatientErrorMessage('');
+              setPatientSearchResults(prevResults => []);
+              setShowPatientDropdown(false);
+            } else if (patient_id && !value.includes(patient_id)) {
+              // Reset validation if user modifies a selected patient
               setPatient_id('');
               setPatientValidated(false);
-              if (value.length > 0) {
-                setPatientErrorMessage('Please select a patient from the dropdown list');
-              } else {
-                setPatientErrorMessage('');
-              }
+              setPatientErrorMessage('Please select a patient from the dropdown list');
             }
             
-            setShowPatientDropdown(true);
+            if (value.length >= 2) {
+              setShowPatientDropdown(true);
+            }
           }}
           onFocus={() => {
-            setShowPatientDropdown(true);
+            if (patientSearchTerm.length >= 2) {
+              setShowPatientDropdown(true);
+            }
             if (!patient_id && patientSearchTerm.length > 0) {
               setPatientValidated(false);
               setPatientErrorMessage('Please select a patient from the dropdown list');
@@ -149,7 +156,6 @@ const NewAppointmentForm = ({
           }}
           onBlur={() => setTimeout(() => {
             setShowPatientDropdown(false);
-            // Check if a valid patient was selected
             if (!patient_id && patientSearchTerm.length > 0) {
               setPatientValidated(false);
               setPatientErrorMessage('Please select a patient from the dropdown list');
@@ -170,6 +176,7 @@ const NewAppointmentForm = ({
                   setShowPatientDropdown(false);
                   setPatientValidated(true);
                   setPatientErrorMessage('');
+                  setPatientSearchResults(prevResults => []);
                 }}
               >
                 <div className="font-medium">{patient.name}</div>
@@ -348,9 +355,15 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const [dentistWorkInfo, setDentistWorkInfo] = useState<DentistWorkInfo>();
   const [unavailableSlots, setUnavailableSlots] = useState<{ start: string; end: string }[]>([]);
 
+  // Patient search states
+  const [patientSearchTerm, setPatientSearchTerm] = useState<string>("");
+  const [patientSearchResults, setPatientSearchResults] = useState<any[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState<boolean>(false);
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout>();
+
   // Patient validation states
-  const [patientValidated, setPatientValidated] = useState(true);
-  const [patientErrorMessage, setPatientErrorMessage] = useState('');
+  const [patientValidated, setPatientValidated] = useState<boolean>(true);
+  const [patientErrorMessage, setPatientErrorMessage] = useState<string>('');
 
   const router = useRouter();
 
@@ -366,46 +379,53 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
   const [blockTimeFrom, setBlockTimeFrom] = useState("");
   const [blockTimeTo, setBlockTimeTo] = useState("");
 
-  // Patient search states
-  const [patientSearchTerm, setPatientSearchTerm] = useState("");
-  const [patientSearchResults, setPatientSearchResults] = useState<any[]>([]);
-  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
-  const searchTimeoutRef = React.useRef<NodeJS.Timeout>();
-
-  // Search patients function
+  // Update the searchPatients function
   const searchPatients = useCallback(async (term: string) => {
     if (!term || term.length < 2) {
       setPatientSearchResults([]);
       setShowPatientDropdown(false);
+      setPatientErrorMessage('');
+      setPatientValidated(true);
       return;
     }
+
     try {
       const response = await apiClient.get(`/patients/search?q=${encodeURIComponent(term)}`);
       if (response.status === 200) {
         const data = response.data;
-        setPatientSearchResults(data);
-        setShowPatientDropdown(true);
         
-        // If no patients were found matching the search term
-        if (data.length === 0 && term.length > 2) {
+        if (data.length === 0) {
+          setPatientSearchResults([]);
           setPatientValidated(false);
-          setPatientErrorMessage('No matching patients found. Please select a patient from the dropdown.');
+          setPatientErrorMessage('No matching patients found. Please try a different search term.');
         } else {
-          setPatientValidated(true);
-          setPatientErrorMessage('');
+          setPatientSearchResults(data);
+          setShowPatientDropdown(true);
+          // Only clear error if we haven't selected a patient yet
+          if (!patient_id) {
+            setPatientErrorMessage('');
+          }
         }
       }
     } catch (err) {
       console.error('Error searching patients:', err);
       setPatientSearchResults([]);
       setShowPatientDropdown(false);
+      setPatientErrorMessage('Error searching for patients');
+      setPatientValidated(false);
     }
-  }, [apiClient]);
+  }, [apiClient, patient_id]);
 
-  // Debounced search effect
+  // Update the useEffect for search
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Don't search if we have a selected patient
+    if (patient_id) {
+      setPatientSearchResults([]);
+      return;
     }
 
     if (patientSearchTerm.length >= 2) {
@@ -415,6 +435,8 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
     } else {
       setPatientSearchResults([]);
       setShowPatientDropdown(false);
+      setPatientErrorMessage('');
+      setPatientValidated(patientSearchTerm.length === 0);
     }
 
     return () => {
@@ -422,13 +444,13 @@ export default function DentistSchedulePage({ params }: DentistScheduleProps) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [patientSearchTerm, searchPatients]);
+  }, [patientSearchTerm, searchPatients, patient_id]);
 
   // Reset search when modal is opened/closed
   useEffect(() => {
     if (!isNewAppointmentOpen) {
       setPatientSearchTerm("");
-      setPatientSearchResults([]);
+      setPatientSearchResults(prevResults => []);
       setShowPatientDropdown(false);
       setPatient_id("");
       setDate("");
