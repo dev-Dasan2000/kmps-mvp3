@@ -60,7 +60,6 @@ router.post('/', async (req, res) => {
       return res.status(409).json({ message: "Email Already Exists" });
     }
 
-    // Generate unique lab_id like: knrslab001, knrslab002, ...
     let labSuffix = 1;
     let lab_id;
     let isUnique = false;
