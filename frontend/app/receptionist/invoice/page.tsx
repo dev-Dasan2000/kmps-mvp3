@@ -569,9 +569,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     <div className="flex-1 min-h-screen bg-gray-50 p-6 overflow-auto">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 ">
           <div>
-            <h1 className="text-2xl sm:text-3xl mt-7 md:mt-0 font-bold text-gray-900">Invoice & Billing Management</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Invoice & Billing Management</h1>
             <p className="text-gray-600 mt-1 text-sm sm:text-base">
               {userRole === 'admin' && 'Full access to all invoicing features'}
               {userRole === 'dentist' && 'Create and manage invoices for your patients'}
@@ -753,6 +753,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     <span>Rs.{invoice.total_amount.toFixed(2)}</span>
                   </div>
                   <Button
+                  onClick={() => { handleDownload(invoice.invoice_id) }}
                     variant="outline"
                     size="sm"
                     className="text-xs flex items-center gap-1 h-8"
@@ -1449,6 +1450,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       Close
                     </Button>
                     <Button
+                      onClick={() => handleDownload(selectedInvoice.invoice_id)}
                       className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2 px-5"
                     >
                       <Download size={16} />
