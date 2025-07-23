@@ -111,69 +111,248 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     services: []
   });
 
-  const handleDownload = async (invoice_id: number) => {
+  // Add loading states for each action
+  const [viewLoading, setViewLoading] = useState<number | null>(null);
+  const [editLoading, setEditLoading] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null);
+  const [downloadLoading, setDownloadLoading] = useState<number | null>(null);
+
+  // Add state for delete dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<number | null>(null);
+
+  // Create a safe action button component to prevent page reloads
+  const ActionButton: React.FC<{
+    onClick?: (e: React.MouseEvent) => void;
+    children: React.ReactNode;
+    className?: string;
+    title?: string;
+    variant?: 'link' | 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost';
+    size?: 'default' | 'sm' | 'lg' | 'icon';
+    disabled?: boolean;
+    type?: 'button' | 'submit' | 'reset';
+  }> = ({ onClick, children, className, title, variant = 'ghost', size, disabled, type = 'button' }) => {
+    const handleClick = (e: React.MouseEvent) => {
+      if (type !== 'submit') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      if (onClick) {
+        onClick(e);
+      }
+    };
+
+    return (
+      <Button
+        type={type}
+        variant={variant}
+        size={size}
+        className={className}
+        title={title}
+        onClick={handleClick}
+        disabled={disabled}
+      >
+        {children}
+      </Button>
+    );
+  };
+
+  // Update the action handlers to accept event parameter
+  const handleViewInvoice = async (e: React.MouseEvent, invoice: Invoice) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     try {
-      // First, get the invoice
-      const invoice = invoices.find((inv) => inv.invoice_id === invoice_id);
-      if (!invoice) return;
+      setViewLoading(invoice.invoice_id);
+
+      // Fetch the services directly from the invoice-service-assign endpoint
+      const response = await apiClient.get(`/invoice-service-assign/${invoice.invoice_id}`);
+
+      // Create a copy of the invoice with updated services
+      const invoiceWithServices = {
+        ...invoice,
+        services: response.data.map((item: any) => ({
+          ...item,
+          services: item.service
+        }))
+      };
+
+      setSelectedInvoice(invoiceWithServices);
+      setViewInvoiceDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching invoice services:', error);
+      setSelectedInvoice(invoice);
+      setViewInvoiceDialogOpen(true);
+    } finally {
+      setViewLoading(null);
+    }
+  };
+
+  const handleEditInvoice = async (e: React.MouseEvent, invoice: Invoice) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      setEditLoading(invoice.invoice_id);
+      const response = await apiClient.get(`/invoice-service-assign/${invoice.invoice_id}`);
+      const services = response.data.map((item: any) => item.service_id);
+      const invoiceWithServices = {
+        ...invoice,
+        services: response.data.map((item: any) => ({
+          ...item,
+          services: item.service
+        }))
+      };
+      setFormData({
+        patient_id: invoice.patient_id,
+        dentist_id: invoice.dentist_id,
+        payment_type: invoice.payment_type,
+        tax_rate: invoice.tax_rate,
+        lab_cost: invoice.lab_cost,
+        discount: invoice.discount,
+        date: invoice.date.toString().split('T')[0],
+        note: invoice.note || '',
+        services
+      });
+      setSelectedInvoice(invoiceWithServices);
+      setIsEditingInvoice(true);
+    } catch (error) {
+      console.error('Error fetching invoice services for edit:', error);
+      setIsEditingInvoice(true);
+    } finally {
+      setEditLoading(null);
+    }
+  };
+
+  // Update handleDeleteInvoice to open dialog
+  const handleDeleteInvoice = async (e: React.MouseEvent, invoiceId: number) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    // Open the delete confirmation dialog and set the invoice to delete
+    setInvoiceToDelete(invoiceId);
+    setDeleteDialogOpen(true);
+  };
+
+  // Add confirmDelete function
+  const confirmDelete = async () => {
+    if (!invoiceToDelete) return;
+
+    setDeleteLoading(invoiceToDelete);
+    try {
+      await apiClient.delete(`/invoices/${invoiceToDelete}`);
+      setInvoices(prevInvoices => prevInvoices.filter(invoice => invoice.invoice_id !== invoiceToDelete));
+      toast.success("Invoice Deleted", { description: "Invoice has been deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      toast.error("Deletion Failed", { description: "Failed to delete invoice. Please try again." });
+    } finally {
+      setDeleteLoading(null);
+      setDeleteDialogOpen(false);
+      setInvoiceToDelete(null);
+    }
+  };
+
+  // Update the handleDownload function to accept the full invoice object
+  const handleDownload = async (e: React.MouseEvent, invoice_id: number) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    try {
+      setDownloadLoading(invoice_id);
+      toast.loading("Generating PDF...");
+
+      const response = await apiClient.get(`/invoices/${invoice_id}`);
+      const invoiceData = response.data;
+
+      // Create PDF
+      const doc = new jsPDF();
+
+      // Add logo
+      const logoImg = new Image();
+      logoImg.src = '/logo.png';
+      doc.addImage(logoImg, 'PNG', 15, 15, 30, 30);
+
+      // Add title
+      doc.setFontSize(20);
+      doc.text('INVOICE', 105, 30, { align: 'center' });
+
+      // Add invoice details
+      doc.setFontSize(10);
+      doc.text(`Invoice #: ${invoiceData.invoice_id}`, 15, 60);
+      doc.text(`Date: ${formatDate(invoiceData.date)}`, 15, 67);
+      doc.text(`Patient: ${invoiceData.patients.name}`, 15, 74);
+      doc.text(`Email: ${invoiceData.patients.email}`, 15, 81);
+      doc.text(`Phone: ${invoiceData.patients.phone_number}`, 15, 88);
+
+      if (invoiceData.dentists) {
+        doc.text(`Dentist: ${invoiceData.dentists.name}`, 120, 74);
+        doc.text(`Email: ${invoiceData.dentists.email}`, 120, 81);
+        doc.text(`Phone: ${invoiceData.dentists.phone_number}`, 120, 88);
+      }
 
       // Fetch the services directly from the API to ensure we have the latest data
-      const response = await apiClient.get(`/invoice-service-assign/${invoice_id}`);
-
-      const servicesWithDetails = response.data.map(item => ({
+      const servicesResponse = await apiClient.get(`/invoice-service-assign/${invoice_id}`);
+      const servicesWithDetails = servicesResponse.data.map((item: any) => ({
         ...item,
         // Access the service property which contains the service details
         service: item.service
       }));
 
-      const doc = new jsPDF();
+      // Add services table
+      const tableColumn = ['Service', 'Amount'];
+      const tableRows = servicesWithDetails.map((item: any) => [
+        item.service.service_name,
+        `Rs. ${item.service.amount.toFixed(2)}`
+      ]);
 
-      // Header
-      doc.setFontSize(18);
-      doc.text('Invoice', 14, 20);
+      // Calculate totals
+      const subtotal = servicesWithDetails.reduce((acc: number, curr: any) => acc + curr.service.amount, 0);
+      const tax = (subtotal * invoiceData.tax_rate) / 100;
+      const total = subtotal + tax + invoiceData.lab_cost - invoiceData.discount;
 
-      doc.setFontSize(12);
-      doc.text(`Invoice ID: ${invoice.invoice_id}`, 14, 30);
-      doc.text(`Date: ${new Date(invoice.date).toLocaleDateString()}`, 14, 36);
-      doc.text(`Patient: ${invoice.patients.name}`, 14, 42);
-      doc.text(`Dentist: ${invoice.dentists?.name || 'N/A'}`, 14, 48);
-      doc.text(`Payment Type: ${invoice.payment_type}`, 14, 54);
-      doc.text(`Tax Rate: ${invoice.tax_rate}%`, 14, 60);
-      doc.text(`Lab Cost: Rs. ${invoice.lab_cost.toFixed(2)}`, 14, 66);
-      doc.text(`Discount: Rs. ${invoice.discount.toFixed(2)}`, 14, 72);
-      doc.text(`Note: ${invoice.note || '-'}`, 14, 78);
+      // Add summary rows
+      tableRows.push(
+        ['Subtotal', `Rs. ${subtotal.toFixed(2)}`],
+        ['Tax', `Rs. ${tax.toFixed(2)}`],
+        ['Lab Cost', `Rs. ${invoiceData.lab_cost.toFixed(2)}`],
+        ['Discount', `Rs. ${invoiceData.discount.toFixed(2)}`],
+        ['Total', `Rs. ${total.toFixed(2)}`]
+      );
 
-      // Services Table
-      const serviceRows = servicesWithDetails.map((item, i) => {
-        // Access the service details through the service property
-        const service = item.service;
-        const serviceName = service?.service_name || 'Unknown Service';
-        const description = service?.description || '-';
-        let amount = 'Rs. 0.00';
-
-        // Safely handle amount if it exists and is a number
-        if (service?.amount !== undefined && service?.amount !== null) {
-          amount = `Rs. ${service.amount.toFixed(2)}`;
+      // Add table
+      (doc as any).autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 100,
+        theme: 'grid',
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+        },
+        headStyles: {
+          fillColor: [41, 128, 185],
+          textColor: 255,
+          fontSize: 10,
+          fontStyle: 'bold',
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245],
         }
-
-        return [i + 1, serviceName, description, amount];
       });
 
-      autoTable(doc, {
-        head: [['#', 'Service', 'Description', 'Amount']],
-        body: serviceRows,
-        startY: 90,
-      });
-
-      // Total Section
-      const finalY = (doc as any).lastAutoTable.finalY || 100;
-      doc.setFontSize(12);
-      doc.text(`Total Amount: Rs. ${invoice.total_amount.toFixed(2)}`, 14, finalY + 10);
-
-      // Save the PDF
-      doc.save(`Invoice_${invoice.invoice_id}.pdf`);
+      // Save PDF
+      doc.save(`invoice-${invoiceData.invoice_id}.pdf`);
+      toast.dismiss();
+      toast.success("Download Complete", { description: "Invoice has been downloaded successfully" });
     } catch (error) {
       console.error('Error generating PDF:', error);
+      toast.dismiss();
+      toast.error("Download Failed", { description: "Failed to download invoice. Please try again." });
+    } finally {
+      setDownloadLoading(null);
     }
   };
 
@@ -356,97 +535,6 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     }
   };
 
-  const handleViewInvoice = async (invoice: Invoice) => {
-    try {
-      setIsLoading(true);
-
-      // Fetch the services directly from the invoice-service-assign endpoint
-      const response = await apiClient.get(`/invoice-service-assign/${invoice.invoice_id}`);
-
-      // Create a copy of the invoice with updated services
-      const invoiceWithServices = {
-        ...invoice,
-        // Map the response to match our expected structure
-        services: response.data.map(item => ({
-          ...item,
-          services: item.service // Map the service property to services to match our interface
-        }))
-      };
-
-      console.log('Fetched invoice services:', response.data);
-      console.log('Updated invoice with services:', invoiceWithServices);
-
-      setSelectedInvoice(invoiceWithServices);
-      setViewInvoiceDialogOpen(true);
-    } catch (error) {
-      console.error('Error fetching invoice services:', error);
-      // Still show the invoice even if there's an error fetching services
-      setSelectedInvoice(invoice);
-      setViewInvoiceDialogOpen(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEditInvoice = async (invoice: Invoice) => {
-    try {
-      setIsLoading(true);
-
-      // Fetch the services directly from the invoice-service-assign endpoint
-      const response = await apiClient.get(`/invoice-service-assign/${invoice.invoice_id}`);
-      console.log('Fetched service assignments for edit:', response.data);
-
-      // Extract service IDs from the response
-      const services = response.data.map(item => item.service_id);
-      console.log('Extracted service IDs for edit:', services);
-
-      // Create a copy of the invoice with updated services
-      const invoiceWithServices = {
-        ...invoice,
-        services: response.data.map(item => ({
-          ...item,
-          services: item.service // Map the service property to services to match our interface
-        }))
-      };
-
-      setFormData({
-        patient_id: invoice.patient_id,
-        dentist_id: invoice.dentist_id,
-        payment_type: invoice.payment_type,
-        tax_rate: invoice.tax_rate,
-        lab_cost: invoice.lab_cost,
-        discount: invoice.discount,
-        date: invoice.date.toString().split('T')[0],
-        note: invoice.note || '',
-        services
-      });
-
-      setSelectedInvoice(invoiceWithServices);
-      setIsEditingInvoice(true);
-    } catch (error) {
-      console.error('Error fetching invoice services for edit:', error);
-      // Still show the edit form even if there's an error fetching services
-      const services = invoice.services?.map(serviceAssign => serviceAssign.service_id) || [];
-
-      setFormData({
-        patient_id: invoice.patient_id,
-        dentist_id: invoice.dentist_id,
-        payment_type: invoice.payment_type,
-        tax_rate: invoice.tax_rate,
-        lab_cost: invoice.lab_cost,
-        discount: invoice.discount,
-        date: invoice.date.toString().split('T')[0],
-        note: invoice.note || '',
-        services
-      });
-
-      setSelectedInvoice(invoice);
-      setIsEditingInvoice(true);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleUpdateInvoice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedInvoice) return;
@@ -517,23 +605,6 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
     }
   };
 
-  const handleDeleteInvoice = async (invoiceId: number) => {
-    if (window.confirm('Are you sure you want to delete this invoice?')) {
-      setIsLoading(true);
-
-      try {
-        await apiClient.delete(`/invoices/${invoiceId}`);
-
-        // Remove the deleted invoice from the state
-        setInvoices(invoices.filter(invoice => invoice.invoice_id !== invoiceId));
-      } catch (error) {
-        console.error('Error deleting invoice:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
   const filteredInvoices = invoices.filter(invoice =>
     invoice.patients.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     invoice.invoice_id.toString().includes(searchTerm.toLowerCase()) ||
@@ -600,6 +671,15 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-transparent"
             />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                onClick={() => setSearchTerm('')}
+              >
+                <X size={20} className="text-gray-400" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -619,7 +699,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
 
           <div className="divide-y divide-gray-200">
             {filteredInvoices.map((invoice) => (
-              <div key={invoice.invoice_id} className="px-6 py-4 hover:bg-gray-50">
+              <div
+                key={invoice.invoice_id}
+                className="px-6 py-4 hover:bg-gray-50"
+                onClick={(e) => e.preventDefault()}
+              >
                 <div className="grid grid-cols-[80px_minmax(120px,1fr)_minmax(140px,1fr)_100px_120px_100px_100px] gap-4 items-center">
                   <div className="text-sm text-gray-900">#{invoice.invoice_id}</div>
                   <div className="text-sm font-medium text-gray-900">{invoice.patients.name}</div>
@@ -632,45 +716,65 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   </div>
                   <div className="text-sm text-gray-900">{formatDate(invoice.date)}</div>
                   <div className="flex items-center justify-end gap-1 min-w-[120px]">
-                    <Button
-                      variant="ghost"
-                      className="p-1 h-8 w-8"
+                    <ActionButton
+                      className="p-1 h-8 w-8 relative"
                       title="View Invoice"
-                      onClick={() => handleViewInvoice(invoice)}
+                      onClick={(e) => handleViewInvoice(e, invoice)}
+                      disabled={viewLoading === invoice.invoice_id}
                     >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                      <Eye className="h-4 w-4 text-blue-600" />
+                      {viewLoading === invoice.invoice_id && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                        </span>
+                      )}
+                    </ActionButton>
                     {canEdit && (
-                      <Button
-                        variant="ghost"
+                      <ActionButton
                         size="sm"
-                        className="p-1 h-8 w-8"
+                        className="p-1 h-8 w-8 relative"
                         title="Edit Invoice"
-                        onClick={() => handleEditInvoice(invoice)}
+                        onClick={(e) => handleEditInvoice(e, invoice)}
+                        disabled={editLoading === invoice.invoice_id}
                       >
-                        <Edit size={16} />
-                      </Button>
+                        <Edit size={16} className="text-blue-600" />
+                        {editLoading === invoice.invoice_id && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                          </span>
+                        )}
+                      </ActionButton>
                     )}
                     {canDelete && (
-                      <Button
-                        variant="ghost"
+                      <ActionButton
                         size="sm"
-                        className="p-1 h-8 w-8 hover:text-red-600"
+                        className="p-1 h-8 w-8 hover:text-red-600 relative"
                         title="Delete Invoice"
-                        onClick={() => handleDeleteInvoice(invoice.invoice_id)}
+                        onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
+                        disabled={deleteLoading === invoice.invoice_id}
                       >
-                        <Trash2 size={16} />
-                      </Button>
+                        <Trash2 size={16} className='text-red-500'/>
+                        {deleteLoading === invoice.invoice_id && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                          </span>
+                        )}
+                      </ActionButton>
                     )}
-                    <Button
-                      onClick={() => { handleDownload(invoice.invoice_id) }}
-                      variant="ghost"
+                    <ActionButton
                       size="sm"
-                      className="p-1 h-8 w-8"
+                      className="p-1 h-8 w-8 relative"
                       title="Download Invoice"
+                      onClick={(e) => handleDownload(e, invoice.invoice_id)}
+                      disabled={downloadLoading === invoice.invoice_id}
                     >
                       <Download size={16} />
-                    </Button>
+                      {downloadLoading === invoice.invoice_id && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                        </span>
+                      )}
+                    </ActionButton>
                   </div>
                 </div>
               </div>
@@ -686,7 +790,11 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         {/* Mobile Card View */}
         <div className="lg:hidden space-y-4">
           {filteredInvoices.map((invoice) => (
-            <div key={invoice.invoice_id} className="bg-white rounded-lg shadow p-4">
+            <div
+              key={invoice.invoice_id}
+              className="bg-white rounded-lg shadow-sm border p-4"
+              onClick={(e) => e.preventDefault()}
+            >
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-semibold text-gray-900">#{invoice.invoice_id}</h3>
@@ -697,36 +805,50 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     {invoice.payment_type.replace('_', ' ').toUpperCase()}
                   </Badge>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-2 h-8 w-8"
+                    <ActionButton
+                      className="p-2 h-8 w-8 relative"
                       title="View Invoice"
-                      onClick={() => handleViewInvoice(invoice)}
+                      onClick={(e) => handleViewInvoice(e, invoice)}
+                      disabled={viewLoading === invoice.invoice_id}
                     >
-                      <Eye size={16} />
-                    </Button>
+                      <Eye size={16} className="text-blue-600" />
+                      {viewLoading === invoice.invoice_id && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                        </span>
+                      )}
+                    </ActionButton>
                     {canEdit && (
-                      <Button
-                        variant="ghost"
+                      <ActionButton
                         size="sm"
-                        className="p-2 h-8 w-8"
+                        className="p-2 h-8 w-8 relative"
                         title="Edit Invoice"
-                        onClick={() => handleEditInvoice(invoice)}
+                        onClick={(e) => handleEditInvoice(e, invoice)}
+                        disabled={editLoading === invoice.invoice_id}
                       >
-                        <Edit size={16} />
-                      </Button>
+                        <Edit size={16} className="text-blue-600" />
+                        {editLoading === invoice.invoice_id && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                          </span>
+                        )}
+                      </ActionButton>
                     )}
                     {canDelete && (
-                      <Button
-                        variant="ghost"
+                      <ActionButton
                         size="sm"
-                        className="p-2 h-8 w-8 hover:text-red-600"
+                        className="p-2 h-8 w-8 hover:text-red-600 relative"
                         title="Delete Invoice"
-                        onClick={() => handleDeleteInvoice(invoice.invoice_id)}
+                        onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
+                        disabled={deleteLoading === invoice.invoice_id}
                       >
-                        <Trash2 size={16} />
-                      </Button>
+                        <Trash2 size={16} className='text-red-500'/>
+                        {deleteLoading === invoice.invoice_id && (
+                          <span className="absolute inset-0 flex items-center justify-center">
+                            <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                          </span>
+                        )}
+                      </ActionButton>
                     )}
                   </div>
                 </div>
@@ -753,13 +875,17 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                     <span>Rs.{invoice.total_amount.toFixed(2)}</span>
                   </div>
                   <Button
-                  onClick={() => { handleDownload(invoice.invoice_id) }}
                     variant="outline"
                     size="sm"
                     className="text-xs flex items-center gap-1 h-8"
+                    onClick={(e) => handleDownload(e, invoice.invoice_id)}
+                    disabled={downloadLoading === invoice.invoice_id}
                   >
                     <Download size={14} />
                     Download
+                    {downloadLoading === invoice.invoice_id && (
+                      <span className="ml-1 h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -1450,7 +1576,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                       Close
                     </Button>
                     <Button
-                      onClick={() => handleDownload(selectedInvoice.invoice_id)}
+                      onClick={(e) => handleDownload(e, selectedInvoice.invoice_id)}
                       className="bg-emerald-600 hover:bg-emerald-700 flex items-center gap-2 px-5"
                     >
                       <Download size={16} />
@@ -1460,6 +1586,51 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 </DialogFooter>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            if (deleteLoading !== null && !open) return;
+            setDeleteDialogOpen(open);
+            if (!open) {
+              setInvoiceToDelete(null);
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-gray-900">Confirm Deletion</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-gray-700">Are you sure you want to delete this invoice? This action cannot be undone.</p>
+            </div>
+            <DialogFooter className="flex space-x-2 justify-end">
+              <ActionButton
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+                className="px-4"
+              >
+                Cancel
+              </ActionButton>
+              <ActionButton
+                variant="destructive"
+                onClick={confirmDelete}
+                className="bg-red-600 hover:bg-red-700 text-white px-4"
+                disabled={deleteLoading !== null}
+              >
+                {deleteLoading !== null ? (
+                  <>
+                    <span className="mr-2 h-4 w-4 rounded-full animate-spin border-2 border-t-transparent" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Invoice'
+                )}
+              </ActionButton>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
