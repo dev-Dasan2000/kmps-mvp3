@@ -457,7 +457,7 @@ model emergency_contact {
 
   employee         employees @relation(fields: [eid], references: [eid], onDelete: Cascade)
 
-  @@id([eid, phone])
+  @@id(eid)
   @@map("emergency_contact")
 }
 
