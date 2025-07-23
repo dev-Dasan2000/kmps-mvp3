@@ -422,7 +422,7 @@ export default function ExpenseManagement() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEditExpense(expense)}
-                      className="p-1 h-8 w-8"
+                      className="p-1 h-8 w-8 text-blue-600 hover:text-blue-600"
                       title="Edit Expense"
                       disabled={expense.status.toLowerCase() === 'approved'}
                     >
@@ -460,7 +460,7 @@ export default function ExpenseManagement() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEditExpense(expense)}
-                      className="p-2 h-8 w-8"
+                      className="p-2 h-8 w-8 text-blue-600 hover:text-blue-600"
                       title="Edit Expense"
                       disabled={expense.status.toLowerCase() === 'approved'}
                     >
