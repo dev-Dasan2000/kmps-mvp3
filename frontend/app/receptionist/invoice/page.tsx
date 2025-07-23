@@ -94,9 +94,9 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const [isEditingInvoice, setIsEditingInvoice] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [calendarOpen, setCalendarOpen] = useState(false);
-  
+
   const router = useRouter();
-  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   const [formData, setFormData] = useState<InvoiceFormData>({
@@ -260,6 +260,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       e.preventDefault();
       e.stopPropagation();
     }
+
     try {
       setDownloadLoading(invoice_id);
       toast.loading("Generating PDF...");
@@ -267,12 +268,16 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       const response = await apiClient.get(`/invoices/${invoice_id}`);
       const invoiceData = response.data;
 
-      // Create PDF
+      // Create PDF document
       const doc = new jsPDF();
 
-      // Add logo
+      // Add logo image
       const logoImg = new Image();
       logoImg.src = '/logo.png';
+      await new Promise((resolve) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = resolve;
+      });
       doc.addImage(logoImg, 'PNG', 15, 15, 30, 30);
 
       // Add title
@@ -293,15 +298,14 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         doc.text(`Phone: ${invoiceData.dentists.phone_number}`, 120, 88);
       }
 
-      // Fetch the services directly from the API to ensure we have the latest data
+      // Fetch services assigned to invoice
       const servicesResponse = await apiClient.get(`/invoice-service-assign/${invoice_id}`);
       const servicesWithDetails = servicesResponse.data.map((item: any) => ({
         ...item,
-        // Access the service property which contains the service details
         service: item.service
       }));
 
-      // Add services table
+      // Prepare table columns and rows
       const tableColumn = ['Service', 'Amount'];
       const tableRows = servicesWithDetails.map((item: any) => [
         item.service.service_name,
@@ -313,7 +317,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       const tax = (subtotal * invoiceData.tax_rate) / 100;
       const total = subtotal + tax + invoiceData.lab_cost - invoiceData.discount;
 
-      // Add summary rows
+      // Add summary rows to table
       tableRows.push(
         ['Subtotal', `Rs. ${subtotal.toFixed(2)}`],
         ['Tax', `Rs. ${tax.toFixed(2)}`],
@@ -322,8 +326,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         ['Total', `Rs. ${total.toFixed(2)}`]
       );
 
-      // Add table
-      (doc as any).autoTable({
+      // Add table to PDF
+      autoTable(doc, {
         head: [tableColumn],
         body: tableRows,
         startY: 100,
@@ -340,11 +344,12 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         },
         alternateRowStyles: {
           fillColor: [245, 245, 245],
-        }
+        },
       });
 
       // Save PDF
       doc.save(`invoice-${invoiceData.invoice_id}.pdf`);
+
       toast.dismiss();
       toast.success("Download Complete", { description: "Invoice has been downloaded successfully" });
     } catch (error) {
@@ -399,18 +404,18 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
       setFormData(prev => ({ ...prev, date: date.toISOString().split('T')[0] }));
     }
   }, [date]);
-  
-  useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn){
-      toast.error("Session Expired", {description:"Please Login"});
+
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
+      toast.error("Session Expired", { description: "Please Login" });
       router.push("/");
     }
-    else if(user.role != "receptionist"){
-      toast.error("Access Denied", {description:"You do not have access to this user role"});
+    else if (user.role != "receptionist") {
+      toast.error("Access Denied", { description: "You do not have access to this user role" });
       router.push("/");
     }
-  },[isLoadingAuth]);
+  }, [isLoadingAuth]);
 
   const getStatusColor = (paymentType: string) => {
     switch (paymentType) {
@@ -753,7 +758,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
                         disabled={deleteLoading === invoice.invoice_id}
                       >
-                        <Trash2 size={16} className='text-red-500'/>
+                        <Trash2 size={16} className='text-red-500' />
                         {deleteLoading === invoice.invoice_id && (
                           <span className="absolute inset-0 flex items-center justify-center">
                             <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
@@ -842,7 +847,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         onClick={(e) => handleDeleteInvoice(e, invoice.invoice_id)}
                         disabled={deleteLoading === invoice.invoice_id}
                       >
-                        <Trash2 size={16} className='text-red-500'/>
+                        <Trash2 size={16} className='text-red-500' />
                         {deleteLoading === invoice.invoice_id && (
                           <span className="absolute inset-0 flex items-center justify-center">
                             <span className="h-3 w-3 rounded-full animate-spin border-2 border-t-transparent" />
