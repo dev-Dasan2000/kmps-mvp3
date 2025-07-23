@@ -127,7 +127,6 @@ const DentistSignUp: React.FC = () => {
     setUploadError('');
     
     if (file) {
-      // Validate file type
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
       if (!validTypes.includes(file.type)) {
         setUploadError('Please upload a valid image file (JPEG, PNG, or GIF)');
@@ -257,6 +256,7 @@ const DentistSignUp: React.FC = () => {
 
       // Upload profile picture if exists
       if (profilePicture) {
+        console.log("There is a profile picture.");
         const formData = new FormData();
         formData.append('image', profilePicture);
         
@@ -267,8 +267,9 @@ const DentistSignUp: React.FC = () => {
         
         if (uploadResponse.ok) {
           const { url } = await uploadResponse.json();
-          // Update dentist with profile picture URL
-          await fetch(`${backendURL}/dentists/${dentistId}`, {
+          window.alert(url);
+          window.alert(dentist.dentist_id);
+          await fetch(`${backendURL}/dentists/forPicture/${dentist.dentist_id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
