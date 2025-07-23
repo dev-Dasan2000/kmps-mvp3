@@ -99,18 +99,18 @@ const defaultFormData = {
   job_title: '',
   employment_status: '',
   salary: '',
-  bank_info: [defaultBankInfo],
-  emergency_contact: [defaultEmergencyContact]
+  bank_info: defaultBankInfo,
+  emergency_contact: defaultEmergencyContact
 };
 
-export function AddStaffDialog({ 
-  open, 
-  onOpenChange, 
-  onSuccess, 
-  employeeData, 
-  isEditing = false 
+export function AddStaffDialog({
+  open,
+  onOpenChange,
+  onSuccess,
+  employeeData,
+  isEditing = false
 }: AddStaffDialogProps) {
-  const {apiClient} = useContext(AuthContext);
+  const { apiClient } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [availableStaff, setAvailableStaff] = useState<AvailableStaff>({
     dentists: [],
@@ -135,19 +135,19 @@ export function AddStaffDialog({
         ...employeeData,
         salary: employeeData.salary.toString(),
         dob: new Date(employeeData.dob).toISOString().split('T')[0],
-        // Ensure bank_info and emergency_contact always have one entry
-        bank_info: employeeData.bank_info.length > 0 
-          ? employeeData.bank_info 
-          : [defaultBankInfo],
-        emergency_contact: employeeData.emergency_contact.length > 0 
-          ? employeeData.emergency_contact 
-          : [defaultEmergencyContact]
+        bank_info: employeeData.bank_info && employeeData.bank_info.length > 0
+          ? employeeData.bank_info[0]
+          : defaultBankInfo,
+        emergency_contact: employeeData.emergency_contact && employeeData.emergency_contact.length > 0
+          ? employeeData.emergency_contact[0]
+          : defaultEmergencyContact
       });
     } else {
       setFormData(defaultFormData);
       setSelectedStaff(null);
     }
   }, [isEditing, employeeData, open]);
+
 
   // Fetch available staff members who are not yet registered as employees
   const fetchAvailableStaff = async () => {
@@ -157,9 +157,9 @@ export function AddStaffDialog({
       const response = await apiClient.get(`/hr/employees/new`, {
         withCredentials: true
       });
-      
+
       console.log('Raw API response:', response.data);
-      
+
       // Process the staff data to normalize the ID field
       const processStaffList = (staffList: any[], idField: string) => {
         return (staffList || []).map(staff => ({
@@ -167,18 +167,18 @@ export function AddStaffDialog({
           id: staff[idField] // Map role-specific ID to generic id field
         }));
       };
-      
+
       const processedData = {
         dentists: processStaffList(response.data.dentists, 'dentist_id'),
         receptionists: processStaffList(response.data.receptionists, 'receptionist_id'),
         radiologists: processStaffList(response.data.radiologists, 'radiologist_id')
       };
-      
+
       console.log('Processed staff data:', processedData);
       console.log('Dentists count:', processedData.dentists.length);
       console.log('Receptionists count:', processedData.receptionists.length);
       console.log('Radiologists count:', processedData.radiologists.length);
-      
+
       setAvailableStaff(processedData);
     } catch (error) {
       console.error('Error fetching available staff:', error);
@@ -191,7 +191,7 @@ export function AddStaffDialog({
   // Handle staff member selection
   const handleStaffSelect = (staff: StaffMember) => {
     console.log('Selecting staff:', staff);
-    
+
     // Create a completely new form data object
     const newFormData = {
       ...defaultFormData,  // Start with default values
@@ -203,7 +203,7 @@ export function AddStaffDialog({
       bank_info: formData.bank_info,
       emergency_contact: formData.emergency_contact
     };
-    
+
     console.log('New form data:', newFormData);
     setSelectedStaff(staff);
     setFormData(newFormData);
@@ -224,23 +224,26 @@ export function AddStaffDialog({
     }));
   };
 
-  const handleBankInfoChange = (index: number, field: keyof BankInfo, value: string) => {
+  const handleBankInfoChange = (field: keyof BankInfo, value: string) => {
     setFormData(prev => ({
       ...prev,
-      bank_info: prev.bank_info.map((info, i) => 
-        i === index ? { ...info, [field]: value } : info
-      )
+      bank_info: {
+        ...prev.bank_info,
+        [field]: value,
+      }
     }));
   };
 
-  const handleEmergencyContactChange = (index: number, field: keyof EmergencyContact, value: string) => {
+  const handleEmergencyContactChange = (field: keyof EmergencyContact, value: string) => {
     setFormData(prev => ({
       ...prev,
-      emergency_contact: prev.emergency_contact.map((contact, i) => 
-        i === index ? { ...contact, [field]: value } : contact
-      )
+      emergency_contact: {
+        ...prev.emergency_contact,
+        [field]: value
+      }
     }));
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,11 +342,11 @@ export function AddStaffDialog({
                             }));
                             return;
                           }
-                          
+
                           const [role, id] = value.split('_') as [string, string];
-                          const staffList = availableStaff[`${role}s` as keyof AvailableStaff] as Array<{id: string | number, name: string, email: string, phone_number: string}>;
+                          const staffList = availableStaff[`${role}s` as keyof AvailableStaff] as Array<{ id: string | number, name: string, email: string, phone_number: string }>;
                           const staff = staffList.find(s => String(s.id) === id);
-                          
+
                           if (staff) {
                             // Create a new staff member object with the correct role
                             const selectedStaffMember: StaffMember = {
@@ -353,7 +356,7 @@ export function AddStaffDialog({
                               phone_number: staff.phone_number,
                               role: role as 'dentist' | 'receptionist' | 'radiologist'
                             };
-                            
+
                             console.log('Selected staff member:', selectedStaffMember);
                             handleStaffSelect(selectedStaffMember);
                           } else {
@@ -594,40 +597,41 @@ export function AddStaffDialog({
               <div className="space-y-2">
                 <Label className="font-medium">Account Holder</Label>
                 <Input
-                  value={formData.bank_info[0].account_holder}
-                  onChange={(e) => handleBankInfoChange(0, 'account_holder', e.target.value)}
+                  value={formData.bank_info.account_holder}
+                  onChange={(e) => handleBankInfoChange('account_holder', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="font-medium">Account Number</Label>
                 <Input
-                  value={formData.bank_info[0].account_no}
-                  onChange={(e) => handleBankInfoChange(0, 'account_no', e.target.value)}
+                  value={formData.bank_info.account_no}
+                  onChange={(e) => handleBankInfoChange('account_no', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="font-medium">Bank Name</Label>
                 <Input
-                  value={formData.bank_info[0].bank_name}
-                  onChange={(e) => handleBankInfoChange(0, 'bank_name', e.target.value)}
+                  value={formData.bank_info.bank_name}
+                  onChange={(e) => handleBankInfoChange('bank_name', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="font-medium">Branch</Label>
                 <Input
-                  value={formData.bank_info[0].branch}
-                  onChange={(e) => handleBankInfoChange(0, 'branch', e.target.value)}
+                  value={formData.bank_info.branch}
+                  onChange={(e) => handleBankInfoChange('branch', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="font-medium">Account Type</Label>
                 <Input
-                  value={formData.bank_info[0].account_type}
-                  onChange={(e) => handleBankInfoChange(0, 'account_type', e.target.value)}
+                  value={formData.bank_info.account_type}
+                  onChange={(e) => handleBankInfoChange('account_type', e.target.value)}
                 />
               </div>
             </div>
           </div>
+
 
           {/* Emergency Contact */}
           <div>
@@ -636,29 +640,29 @@ export function AddStaffDialog({
               <div className="space-y-2">
                 <Label className="font-medium">Name</Label>
                 <Input
-                  value={formData.emergency_contact[0].name}
-                  onChange={(e) => handleEmergencyContactChange(0, 'name', e.target.value)}
+                  value={formData.emergency_contact.name}
+                  onChange={(e) => handleEmergencyContactChange('name', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="font-medium">Relationship</Label>
                 <Input
-                  value={formData.emergency_contact[0].relationship}
-                  onChange={(e) => handleEmergencyContactChange(0, 'relationship', e.target.value)}
+                  value={formData.emergency_contact.relationship}
+                  onChange={(e) => handleEmergencyContactChange('relationship', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="font-medium">Phone</Label>
                 <Input
-                  value={formData.emergency_contact[0].phone}
-                  onChange={(e) => handleEmergencyContactChange(0, 'phone', e.target.value)}
+                  value={formData.emergency_contact.phone}
+                  onChange={(e) => handleEmergencyContactChange('phone', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label className="font-medium">Email</Label>
                 <Input
-                  value={formData.emergency_contact[0].email}
-                  onChange={(e) => handleEmergencyContactChange(0, 'email', e.target.value)}
+                  value={formData.emergency_contact.email}
+                  onChange={(e) => handleEmergencyContactChange('email', e.target.value)}
                 />
               </div>
             </div>
@@ -677,6 +681,7 @@ export function AddStaffDialog({
               type="submit"
               className="bg-emerald-500 hover:bg-emerald-600 text-white"
               disabled={loading}
+            /*onClick={}*/
             >
               {loading ? 'Loading...' : isEditing ? 'Save Changes' : 'Add Staff Member'}
             </Button>

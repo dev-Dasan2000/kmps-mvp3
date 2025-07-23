@@ -76,7 +76,6 @@ router.get('/new', authenticateToken, async (req, res) => {
   }
 });
 
-
 router.get('/new/count', authenticateToken, async (req, res) => {
   try {
     const employees = await prisma.employees.findMany({
@@ -153,7 +152,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 router.post('/', authenticateToken, async (req, res) => {
-  console.debug("employe post route called");
+  console.debug("employee post route called");
   try {
     const {
       name, dob, gender, email, phone, address, city, state, province,
@@ -166,12 +165,12 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
-    // Check for valid gender value
+    // Validate gender value
     if (gender !== 'male' && gender !== 'female') {
       return res.status(400).json({ message: 'Gender must be either male or female' });
     }
 
-    // Check for valid employment_status value
+    // Validate employment_status value
     if (employment_status !== 'part time' && employment_status !== 'full time') {
       return res.status(400).json({ message: 'Employment status must be either part time or full time' });
     }
@@ -195,35 +194,31 @@ router.post('/', authenticateToken, async (req, res) => {
       }
     });
 
-    // Create bank info if provided
-    if (bank_info && bank_info.length > 0) {
-      for (const bankAccount of bank_info) {
-        await prisma.bank_info.create({
-          data: {
-            eid: newEmployee.eid,
-            account_holder: bankAccount.account_holder,
-            account_no: bankAccount.account_no,
-            bank_name: bankAccount.bank_name,
-            branch: bankAccount.branch,
-            account_type: bankAccount.account_type
-          }
-        });
-      }
+    // Create bank info if provided as object (not array)
+    if (bank_info && Object.keys(bank_info).length > 0) {
+      await prisma.bank_info.create({
+        data: {
+          eid: newEmployee.eid,
+          account_holder: bank_info.account_holder,
+          account_no: bank_info.account_no,
+          bank_name: bank_info.bank_name,
+          branch: bank_info.branch,
+          account_type: bank_info.account_type
+        }
+      });
     }
 
-    // Create emergency contacts if provided
-    if (emergency_contact && emergency_contact.length > 0) {
-      for (const contact of emergency_contact) {
-        await prisma.emergency_contact.create({
-          data: {
-            eid: newEmployee.eid,
-            name: contact.name,
-            relationship: contact.relationship,
-            phone: contact.phone,
-            email: contact.email
-          }
-        });
-      }
+    // Create emergency contact if provided as object (not array)
+    if (emergency_contact && Object.keys(emergency_contact).length > 0) {
+      await prisma.emergency_contact.create({
+        data: {
+          eid: newEmployee.eid,
+          name: emergency_contact.name,
+          relationship: emergency_contact.relationship,
+          phone: emergency_contact.phone,
+          email: emergency_contact.email
+        }
+      });
     }
 
     // Return the created employee with related data
@@ -242,6 +237,7 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -250,7 +246,9 @@ router.put('/:id', authenticateToken, async (req, res) => {
       zip_code, job_title, employment_status, salary
     } = req.body;
 
-    // Check if employee exists
+    const { emergency_contact } = req.body;
+    const { bank_info } = req.body;
+
     const existingEmployee = await prisma.employees.findUnique({
       where: { eid: parseInt(id) }
     });
@@ -289,7 +287,74 @@ router.put('/:id', authenticateToken, async (req, res) => {
       }
     });
 
-    res.json(updatedEmployee);
+    const exists = await prisma.emergency_contact.findUnique({
+      where: { eid: parseInt(id) }
+    });
+
+    const exists2 = await prisma.bank_info.findUnique({
+      where: {
+        eid: parseInt(id),
+        account_no: bank_info.account_no
+      }
+    });
+    let bankInfo = null;
+    let emergencyContact = null;
+    if (!exists) {
+      const createdEmergencyContact = await prisma.emergency_contact.create({
+        data: {
+          eid: parseInt(id),
+          name: emergency_contact.name,
+          relationship: emergency_contact.relationship,
+          phone: emergency_contact.phone,
+          email: emergency_contact.email
+        }
+      });
+      emergencyContact = createdEmergencyContact;
+    }
+    else {
+      const updatedEmergencyContact = await prisma.emergency_contact.update({
+        where: { eid: parseInt(id) },
+        data: {
+          name: emergency_contact.name,
+          relationship: emergency_contact.relationship,
+          phone: emergency_contact.phone,
+          email: emergency_contact.email
+        }
+      });
+      emergencyContact = updatedEmergencyContact;
+    }
+
+    if (!exists2) {
+      const createdBankInfo = await prisma.bank_info.create({
+        data: {
+          eid: parseInt(id),
+          account_holder: bank_info.account_holder,
+          account_no: bank_info.account_no,
+          bank_name: bank_info.bank_name,
+          branch: bank_info.branch,
+          account_type: bank_info.account_type
+        }
+      });
+      bankInfo = createdBankInfo;
+    } else {
+      const updatedBankInfo = await prisma.bank_info.update({
+        where: {
+          eid_account_no: {
+            eid: parseInt(id),
+            account_no: bank_info.account_no
+          }
+        },
+        data: {
+          account_holder: bank_info.account_holder,
+          bank_name: bank_info.bank_name,
+          branch: bank_info.branch,
+          account_type: bank_info.account_type
+        }
+      });
+      bankInfo = updatedBankInfo;
+    }
+
+    res.json(updatedEmployee, emergencyContact, bankInfo);
   } catch (error) {
     console.error('Error updating employee:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -299,7 +364,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Check if employee exists
     const existingEmployee = await prisma.employees.findUnique({
       where: { eid: parseInt(id) }
@@ -326,11 +391,11 @@ router.delete('/:id', authenticateToken, async (req, res) => {
 router.get('/:id/bank-info', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const bankAccounts = await prisma.bank_info.findMany({
       where: { eid: parseInt(id) }
     });
-    
+
     res.json(bankAccounts);
   } catch (error) {
     console.error('Error fetching bank information:', error);
@@ -342,7 +407,7 @@ router.post('/:id/bank-info', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { account_holder, account_no, bank_name, branch, account_type } = req.body;
-    
+
     // Check if employee exists
     const existingEmployee = await prisma.employees.findUnique({
       where: { eid: parseInt(id) }
@@ -368,7 +433,7 @@ router.post('/:id/bank-info', authenticateToken, async (req, res) => {
         account_type
       }
     });
-    
+
     res.status(201).json(bankAccount);
   } catch (error) {
     console.error('Error adding bank account:', error);
@@ -380,7 +445,7 @@ router.put('/:id/bank-info/:account_no', authenticateToken, async (req, res) => 
   try {
     const { id, account_no } = req.params;
     const { account_holder, bank_name, branch, account_type } = req.body;
-    
+
     // Check if bank account exists
     const existingAccount = await prisma.bank_info.findFirst({
       where: {
@@ -408,7 +473,7 @@ router.put('/:id/bank-info/:account_no', authenticateToken, async (req, res) => 
         account_type
       }
     });
-    
+
     res.json(updatedAccount);
   } catch (error) {
     console.error('Error updating bank account:', error);
@@ -419,7 +484,7 @@ router.put('/:id/bank-info/:account_no', authenticateToken, async (req, res) => 
 router.delete('/:id/bank-info/:account_no', authenticateToken, async (req, res) => {
   try {
     const { id, account_no } = req.params;
-    
+
     // Check if bank account exists
     const existingAccount = await prisma.bank_info.findFirst({
       where: {
@@ -441,7 +506,7 @@ router.delete('/:id/bank-info/:account_no', authenticateToken, async (req, res) 
         }
       }
     });
-    
+
     res.json({ message: 'Bank account deleted successfully' });
   } catch (error) {
     console.error('Error deleting bank account:', error);
@@ -452,11 +517,11 @@ router.delete('/:id/bank-info/:account_no', authenticateToken, async (req, res) 
 router.get('/:id/emergency-contacts', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const contacts = await prisma.emergency_contact.findMany({
       where: { eid: parseInt(id) }
     });
-    
+
     res.json(contacts);
   } catch (error) {
     console.error('Error fetching emergency contacts:', error);
@@ -468,7 +533,7 @@ router.post('/:id/emergency-contacts', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, relationship, phone, email } = req.body;
-    
+
     // Check if employee exists
     const existingEmployee = await prisma.employees.findUnique({
       where: { eid: parseInt(id) }
@@ -493,7 +558,7 @@ router.post('/:id/emergency-contacts', authenticateToken, async (req, res) => {
         email
       }
     });
-    
+
     res.status(201).json(contact);
   } catch (error) {
     console.error('Error adding emergency contact:', error);
@@ -505,7 +570,7 @@ router.put('/:id/emergency-contacts/:phone', authenticateToken, async (req, res)
   try {
     const { id, phone } = req.params;
     const { name, relationship, email } = req.body;
-    
+
     // Check if emergency contact exists
     const existingContact = await prisma.emergency_contact.findFirst({
       where: {
@@ -532,7 +597,7 @@ router.put('/:id/emergency-contacts/:phone', authenticateToken, async (req, res)
         email
       }
     });
-    
+
     res.json(updatedContact);
   } catch (error) {
     console.error('Error updating emergency contact:', error);
@@ -543,7 +608,7 @@ router.put('/:id/emergency-contacts/:phone', authenticateToken, async (req, res)
 router.delete('/:id/emergency-contacts/:phone', authenticateToken, async (req, res) => {
   try {
     const { id, phone } = req.params;
-    
+
     // Check if emergency contact exists
     const existingContact = await prisma.emergency_contact.findFirst({
       where: {
@@ -565,7 +630,7 @@ router.delete('/:id/emergency-contacts/:phone', authenticateToken, async (req, r
         }
       }
     });
-    
+
     res.json({ message: 'Emergency contact deleted successfully' });
   } catch (error) {
     console.error('Error deleting emergency contact:', error);
