@@ -1086,110 +1086,401 @@ const createPageContent = (elements: HTMLElement[]): string => {
       // First ensure we're in preview mode
       if (activeTab !== 'preview') {
         setActiveTab('preview');
-        // Wait for the state update and rendering to complete
+        // Wait for rendering to complete
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
-      // Force a re-render cycle to ensure the preview is generated
-      setIsEditorReady(prev => !prev);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Create a completely isolated iframe for rendering
+      const iframe = document.createElement('iframe');
+      iframe.style.width = '800px';
+      iframe.style.height = '1130px'; // A4 height ratio
+      iframe.style.position = 'absolute';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '0';
+      iframe.style.border = 'none';
+      document.body.appendChild(iframe);
       
-      // Try to get the preview container
-      let previewContainer = previewContainerRef.current || document.getElementById('pdf-preview');
+      // Wait for iframe to be ready
+      await new Promise(resolve => {
+        iframe.onload = resolve;
+        // Force load event
+        setTimeout(resolve, 100);
+      });
       
-      if (!previewContainer) {
-        toast.error("Cannot find preview content. Please refresh and try again.");
+      // Get the document inside iframe
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        toast.error("Failed to create export document");
+        document.body.removeChild(iframe);
         setExportingPdf(false);
         return;
       }
       
-      // Add a temporary style to fix oklch colors
-      const tempStyle = document.createElement('style');
-      tempStyle.textContent = `
-        /* Replace all oklch colors with hex equivalents */
-        .pdfHeader, h1, h2, h3, .reportTitle, .infoSection h2, 
-        .reportContent h1, .reportContent h2, .reportContent h3 {
-          color: #0d7d85 !important;
-        }
-        .pdfHeader {
-          background-color: #0d7d85 !important;
-        }
-        .reportTitle {
-          border-bottom-color: #0d7d85 !important;
-        }
-      `;
-      document.head.appendChild(tempStyle);
+      // Write basic structure with inline styles only (no tailwind or external CSS)
+      iframeDoc.open();
+      iframeDoc.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body, html {
+              margin: 0;
+              padding: 0;
+              font-family: Arial, sans-serif;
+              background-color: white;
+              color: black;
+            }
+            .page {
+              width: 794px;
+              min-height: 1123px;
+              padding: 40px;
+              box-sizing: border-box;
+              background-color: white;
+              margin: 0 auto;
+              position: relative;
+              page-break-after: always;
+            }
+            .header {
+              background-color: #0d7d85;
+              color: white;
+              padding: 15px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 20px;
+            }
+            .logo {
+              display: flex;
+              align-items: center;
+              gap: 15px;
+            }
+            .logo img {
+              height: 40px;
+            }
+            .logo h2 {
+              font-size: 24px;
+              margin: 0;
+            }
+            .title {
+              text-align: right;
+            }
+            .title h3 {
+              font-size: 18px;
+              margin: 0 0 4px 0;
+            }
+            .title p {
+              font-size: 14px;
+              margin: 0;
+            }
+            .report-header {
+              display: flex;
+              flex-direction: column;
+              gap: 1rem;
+              margin-bottom: 1.5rem;
+              padding: 1rem;
+              background-color: #f9fafb;
+              border-radius: 8px;
+              border: 1px solid #e5e7eb;
+            }
+            .report-title {
+              text-align: center;
+              border-bottom: 2px solid #0d7d85;
+              padding-bottom: 0.5rem;
+              margin-bottom: 1rem;
+            }
+            .report-title h1 {
+              color: #0d7d85;
+              font-size: 1.8rem;
+              font-weight: bold;
+              letter-spacing: 0.05em;
+              margin: 0;
+            }
+            .info-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 1rem;
+            }
+            .info-section {
+              padding: 0.75rem;
+              background-color: white;
+              border-radius: 8px;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+            .info-section h2 {
+              font-size: 1.2rem;
+              font-weight: 700;
+              color: #0d7d85;
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 0.5rem;
+              margin-top: 0;
+              margin-bottom: 0.75rem;
+            }
+            dl {
+              display: grid;
+              grid-template-columns: max-content 1fr;
+              gap: 0.5rem 1rem;
+              margin: 0;
+            }
+            dt {
+              font-weight: 600;
+              color: #4b5563;
+            }
+            dd {
+              margin: 0;
+              color: #1f2937;
+              font-weight: 500;
+            }
+            .content {
+              padding: 10px 0;
+            }
+            .footer {
+              background-color: #f1f5f9;
+              padding: 10px 15px;
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              font-size: 11pt;
+              color: #475569;
+              border-top: 1px solid #e2e8f0;
+              width: 100%;
+              box-sizing: border-box;
+              margin-top: auto;
+              position: absolute;
+              bottom: 40px;
+              left: 0;
+              right: 0;
+            }
+            .footer-left {
+              text-align: left;
+              padding-left: 40px;
+            }
+            .footer-center {
+              text-align: center;
+            }
+            .footer-right {
+              text-align: right;
+              padding-right: 40px;
+            }
+            h1, h2, h3 {
+              color: #0d7d85;
+            }
+            table {
+              border-collapse: collapse;
+              width: 100%;
+              margin: 1rem 0;
+            }
+            table th, table td {
+              border: 1px solid #d1d5db;
+              padding: 8px;
+            }
+            table th {
+              background-color: #f3f4f6;
+              font-weight: 600;
+            }
+            img {
+              max-width: 100%;
+            }
+            p {
+              margin: 0.75rem 0;
+              line-height: 1.6;
+            }
+          </style>
+        </head>
+        <body>
+        </body>
+        </html>
+      `);
+      iframeDoc.close();
       
-      // Find all pages or just treat the whole preview as one page
-      const previewPages = previewContainer.querySelectorAll('.pagePreview, .printPage, .pdf-page');
-      const pagesToProcess = previewPages.length > 0 ? Array.from(previewPages) : [previewContainer];
+      // Function to safely escape HTML
+      const escapeHTML = (str: string) => {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      };
       
-      console.log(`Found ${pagesToProcess.length} pages/elements to process`);
+      // Get the content to render
+      const dividedContent = divideContentIntoPages(editor.getHTML());
       
-      // Create and configure the PDF
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      // Process each page/element
-      for (let i = 0; i < pagesToProcess.length; i++) {
-        const originalElement = pagesToProcess[i] as HTMLElement;
-        console.log(`Processing page ${i+1}:`, originalElement);
+      // Create and populate pages
+      for (let i = 0; i < dividedContent.length; i++) {
+        const pageContent = dividedContent[i];
         
-        try {
-          // Ensure white background
-          originalElement.style.backgroundColor = '#ffffff';
+        // Create a page container
+        const pageDiv = iframeDoc.createElement('div');
+        pageDiv.className = 'page';
+        
+        // Only add header to first page
+        if (i === 0) {
+          // Add header
+          const headerDiv = iframeDoc.createElement('div');
+          headerDiv.className = 'header';
+          headerDiv.innerHTML = `
+            <div class="logo">
+              ${logoImage ? `<img src="${logoImage}" alt="Dentax Logo" />` : ''}
+              <h2>DENTAX</h2>
+            </div>
+            <div class="title">
+              <h3>RADIOLOGY REPORT</h3>
+              <p>Study #${studyData.study_id}</p>
+            </div>
+          `;
+          pageDiv.appendChild(headerDiv);
           
-          // Use simplified html2canvas options
-          const canvas = await html2canvas(originalElement, {
-            scale: 1.5,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff',
-            logging: true
-          });
-          
-          console.log("Canvas generated with dimensions:", canvas.width, "x", canvas.height);
-          
-          // Calculate dimensions to fit on A4
-          const pageWidth = pdf.internal.pageSize.getWidth();
-          const pageHeight = pdf.internal.pageSize.getHeight();
-          
-          // Get image data
-          const imgData = canvas.toDataURL('image/jpeg', 0.92); // Use JPEG for better compatibility
-          
-          // Add new page if this isn't the first page
-          if (i > 0) {
-            pdf.addPage();
-          }
-          
-          // Calculate dimensions that maintain aspect ratio and fit on the page
-          const imgWidth = pageWidth;
-          const imgHeight = Math.min(pageHeight, canvas.height * pageWidth / canvas.width);
-          
-          // Add the image to the PDF with proper scaling
-          pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
-          console.log(`Added page ${i+1} to PDF`);
-        } catch (err) {
-          console.error(`Error processing page ${i+1}:`, err);
-          toast.error(`Error on page ${i+1}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          // Add patient info
+          const reportHeaderDiv = iframeDoc.createElement('div');
+          reportHeaderDiv.className = 'report-header';
+          reportHeaderDiv.innerHTML = `
+            <div class="report-title">
+              <h1>RADIOLOGY REPORT</h1>
+            </div>
+            <div class="info-grid">
+              <div class="info-section">
+                <h2>Patient Information</h2>
+                <dl>
+                  <dt>Name</dt>
+                  <dd><strong>${escapeHTML(studyData?.patient?.name || 'N/A')}</strong></dd>
+                  
+                  <dt>Patient ID</dt>
+                  <dd><strong>${escapeHTML(studyData?.patient_id || 'N/A')}</strong></dd>
+                  
+                  <dt>Date of Birth</dt>
+                  <dd>${escapeHTML(formatDate(studyData?.patient?.date_of_birth))}</dd>
+                  
+                  <dt>Age</dt>
+                  <dd>${escapeHTML(calculateAge(studyData?.patient?.date_of_birth))}</dd>
+                  
+                  <dt>Gender</dt>
+                  <dd>${escapeHTML(studyData?.patient?.gender || 'N/A')}</dd>
+                  
+                  <dt>Blood Group</dt>
+                  <dd>${escapeHTML((studyData?.patient?.blood_group?.toUpperCase() || 'N/A'))}</dd>
+                </dl>
+              </div>
+              <div class="info-section">
+                <h2>Study Information</h2>
+                <dl>
+                  <dt>Study ID</dt>
+                  <dd><strong>${escapeHTML(String(studyData?.study_id || 'N/A'))}</strong></dd>
+                  
+                  <dt>Date</dt>
+                  <dd><strong>${escapeHTML(formatDate(studyData?.date))}</strong></dd>
+                  
+                  <dt>Time</dt>
+                  <dd>${escapeHTML(formatTime(studyData?.time))}</dd>
+                  
+                  <dt>Modality</dt>
+                  <dd><strong>${escapeHTML(studyData?.modality || 'N/A')}</strong></dd>
+                  
+                  <dt>Body Part</dt>
+                  <dd><strong>${escapeHTML(studyData?.body_part || 'N/A')}</strong></dd>
+                  
+                  <dt>Radiologist</dt>
+                  <dd><strong>${escapeHTML(studyData?.radiologist?.name || 'N/A')}</strong></dd>
+                </dl>
+              </div>
+            </div>
+          `;
+          pageDiv.appendChild(reportHeaderDiv);
         }
+        
+        // Add content
+        const contentDiv = iframeDoc.createElement('div');
+        contentDiv.className = 'content';
+        
+        // We need to sanitize the content
+        let sanitizedContent = pageContent;
+        // Remove any styles that might contain oklch
+        sanitizedContent = sanitizedContent.replace(/style="[^"]*oklch\([^"]*"/g, 'style="color:#0d7d85;"');
+        // Remove any tailwind classes
+        sanitizedContent = sanitizedContent.replace(/class="[^"]*"/g, '');
+        
+        contentDiv.innerHTML = sanitizedContent;
+        pageDiv.appendChild(contentDiv);
+        
+        // Add footer
+        const footerDiv = iframeDoc.createElement('div');
+        footerDiv.className = 'footer';
+        footerDiv.innerHTML = `
+          <div class="footer-left">
+            <div><strong>Radiologist:</strong> ${escapeHTML(studyData?.radiologist?.name || 'N/A')}</div>
+            <div><strong>Date:</strong> ${escapeHTML(formatDate(new Date().toISOString()))}</div>
+          </div>
+          <div class="footer-center">
+            <strong>Page ${i + 1} of ${dividedContent.length}</strong>
+          </div>
+          <div class="footer-right">
+            <div>Generated by</div>
+            <div><strong>Dentax Imaging System</strong></div>
+          </div>
+        `;
+        pageDiv.appendChild(footerDiv);
+        
+        // Add page to document
+        iframeDoc.body.appendChild(pageDiv);
       }
       
-      // Clean up the temporary style
-      document.head.removeChild(tempStyle);
+      // Create PDF - directly from the iframe content
+      try {
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+        
+        // Process each page
+        const pageElements = iframeDoc.querySelectorAll('.page');
+        
+        for (let i = 0; i < pageElements.length; i++) {
+          const pageElement = pageElements[i] as HTMLElement;
+          
+          try {
+            // Add new page if this isn't the first page
+            if (i > 0) {
+              pdf.addPage();
+            }
+            
+            // Generate canvas from the page
+            const canvas = await html2canvas(pageElement, {
+              scale: 2,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff'
+            });
+            
+            // Add to PDF
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            
+            const imgWidth = pageWidth;
+            const imgHeight = Math.min(pageHeight, canvas.height * pageWidth / canvas.width);
+            
+            pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+            console.log(`Added page ${i+1} to PDF`);
+          } catch (err) {
+            console.error(`Error processing iframe page ${i+1}:`, err);
+          }
+        }
+        
+        // Save the PDF
+        const patientName = studyData.patient?.name?.replace(/\s+/g, '_') || 'Patient';
+        const currentDate = new Date().toISOString().slice(0,10);
+        pdf.save(`Dentax_Report_${patientName}_${studyData.study_id}_${currentDate}.pdf`);
+        
+        toast.success(`Report exported as PDF with ${pageElements.length} pages`);
+      } catch (err) {
+        console.error('Error in PDF generation:', err);
+        toast.error('PDF generation failed: ' + (err instanceof Error ? err.message : String(err)));
+      }
       
-      // Save the PDF
-      const patientName = studyData.patient?.name?.replace(/\s+/g, '_') || 'Patient';
-      const currentDate = new Date().toISOString().slice(0,10);
-      pdf.save(`Dentax_Report_${patientName}_${studyData.study_id}_${currentDate}.pdf`);
-      
-      toast.success(`Report exported as PDF with ${pagesToProcess.length} pages`);
+      // Clean up
+      document.body.removeChild(iframe);
     } catch (error) {
       console.error('Error exporting to PDF:', error);
-      toast.error('PDF export failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('PDF export failed: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setExportingPdf(false);
     }

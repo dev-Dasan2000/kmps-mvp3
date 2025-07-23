@@ -547,7 +547,7 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                     <div className="space-y-2 pl-6">
                       <p className="text-sm text-gray-700">
                         <span className="font-medium text-gray-600">Patient ID:</span>
-                        <span className="ml-2 font-mono">{selectedOrder?.patient.patient_id}</span>
+                        <span className="ml-2 font-mono">{selectedOrder?.patient.patient_id || 'Unknown patient'}</span>
                       </p>
                     </div>
                   </div>
@@ -560,7 +560,7 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                     <div className="space-y-2 pl-6">
                       <p className="text-sm text-gray-700">
                         <span className="font-medium text-gray-600">Dentist ID:</span>
-                        <span className="ml-2 font-mono">{selectedOrder?.dentist.dentist_id}</span>
+                        <span className="ml-2 font-mono">{selectedOrder?.dentist.dentist_id || 'Unknown dentist'}</span>
                       </p>
                     </div>
                   </div>
@@ -576,19 +576,19 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                     <div className="space-y-2 pl-6">
                       <div className="flex justify-between">
                         <span className="text-sm font-medium text-gray-600">Type:</span>
-                        <span className="text-sm text-gray-900">{selectedOrder?.work_type.work_type}</span>
+                        <span className="text-sm text-gray-900">{selectedOrder?.work_type.work_type || 'Unknown type'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm font-medium text-gray-600">Material:</span>
-                        <span className="text-sm text-gray-900">{selectedOrder?.material_type.material}</span>
+                        <span className="text-sm text-gray-900">{selectedOrder?.material_type?.material || 'Unknown material'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm font-medium text-gray-600">Shade:</span>
-                        <span className="text-sm text-gray-900">{selectedOrder?.shade_type.shade}</span>
+                        <span className="text-sm text-gray-900">{selectedOrder?.shade_type?.shade || 'Unknown shade'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm font-medium text-gray-600">File Types:</span>
-                        <span className="text-sm text-gray-900">{selectedOrder?.file_types}</span>
+                        <span className="text-sm text-gray-900">{selectedOrder?.file_types || 'Unknown file types'}</span>
                       </div>
                     </div>
                   </div>
