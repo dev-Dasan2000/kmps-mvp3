@@ -389,10 +389,7 @@ export default function TimeManagementPage() {
                       Staff time tracking for {new Date().toLocaleDateString('en-US', { dateStyle: 'full' })}
                     </CardDescription>
                   </div>
-                  <Button size="sm" variant="outline" className="text-blue-600">
-                    <Clock className="h-4 w-4 mr-2" />
-                    Export Report
-                  </Button>
+                  
                 </div>
               </CardHeader>
               <CardContent>
