@@ -378,7 +378,7 @@ const PatientManagement = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEditPatient(patient)}
-                      className="p-1 h-8 w-8"
+                      className="p-1 h-8 w-8 text-blue-600 hover:text-blue-600"
                     >
                       <Edit size={16} />
                     </Button>
@@ -387,7 +387,7 @@ const PatientManagement = () => {
                       size="sm"
                       onClick={() => {toast.success("Patient deleted successfully");
                          handleDeletePatient(patient.patient_id) }}
-                      className="p-1 h-8 w-8 hover:text-red-600"
+                      className="p-1 h-8 w-8 text-red-500 hover:text-red-600"
                     >
                       <Trash2 size={16} />
                     </Button>
@@ -438,7 +438,7 @@ const PatientManagement = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleEditPatient(patient)}
-                    className="p-2 h-8 w-8"
+                    className="p-2 h-8 w-8 text-blue-600 hover:text-blue-600"
                   >
                     <Edit size={16} />
                   </Button>
@@ -446,7 +446,7 @@ const PatientManagement = () => {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDeletePatient(patient.patient_id)}
-                    className="p-2 h-8 w-8 hover:text-red-600"
+                    className="p-2 h-8 w-8 text-red-500 hover:text-red-600"
                   >
                     <Trash2 size={16} />
                   </Button>
