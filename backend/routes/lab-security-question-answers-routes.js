@@ -34,7 +34,7 @@ router.get('/:lab_id/:security_question_id',  authenticateToken,  async (req, re
   }
 });
 
-router.post('/',  authenticateToken,  async (req, res) => {
+router.post('/',  async (req, res) => {
   try {
     let { lab_id, security_question_id, answer } = req.body;
 
