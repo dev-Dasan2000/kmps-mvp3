@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all room assignments
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
+router.get('/',  authenticateToken,  async (req, res) => {
   try {
     const assignments = await prisma.room_assign.findMany({
       include: {
@@ -22,7 +22,7 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
 });
 
 // GET single room assignment
-router.get('/:room_id/:dentist_id/:date/:time',  /*authenticateToken,*/  async (req, res) => {
+router.get('/:room_id/:dentist_id/:date/:time',  authenticateToken,  async (req, res) => {
   try {
     const { room_id, dentist_id, date, time_from, time_to } = req.params;
 
@@ -74,7 +74,7 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update a room assignment
-router.put('/:room_id/:dentist_id/:date/:time_from/:time_to',  /*authenticateToken,*/  async (req, res) => {
+router.put('/:room_id/:dentist_id/:date/:time_from/:time_to',  authenticateToken,  async (req, res) => {
   try {
     const { room_id, dentist_id, date, time_from, time_to } = req.params;
     const updateData = req.body;
@@ -100,7 +100,7 @@ router.put('/:room_id/:dentist_id/:date/:time_from/:time_to',  /*authenticateTok
 });
 
 // DELETE a room assignment
-router.delete('/:room_id/:dentist_id/:date/:time_from/:time_to',  /*authenticateToken,*/  async (req, res) => {
+router.delete('/:room_id/:dentist_id/:date/:time_from/:time_to',  authenticateToken,  async (req, res) => {
   try {
     const { room_id, dentist_id, date, time_from, time_to } = req.params;
 

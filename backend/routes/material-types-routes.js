@@ -5,7 +5,7 @@ import { authenticateToken } from '../middleware/authentication.js';
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', /*authenticateToken,*/ async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const materials = await prisma.material_types.findMany();
     res.json(materials);
@@ -14,7 +14,7 @@ router.get('/', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.post('/', /*authenticateToken,*/ async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { material } = req.body;
     const newMaterial = await prisma.material_types.create({ data: { material } });
@@ -24,7 +24,7 @@ router.post('/', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.put('/:id', /*authenticateToken,*/ async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const updated = await prisma.material_types.update({
       where: { material_id: Number(req.params.id) },
@@ -36,7 +36,7 @@ router.put('/:id', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.delete('/:id', /*authenticateToken,*/ async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     await prisma.material_types.delete({ where: { material_id: Number(req.params.id) } });
     res.json({ message: 'Deleted' });

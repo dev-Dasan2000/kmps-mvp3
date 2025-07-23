@@ -1,5 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../../middleware/authentication.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -13,7 +14,7 @@ function formatDateOnly(dateTime) {
 }
 
 // Get all leave requests
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const leaves = await prisma.leaves.findMany({
       include: {
@@ -50,7 +51,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get leaves for a specific employee
-router.get('/:eid', async (req, res) => {
+router.get('/:eid', authenticateToken, async (req, res) => {
   try {
     const { eid } = req.params;
     const employeeId = parseInt(eid);
@@ -100,7 +101,7 @@ function calculateLeaveDuration(fromDate, toDate) {
 }
 
 // Get today's leaves for all employees
-router.get('/today/all', async (req, res) => {
+router.get('/today/all', authenticateToken, async (req, res) => {
   try {
     // Get current date
     const today = new Date();
@@ -157,7 +158,7 @@ router.get('/today/all', async (req, res) => {
 });
 
 // Apply for leave
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { eid, from_date, to_date, type } = req.body;
     const employeeId = parseInt(eid);
@@ -258,7 +259,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update leave status (approve/reject)
-router.put('/:eid/:fromDate/:toDate/status', async (req, res) => {
+router.put('/:eid/:fromDate/:toDate/status', authenticateToken, async (req, res) => {
   try {
     const { eid, fromDate, toDate } = req.params;
     const { status } = req.body;
@@ -315,7 +316,7 @@ router.put('/:eid/:fromDate/:toDate/status', async (req, res) => {
 });
 
 // Delete a leave request
-router.delete('/:eid/:fromDate/:toDate', async (req, res) => {
+router.delete('/:eid/:fromDate/:toDate', authenticateToken, async (req, res) => {
   try {
     const { eid, fromDate, toDate } = req.params;
     const employeeId = parseInt(eid);
@@ -354,7 +355,7 @@ router.delete('/:eid/:fromDate/:toDate', async (req, res) => {
 });
 
 // Get leave summary for an employee (total leaves by type)
-router.get('/summary/:eid', async (req, res) => {
+router.get('/summary/:eid', authenticateToken, async (req, res) => {
   try {
     const { eid } = req.params;
     const employeeId = parseInt(eid);

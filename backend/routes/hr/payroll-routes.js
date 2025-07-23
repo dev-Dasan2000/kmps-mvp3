@@ -1,11 +1,13 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../../middleware/authentication.js';
+
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all payroll records with employee and bank info for the payroll page
-router.get('/payroll-details', async (req, res) => {
+router.get('/payroll-details', authenticateToken, async (req, res) => {
   try {
     const payrolls = await prisma.payroll.findMany({
       include: {
@@ -30,7 +32,7 @@ router.get('/payroll-details', async (req, res) => {
 });
 
 // Get all payroll records
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const payrolls = await prisma.payroll.findMany({
       include: {
@@ -52,7 +54,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get a single payroll record
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const payroll = await prisma.payroll.findUnique({
@@ -81,7 +83,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Get all payroll records for a specific employee
-router.get('/employees/:eid', async (req, res) => {
+router.get('/employees/:eid', authenticateToken, async (req, res) => {
   try {
     const { eid } = req.params;
     
@@ -116,7 +118,7 @@ router.get('/employees/:eid', async (req, res) => {
 });
 
 // Create a new payroll record
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { eid, net_salary, epf, etf, status } = req.body;
     
@@ -153,7 +155,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update a payroll record
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { net_salary, epf, etf, status } = req.body;
@@ -186,7 +188,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete a payroll record
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     

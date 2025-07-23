@@ -1,5 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../../middleware/authentication.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -52,7 +53,7 @@ function formatFullDate(date) {
 }
 
 // Get today's attendance for all employees
-router.get('/today', async (req, res) => {
+router.get('/today', authenticateToken, async (req, res) => {
   try {
     // Get current date boundaries
     const today = new Date();
@@ -111,7 +112,7 @@ router.get('/today', async (req, res) => {
 });
 
 // Get employee attendance for current month
-router.get('/:eid', async (req, res) => {
+router.get('/:eid', authenticateToken, async (req, res) => {
   try {
     const { eid } = req.params;
     const employeeId = parseInt(eid);
@@ -161,7 +162,7 @@ router.get('/:eid', async (req, res) => {
 });
 
 // Get total attendance days for an employee
-router.get('/total/:eid', async (req, res) => {
+router.get('/total/:eid', authenticateToken, async (req, res) => {
   try {
     const { eid } = req.params;
     const employeeId = parseInt(eid);
@@ -217,7 +218,7 @@ router.get('/total/:eid', async (req, res) => {
 });
 
 // Get attendance with leave information for all employees
-router.get('/with-leaves/:eid', async (req, res) => {
+router.get('/with-leaves/:eid', authenticateToken, async (req, res) => {
   try {
     // Get all employees with their attendance
     const employees = await prisma.employees.findMany({
@@ -274,7 +275,7 @@ router.get('/with-leaves/:eid', async (req, res) => {
 });
 
 // Get weekly attendance for all employees
-router.get('/weekly/all', async (req, res) => {
+router.get('/weekly/all', authenticateToken, async (req, res) => {
   try {
     // Calculate date range for the current week (Monday to Sunday)
     const currentDate = new Date();
@@ -401,7 +402,7 @@ router.get('/weekly/all', async (req, res) => {
 });
 
 // Get daily attendance for a specific date
-router.get('/daily/:date', async (req, res) => {
+router.get('/daily/:date', authenticateToken, async (req, res) => {
   try {
     const inputDate = new Date(req.params.date);
     if (isNaN(inputDate)) {
@@ -465,7 +466,7 @@ router.get('/daily/:date', async (req, res) => {
 
 
 // Record clock in
-router.post('/clock-in', async (req, res) => {
+router.post('/clock-in', authenticateToken, async (req, res) => {
   try {
     const { eid } = req.body;
     const employeeId = parseInt(eid);
@@ -523,7 +524,7 @@ router.post('/clock-in', async (req, res) => {
 });
 
 // Record clock out
-router.post('/clock-out', async (req, res) => {
+router.post('/clock-out', authenticateToken, async (req, res) => {
   try {
     const { eid } = req.body;
     const employeeId = parseInt(eid);

@@ -7,7 +7,7 @@ import { authenticateToken } from '../middleware/authentication.js';
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/', /*authenticateToken,*/ async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const orders = await prisma.orders.findMany({
       include: {
@@ -28,7 +28,7 @@ router.get('/', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.get('/:id', /*authenticateToken,*/ async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const order = await prisma.orders.findUnique({
       where: { order_id: Number(req.params.id) },
@@ -40,7 +40,7 @@ router.get('/:id', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.get('/forlab/:id', /*authenticateToken,*/ async (req, res) => {
+router.get('/forlab/:id', authenticateToken, async (req, res) => {
   try {
     const orders = await prisma.orders.findMany({
       where:
@@ -66,7 +66,7 @@ router.get('/forlab/:id', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.get('/fordentist/:id', /*authenticateToken,*/ async (req, res) => {
+router.get('/fordentist/:id', authenticateToken, async (req, res) => {
   try {
     const orders = await prisma.orders.findMany({
       where: { dentist_id: req.params.id },
@@ -87,7 +87,7 @@ router.get('/fordentist/:id', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.post('/', /*authenticateToken,*/ async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const data = req.body;
     
@@ -133,7 +133,7 @@ router.post('/', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.put('/:id', /*authenticateToken,*/ async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const updated = await prisma.orders.update({
       where: { order_id: Number(req.params.id) },
@@ -146,7 +146,7 @@ router.put('/:id', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.put('/status/:id', /*authenticateToken,*/ async (req, res) => {
+router.put('/status/:id', authenticateToken, async (req, res) => {
   try {
     const updated = await prisma.orders.update({
       where: { order_id: Number(req.params.id) },
@@ -158,7 +158,7 @@ router.put('/status/:id', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.put('/priority/:id', /*authenticateToken,*/ async (req, res) => {
+router.put('/priority/:id', authenticateToken, async (req, res) => {
   try {
     const updated = await prisma.orders.update({
       where: { order_id: Number(req.params.id) },
@@ -170,7 +170,7 @@ router.put('/priority/:id', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
-router.delete('/:id', /*authenticateToken,*/ async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   const orderId = Number(req.params.id);
   const uploadPath = path.join('uploads', 'files');
 

@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // patient_id is the primary key
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
+router.get('/',  authenticateToken,  async (req, res) => {
   try {
     const details = await prisma.insurance_details.findMany();
     res.json(details);
@@ -15,7 +15,7 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.get('/:patient_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/:patient_id',  authenticateToken,  async (req, res) => {
   try {
     const detail = await prisma.insurance_details.findUnique({
       where: { patient_id: req.params.patient_id },
@@ -27,7 +27,7 @@ router.get('/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.post('/',  /*authenticateToken,*/  async (req, res) => {
+router.post('/',  authenticateToken,  async (req, res) => {
   try {
     const { patient_id, provider_name, policy_number } = req.body;
     const existing = await prisma.insurance_details.findUnique({ where: { patient_id } });
@@ -43,7 +43,7 @@ router.post('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.put('/:patient_id',  /*authenticateToken,*/  async (req, res) => {
+router.put('/:patient_id',  authenticateToken,  async (req, res) => {
   try {
     const patient_id = req.params.patient_id;
     const { provider_name, policy_number } = req.body;
@@ -57,7 +57,7 @@ router.put('/:patient_id',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.delete('/:patient_id',  /*authenticateToken,*/  async (req, res) => {
+router.delete('/:patient_id',  authenticateToken,  async (req, res) => {
   try {
     await prisma.insurance_details.delete({ where: { patient_id: req.params.patient_id } });
     res.json({ message: 'Deleted' });

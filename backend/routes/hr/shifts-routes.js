@@ -1,11 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../../middleware/authentication.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 // Get all shifts
-router.get('', async (req, res) => {
+router.get('', authenticateToken, async (req, res) => {
   try {
     const shifts = await prisma.shifts.findMany({
       include: {
@@ -26,7 +27,7 @@ router.get('', async (req, res) => {
 });
 
 // Get a single shift
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const shift = await prisma.shifts.findUnique({
@@ -54,7 +55,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Get all shifts for a specific employee
-router.get('/employees/shifts/:eid', async (req, res) => {
+router.get('/employees/shifts/:eid', authenticateToken, async (req, res) => {
   try {
     const { eid } = req.params;
     
@@ -82,7 +83,7 @@ router.get('/employees/shifts/:eid', async (req, res) => {
 });
 
 // Get employee shifts within a date range
-router.get('/employees/:eid/shifts/range', async (req, res) => {
+router.get('/employees/:eid/shifts/range', authenticateToken, async (req, res) => {
   try {
     const { eid } = req.params;
     const { startDate, endDate } = req.query;
@@ -132,7 +133,7 @@ router.get('/employees/:eid/shifts/range', async (req, res) => {
 });
 
 // Create a new shift
-router.post('', async (req, res) => {
+router.post('', authenticateToken, async (req, res) => {
   try {
     const { eid, from_time, to_time } = req.body;
     
@@ -185,7 +186,7 @@ router.post('', async (req, res) => {
 });
 
 // Update a shift
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { from_time, to_time } = req.body;
@@ -241,7 +242,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete a shift
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     

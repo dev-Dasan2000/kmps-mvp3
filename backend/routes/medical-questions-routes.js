@@ -46,7 +46,7 @@ const initializeMedicalQuestions = async () => {
 // Call initialization on server start
 initializeMedicalQuestions();
 
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
+router.get('/',  authenticateToken,  async (req, res) => {
   try {
     const questions = await prisma.medical_questions.findMany();
     res.json(questions);
@@ -55,7 +55,7 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.get('/:medical_question_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/:medical_question_id',  authenticateToken,  async (req, res) => {
   try {
     const question = await prisma.medical_questions.findUnique({
       where: { medical_question_id: Number(req.params.medical_question_id) },
@@ -67,7 +67,7 @@ router.get('/:medical_question_id',  /*authenticateToken,*/  async (req, res) =>
   }
 });
 
-router.post('/',  /*authenticateToken,*/  async (req, res) => {
+router.post('/',  authenticateToken,  async (req, res) => {
   try {
     const { question } = req.body;
     const created = await prisma.medical_questions.create({ data: { question } });
@@ -77,7 +77,7 @@ router.post('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.put('/:medical_question_id',  /*authenticateToken,*/  async (req, res) => {
+router.put('/:medical_question_id',  authenticateToken,  async (req, res) => {
   try {
     const medical_question_id = Number(req.params.medical_question_id);
     const { question } = req.body;
@@ -91,7 +91,7 @@ router.put('/:medical_question_id',  /*authenticateToken,*/  async (req, res) =>
   }
 });
 
-router.delete('/:medical_question_id',  /*authenticateToken,*/  async (req, res) => {
+router.delete('/:medical_question_id',  authenticateToken,  async (req, res) => {
   try {
     await prisma.medical_questions.delete({
       where: { medical_question_id: Number(req.params.medical_question_id) },

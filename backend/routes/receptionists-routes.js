@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
+router.get('/',  authenticateToken,  async (req, res) => {
   try {
     const receptionists = await prisma.receptionists.findMany();
     res.json(receptionists);
@@ -17,7 +17,7 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.get('/count',  /*authenticateToken,*/  async (req, res) => {
+router.get('/count',  authenticateToken,  async (req, res) => {
   try {
     const count = await prisma.receptionists.count();
     res.json(count);
@@ -26,7 +26,7 @@ router.get('/count',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.get('/:receptionist_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/:receptionist_id',  authenticateToken,  async (req, res) => {
   try {
     const receptionist = await prisma.receptionists.findUnique({
       where: { receptionist_id: req.params.receptionist_id },
@@ -84,7 +84,7 @@ router.post('/',  async (req, res) => {
 });
 
 
-router.put('/:receptionist_id',  /*authenticateToken,*/  async (req, res) => {
+router.put('/:receptionist_id',  authenticateToken,  async (req, res) => {
   try {
     const { receptionist_id } = req.params;
     const { password, name, email, phone_number } = req.body;
@@ -113,7 +113,7 @@ router.put('/:receptionist_id',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.delete('/:receptionist_id',  /*authenticateToken,*/  async (req, res) => {
+router.delete('/:receptionist_id',  authenticateToken,  async (req, res) => {
   try {
     console.log(req.params.receptionist_id);
     await prisma.receptionists.delete({

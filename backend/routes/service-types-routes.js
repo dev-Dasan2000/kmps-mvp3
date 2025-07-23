@@ -5,7 +5,7 @@ import { authenticateToken } from '../middleware/authentication.js';
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
+router.get('/',  authenticateToken,  async (req, res) => {
   try {
     const services = await prisma.service_types.findMany();
     res.json(services);
@@ -14,7 +14,7 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.get('/:service_type_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/:service_type_id',  authenticateToken,  async (req, res) => {
   try {
     const service = await prisma.service_types.findUnique({
       where: { service_type_id: Number(req.params.service_type_id) },
@@ -26,7 +26,7 @@ router.get('/:service_type_id',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.post('/',  /*authenticateToken,*/  async (req, res) => {
+router.post('/',  authenticateToken,  async (req, res) => {
   try {
     const { service_type } = req.body;
     const created = await prisma.service_types.create({
@@ -38,7 +38,7 @@ router.post('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.put('/:service_type_id',  /*authenticateToken,*/  async (req, res) => {
+router.put('/:service_type_id',  authenticateToken,  async (req, res) => {
   try {
     const id = Number(req.params.service_type_id);
     const { service_type } = req.body;
@@ -53,7 +53,7 @@ router.put('/:service_type_id',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.delete('/:service_type_id',  /*authenticateToken,*/  async (req, res) => {
+router.delete('/:service_type_id',  authenticateToken,  async (req, res) => {
   try {
     await prisma.service_types.delete({
       where: { service_type_id: Number(req.params.service_type_id) },

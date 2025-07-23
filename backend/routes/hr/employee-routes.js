@@ -1,10 +1,11 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { authenticateToken } from '../../middleware/authentication.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const employees = await prisma.employees.findMany({
       include: {
@@ -19,7 +20,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/new', async (req, res) => {
+router.get('/new', authenticateToken, async (req, res) => {
   try {
     const employees = await prisma.employees.findMany({
       select: { name: true, email: true },
@@ -63,7 +64,7 @@ router.get('/new', async (req, res) => {
   }
 });
 
-router.get('/new/count', async (req, res) => {
+router.get('/new/count', authenticateToken, async (req, res) => {
   try {
     const employees = await prisma.employees.findMany({
       select: { name: true, email: true },
@@ -116,7 +117,7 @@ router.get('/new/count', async (req, res) => {
 });
 
 // Get employee by ID (used by payroll page)
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const employee = await prisma.employees.findUnique({
@@ -138,7 +139,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   console.debug("employe post route called");
   try {
     const {
@@ -228,7 +229,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const {
@@ -282,7 +283,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -309,7 +310,7 @@ router.delete('/:id', async (req, res) => {
 
 // ===================== BANK INFO ROUTES =====================
 
-router.get('/:id/bank-info', async (req, res) => {
+router.get('/:id/bank-info', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -324,7 +325,7 @@ router.get('/:id/bank-info', async (req, res) => {
   }
 });
 
-router.post('/:id/bank-info', async (req, res) => {
+router.post('/:id/bank-info', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { account_holder, account_no, bank_name, branch, account_type } = req.body;
@@ -362,7 +363,7 @@ router.post('/:id/bank-info', async (req, res) => {
   }
 });
 
-router.put('/:id/bank-info/:account_no', async (req, res) => {
+router.put('/:id/bank-info/:account_no', authenticateToken, async (req, res) => {
   try {
     const { id, account_no } = req.params;
     const { account_holder, bank_name, branch, account_type } = req.body;
@@ -402,7 +403,7 @@ router.put('/:id/bank-info/:account_no', async (req, res) => {
   }
 });
 
-router.delete('/:id/bank-info/:account_no', async (req, res) => {
+router.delete('/:id/bank-info/:account_no', authenticateToken, async (req, res) => {
   try {
     const { id, account_no } = req.params;
     
@@ -435,7 +436,7 @@ router.delete('/:id/bank-info/:account_no', async (req, res) => {
   }
 });
 
-router.get('/:id/emergency-contacts', async (req, res) => {
+router.get('/:id/emergency-contacts', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -450,7 +451,7 @@ router.get('/:id/emergency-contacts', async (req, res) => {
   }
 });
 
-router.post('/:id/emergency-contacts', async (req, res) => {
+router.post('/:id/emergency-contacts', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, relationship, phone, email } = req.body;
@@ -487,7 +488,7 @@ router.post('/:id/emergency-contacts', async (req, res) => {
   }
 });
 
-router.put('/:id/emergency-contacts/:phone', async (req, res) => {
+router.put('/:id/emergency-contacts/:phone', authenticateToken, async (req, res) => {
   try {
     const { id, phone } = req.params;
     const { name, relationship, email } = req.body;
@@ -526,7 +527,7 @@ router.put('/:id/emergency-contacts/:phone', async (req, res) => {
   }
 });
 
-router.delete('/:id/emergency-contacts/:phone', async (req, res) => {
+router.delete('/:id/emergency-contacts/:phone', authenticateToken, async (req, res) => {
   try {
     const { id, phone } = req.params;
     

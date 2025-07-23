@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get all dentist assignments
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
+router.get('/',  authenticateToken,  async (req, res) => {
   try {
     const assignments = await prisma.DentistAssign.findMany({
       include: {
@@ -22,7 +22,7 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
 });
 
 // Get assignments by study ID
-router.get('/study/:study_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/study/:study_id',  authenticateToken,  async (req, res) => {
   try {
     const assignments = await prisma.DentistAssign.findMany({
       where: { study_id: parseInt(req.params.study_id) },
@@ -38,7 +38,7 @@ router.get('/study/:study_id',  /*authenticateToken,*/  async (req, res) => {
 });
 
 // Get assignments by dentist ID
-router.get('/dentist/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/dentist/:dentist_id',  authenticateToken,  async (req, res) => {
   try {
     const assignments = await prisma.DentistAssign.findMany({
       where: { dentist_id: req.params.dentist_id },
@@ -54,7 +54,7 @@ router.get('/dentist/:dentist_id',  /*authenticateToken,*/  async (req, res) => 
 });
 
 // Create a new dentist assignment
-router.post('/',  /*authenticateToken,*/  async (req, res) => {
+router.post('/',  authenticateToken,  async (req, res) => {
   try {
     const { study_id, dentist_id } = req.body;
     
@@ -94,7 +94,7 @@ router.post('/',  /*authenticateToken,*/  async (req, res) => {
 });
 
 // Delete a dentist assignment
-router.delete('/:study_id/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
+router.delete('/:study_id/:dentist_id',  authenticateToken,  async (req, res) => {
   try {
     const { study_id, dentist_id } = req.params;
 

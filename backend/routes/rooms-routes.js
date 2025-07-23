@@ -8,7 +8,7 @@ const roomRouter = (io) => {
   const router = express.Router();
 
   // GET all rooms
-  router.get('/',/*authenticateToken, */async (req, res) => {
+  router.get('/', authenticateToken, async (req, res) => {
     try {
       const rooms = await prisma.rooms.findMany();
       res.json(rooms);
@@ -19,7 +19,7 @@ const roomRouter = (io) => {
   });
 
   // GET one room by ID
-  router.get('/:room_id',/*authenticateToken, */async (req, res) => {
+  router.get('/:room_id', authenticateToken, async (req, res) => {
     try {
       const room = await prisma.rooms.findUnique({
         where: { room_id: req.params.room_id }
@@ -33,7 +33,7 @@ const roomRouter = (io) => {
   });
 
   // Room count
-  router.get('/count/num',/*authenticateToken, */async (req, res) => {
+  router.get('/count/num', authenticateToken, async (req, res) => {
     try {
       const count = await prisma.rooms.count();
       res.json({ count });
@@ -44,7 +44,7 @@ const roomRouter = (io) => {
   });
 
   // POST create a room
-  router.post('/',/*authenticateToken, */async (req, res) => {
+  router.post('/', authenticateToken, async (req, res) => {
     try {
       const { room_id, description } = req.body;
 
@@ -62,7 +62,7 @@ const roomRouter = (io) => {
   });
 
   // PUT update a room
-  router.put('/:room_id',/*authenticateToken, */async (req, res) => {
+  router.put('/:room_id', authenticateToken, async (req, res) => {
     try {
       const { description } = req.body;
 
@@ -81,7 +81,7 @@ const roomRouter = (io) => {
   });
 
   // DELETE a room
-  router.delete('/:room_id',/*authenticateToken, */async (req, res) => {
+  router.delete('/:room_id', authenticateToken, async (req, res) => {
     try {
       await prisma.rooms.delete({
         where: { room_id: req.params.room_id }

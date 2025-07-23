@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 const notesRouter = (io) => {
     const router = express.Router();
 
-    router.get('/', /*authenticateToken,*/ async (req, res) => {
+    router.get('/', authenticateToken, async (req, res) => {
         try {
             const notes = await prisma.note.findMany({
                 include: {
@@ -37,7 +37,7 @@ const notesRouter = (io) => {
     });
 
     // Get note by ID
-    router.get('/:note_id', /*authenticateToken,*/ async (req, res) => {
+    router.get('/:note_id', authenticateToken, async (req, res) => {
         try {
             const note_id = Number(req.params.note_id);
 
@@ -72,7 +72,7 @@ const notesRouter = (io) => {
     });
 
     // Get note by study ID
-    router.get('/bystudy/:study_id', /*authenticateToken,*/ async (req, res) => {
+    router.get('/bystudy/:study_id', authenticateToken, async (req, res) => {
         try {
             const study_id = Number(req.params.study_id);
 
@@ -109,7 +109,7 @@ const notesRouter = (io) => {
     });
 
     // Create a new note
-    router.post('/', /*authenticateToken,*/ async (req, res) => {
+    router.post('/', authenticateToken, async (req, res) => {
         try {
             const { note, dentist_id, radiologist_id, study_id } = req.body;
 
@@ -188,7 +188,7 @@ const notesRouter = (io) => {
     });
 
     // Update a note
-    router.put('/:note_id', /*authenticateToken,*/ async (req, res) => {
+    router.put('/:note_id', authenticateToken, async (req, res) => {
         try {
             const note_id = Number(req.params.note_id);
             const { note, dentist_id, radiologist_id, study_id } = req.body;
@@ -231,7 +231,7 @@ const notesRouter = (io) => {
     });
 
     // Delete a note
-    router.delete('/:note_id', /*authenticateToken,*/ async (req, res) => {
+    router.delete('/:note_id', authenticateToken, async (req, res) => {
         try {
             const note_id = Number(req.params.note_id);
 

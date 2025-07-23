@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 const SALT_ROUNDS = 10;
 
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
+router.get('/',  authenticateToken,  async (req, res) => {
   try {
     const dentists = await prisma.dentists.findMany();
     res.json(dentists);
@@ -17,7 +17,7 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.get('/count',  /*authenticateToken,*/  async (req, res) => {
+router.get('/count',  authenticateToken,  async (req, res) => {
   try {
     const count = await prisma.dentists.count();
     res.json(count);
@@ -26,7 +26,7 @@ router.get('/count',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.get('/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/:dentist_id',  authenticateToken,  async (req, res) => {
   try {
     const dentist = await prisma.dentists.findUnique({
       where: { dentist_id: req.params.dentist_id },
@@ -38,7 +38,7 @@ router.get('/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.get('/getworkinfo/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/getworkinfo/:dentist_id',  authenticateToken,  async (req, res) => {
   try {
     const dentist = await prisma.dentists.findUnique({
       where: { dentist_id: req.params.dentist_id },
@@ -124,7 +124,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
+router.put('/:dentist_id',  authenticateToken,  async (req, res) => {
   try {
     const { password, ...rest } = req.body;
     let data = { ...rest };
@@ -142,7 +142,7 @@ router.put('/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.delete('/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
+router.delete('/:dentist_id',  authenticateToken,  async (req, res) => {
   try {
     await prisma.dentists.delete({
       where: { dentist_id: req.params.dentist_id },
@@ -155,7 +155,7 @@ router.delete('/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
 });
 
 //analytics - appointment counts for a dentist
-router.get('/appointment-counts/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/appointment-counts/:dentist_id',  authenticateToken,  async (req, res) => {
   try {
     const dentistId = req.params.dentist_id;
     const [total, completed, confirmed, pending, canceled] = await Promise.all([
@@ -173,7 +173,7 @@ router.get('/appointment-counts/:dentist_id',  /*authenticateToken,*/  async (re
 });
 
 //analytics - get earnings for a dentist
-router.get('/earnings/:dentist_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/earnings/:dentist_id',  authenticateToken,  async (req, res) => {
   try {
     const dentistId = req.params.dentist_id;
     const now = new Date();

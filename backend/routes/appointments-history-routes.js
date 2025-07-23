@@ -5,7 +5,7 @@ import { authenticateToken } from '../middleware/authentication.js';
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/',  /*authenticateToken,*/  async (req, res) => {
+router.get('/',  authenticateToken,  async (req, res) => {
   try {
     const histories = await prisma.appointment_history.findMany();
     res.json(histories);
@@ -14,7 +14,7 @@ router.get('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.get('/:appointment_history_id',  /*authenticateToken,*/  async (req, res) => {
+router.get('/:appointment_history_id',  authenticateToken,  async (req, res) => {
   try {
     const history = await prisma.appointment_history.findUnique({
       where: { appointment_history_id: Number(req.params.appointment_history_id) },
@@ -26,7 +26,7 @@ router.get('/:appointment_history_id',  /*authenticateToken,*/  async (req, res)
   }
 });
 
-router.post('/',  /*authenticateToken,*/  async (req, res) => {
+router.post('/',  authenticateToken,  async (req, res) => {
   try {
     const data = req.body;
     const newHistory = await prisma.appointment_history.create({ data });
@@ -36,7 +36,7 @@ router.post('/',  /*authenticateToken,*/  async (req, res) => {
   }
 });
 
-router.put('/:appointment_history_id',  /*authenticateToken,*/  async (req, res) => {
+router.put('/:appointment_history_id',  authenticateToken,  async (req, res) => {
   try {
     const data = req.body;
     const updatedHistory = await prisma.appointment_history.update({
@@ -49,7 +49,7 @@ router.put('/:appointment_history_id',  /*authenticateToken,*/  async (req, res)
   }
 });
 
-router.delete('/:appointment_history_id',  /*authenticateToken,*/  async (req, res) => {
+router.delete('/:appointment_history_id',  authenticateToken,  async (req, res) => {
   try {
     await prisma.appointment_history.delete({
       where: { appointment_history_id: Number(req.params.appointment_history_id) },

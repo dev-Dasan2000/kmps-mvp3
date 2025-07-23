@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get services assigned to an invoice by invoice_id
-router.get('/:invoice_id', /*authenticateToken,*/  async (req, res) => {
+router.get('/:invoice_id', authenticateToken,  async (req, res) => {
   try {
     const invoice_id = parseInt(req.params.invoice_id);
     
@@ -27,7 +27,7 @@ router.get('/:invoice_id', /*authenticateToken,*/  async (req, res) => {
 });
 
 // Assign a service to an invoice
-router.post('/', /*authenticateToken,*/ async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
     const { invoice_id, service_id } = req.body;
     const assignment = await prisma.invoice_service_assign.create({
@@ -43,7 +43,7 @@ router.post('/', /*authenticateToken,*/ async (req, res) => {
 });
 
 // Delete a service from an invoice
-router.delete('/', /*authenticateToken,*/ async (req, res) => {
+router.delete('/', authenticateToken, async (req, res) => {
   try {
     const { invoice_id, service_id } = req.body;
     await prisma.invoice_service_assign.delete({
