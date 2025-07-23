@@ -720,7 +720,7 @@ const DentalLabModule = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
                     <button
                       onClick={() => setSelectedOrder(order)}
-                      className="text-emerald-500 hover:text-emerald-600 inline-flex items-center justify-center"
+                      className="text-blue-600 hover:text-blue-900 inline-flex items-center justify-center"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
@@ -1029,7 +1029,7 @@ const DentalLabModule = () => {
                 <div className="space-y-2">
                   <p><span className="font-medium">Name:</span> {order.patient?.name || 'N/A'}</p>
                   <p><span className="font-medium">Patient ID:</span> {order.patient?.patient_id || 'N/A'}</p>
-                  <p><span className="font-medium">Dentist:</span> Dr. {order.dentist?.name}</p>
+                  <p><span className="font-medium">Dentist:</span> Dr. {user.name}</p>
                 </div>
               </div>
 
