@@ -1,13 +1,12 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Composite key: (dentist_id, security_question_id)
 
-router.get('/',  authenticateToken,  async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const answers = await prisma.dentist_security_question_answers.findMany();
     res.json(answers);
@@ -16,7 +15,7 @@ router.get('/',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/:dentist_id/:security_question_id',  authenticateToken,  async (req, res) => {
+router.get('/:dentist_id/:security_question_id',   async (req, res) => {
   try {
     const { dentist_id, security_question_id } = req.params;
     const answer = await prisma.dentist_security_question_answers.findUnique({
@@ -34,7 +33,7 @@ router.get('/:dentist_id/:security_question_id',  authenticateToken,  async (req
   }
 });
 
-router.post('/',  authenticateToken,  async (req, res) => {
+router.post('/',   async (req, res) => {
   try {
     const { dentist_id, security_question_id, answer } = req.body;
     const existing = await prisma.dentist_security_question_answers.findUnique({
@@ -61,7 +60,7 @@ router.post('/',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.put('/:dentist_id/:security_question_id',  authenticateToken,  async (req, res) => {
+router.put('/:dentist_id/:security_question_id',   async (req, res) => {
   try {
     const { dentist_id, security_question_id } = req.params;
     const { answer } = req.body;
@@ -80,7 +79,7 @@ router.put('/:dentist_id/:security_question_id',  authenticateToken,  async (req
   }
 });
 
-router.delete('/:dentist_id/:security_question_id',  authenticateToken,  async (req, res) => {
+router.delete('/:dentist_id/:security_question_id',   async (req, res) => {
   try {
     const { dentist_id, security_question_id } = req.params;
     await prisma.dentist_security_question_answers.delete({
