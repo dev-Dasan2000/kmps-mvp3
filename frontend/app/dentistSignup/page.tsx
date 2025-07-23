@@ -267,8 +267,6 @@ const DentistSignUp: React.FC = () => {
         
         if (uploadResponse.ok) {
           const { url } = await uploadResponse.json();
-          window.alert(url);
-          window.alert(dentist.dentist_id);
           await fetch(`${backendURL}/dentists/forPicture/${dentist.dentist_id}`, {
             method: 'PUT',
             headers: {
