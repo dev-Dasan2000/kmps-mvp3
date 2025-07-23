@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Progress } from '@/components/ui/progress';
+
 import {
   Dialog,
   DialogContent,
@@ -620,11 +620,30 @@ export default function ReportEditorPage() {
         });
       }
       
+      setSaveProgress(75);
+      
+      // If finalizing, generate a PDF with signature and export to server
+      if (finalize && user?.role === 'radiologist') {
+        try {
+          // Get radiologist signature
+          const radiologistResponse = await apiClient.get(`/radiologists/${user.id}`);
+          const radiologistData = radiologistResponse.data;
+          const signatureUrl = radiologistData.signature ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${radiologistData.signature}` : null;
+          
+          // Generate and export PDF with signature
+          await exportFinalizedPdf(reportContent, signatureUrl);
+          
+          toast.success('Report finalized and PDF saved successfully');
+        } catch (error) {
+          console.error("Error generating finalized PDF:", error);
+          toast.error("Report was finalized but PDF export failed");
+        }
+      }
+      
       setSaveProgress(100);
       
       if (finalize) {
         setReportStatus('finalized');
-        toast.success('Report finalized successfully');
       } else {
         toast.success('Report saved successfully');
       }
