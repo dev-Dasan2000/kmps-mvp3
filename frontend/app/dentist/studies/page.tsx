@@ -678,47 +678,52 @@ const MedicalStudyInterface: React.FC = () => {
               {displayedStudies.map((study) => (
                 <div key={study.study_id} className="p-4">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="font-medium text-gray-900">{study.patient_id} - {study.patient?.name || 'Unknown Patient'}</div>
-                  </div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <div>Modality: {study.modality}</div>
-                    <div>Description: {study.description}</div>
-                    <div>Date: {study.date} at {study.time}</div>
-                    <div>Accession: ACC-{study.assertion_number}</div>
-                    <div className="text-blue-600 underline cursor-pointer">Report_001.pdf</div>
-                    {study.radiologist && (
-                      <div className="text-green-600">Radiologist: {study.radiologist.name}</div>
-                    )}
-                    {study.doctors && study.doctors.length > 0 && (
-                      <div className="text-blue-600">Doctors: {study.doctors.map(d => d.name).join(', ')}</div>
-                    )}
-                    <div className="flex flex-col space-y-2">
-                      {study.dicom_file_url && (
-                        <button
-                          onClick={() => {
-                            openDicomInNewTab(study.dicom_file_url!);
-                          }}
-                          className="flex items-center justify-center gap-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded transition-colors"
-                        >
-                          <ScanLine className="w-3 h-3" /> View DICOM
-                        </button>
-                      )}
-
-                      {study.report_id && (
-                        <button
-                          onClick={() => {
-                            openReportFile(study.report_id!);
-                          }}
-                          className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
-                          <File className="w-3 h-3" /> Open Report
-                        </button>
-                      )}
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{study.patient_id} - {study.patient?.name || 'Unknown Patient'}</div>
+                      <div className="text-xs text-gray-500 mt-1">ACC-{study.assertion_number}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
                       <ChatActionButton
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenChatStudyId(study.study_id);
                         }}
                       />
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div>Modality: {study.modality}</div>
+                    <div>Description: {study.description}</div>
+                    <div>Date: {study.date} at {study.time}</div>
+                    {study.radiologist && (
+                      <div className="text-green-600">Radiologist: {study.radiologist.name}</div>
+                    )}
+                    {study.doctors && study.doctors.length > 0 && (
+                      <div className="text-blue-600">Doctors: {study.doctors.map(d => d.name).join(', ')}</div>
+                    )}
+                    <div className="flex flex-col space-y-2 mt-4">
+                      <div className="flex gap-2">
+                        {study.dicom_file_url && (
+                          <button
+                            onClick={() => {
+                              openDicomInNewTab(study.dicom_file_url!);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium rounded transition-colors"
+                          >
+                            <ScanLine className="w-3 h-3" /> View DICOM
+                          </button>
+                        )}
+
+                        {study.report_id && (
+                          <button
+                            onClick={() => {
+                              openReportFile(study.report_id!);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
+                            <File className="w-3 h-3" /> Open Report
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
