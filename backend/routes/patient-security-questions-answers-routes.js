@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Composite key: patient_id + security_question_id
 
-router.get('/',  authenticateToken,  async (req, res) => {
+router.get('/',   async (req, res) => {
   try {
     const answers = await prisma.patient_security_question_answers.findMany();
     res.json(answers);
@@ -16,7 +16,7 @@ router.get('/',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/:patient_id/:security_question_id',  authenticateToken,  async (req, res) => {
+router.get('/:patient_id/:security_question_id',   async (req, res) => {
   try {
     const { patient_id, security_question_id } = req.params;
     const answer = await prisma.patient_security_question_answers.findUnique({
@@ -34,7 +34,7 @@ router.get('/:patient_id/:security_question_id',  authenticateToken,  async (req
   }
 });
 
-router.post('/',  authenticateToken,  async (req, res) => {
+router.post('/',   async (req, res) => {
   try {
     let { patient_id, security_question_id, answer } = req.body;
 
@@ -67,7 +67,7 @@ router.post('/',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.put('/:patient_id/:security_question_id',  authenticateToken,  async (req, res) => {
+router.put('/:patient_id/:security_question_id',   async (req, res) => {
   try {
     const { patient_id, security_question_id } = req.params;
     const { answer } = req.body;
@@ -87,7 +87,7 @@ router.put('/:patient_id/:security_question_id',  authenticateToken,  async (req
   }
 });
 
-router.delete('/:patient_id/:security_question_id',  authenticateToken,  async (req, res) => {
+router.delete('/:patient_id/:security_question_id',   async (req, res) => {
   try {
     const { patient_id, security_question_id } = req.params;
     await prisma.patient_security_question_answers.delete({

@@ -192,7 +192,7 @@ export default function ExpenseManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    let uploadedUrl = ''
+    let uploadedUrl = editingExpense?.receipt_url || ''
     if (file) {
       const formData = new FormData();
       formData.append('file', file);
