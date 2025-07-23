@@ -178,10 +178,10 @@ export default function DayRosterView({
         <Card className="border-2 border-gray-200">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <div className="min-w-[800px]">
+              <div className="min-w-[1024px]">
                 {/* Time header */}
                 <div className="flex border-b border-gray-300">
-                  <div className="w-[120px] p-3 font-medium bg-white border-r border-gray-300 sticky left-0 z-10">
+                  <div className="w-[150px] p-3 font-medium bg-white border-r border-gray-300 sticky left-0 z-10">
                     Employee
                   </div>
                   <div className="flex-1 relative">
@@ -219,7 +219,7 @@ export default function DayRosterView({
                     
                     return (
                       <div key={employee.eid} className="flex border-b border-gray-300 hover:bg-gray-50">
-                        <div className="w-[120px] p-3 font-semibold bg-white border-r border-gray-300 sticky left-0 z-10">
+                        <div className="w-[150px] p-3 font-semibold bg-white border-r border-gray-300 sticky left-0 z-10">
                           {employee.name}
                         </div>
                         <div className="flex-1 relative h-16">
@@ -266,3 +266,4 @@ export default function DayRosterView({
     </div>
   );
 }
+
