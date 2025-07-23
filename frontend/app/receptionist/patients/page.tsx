@@ -303,6 +303,15 @@ const PatientManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 rounded-lg "
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       
          <Button

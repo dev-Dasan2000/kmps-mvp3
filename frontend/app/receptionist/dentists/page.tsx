@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, use, useContext } from 'react';
-import { Search, Clock, Phone, Mail, MapPin } from 'lucide-react';
+import { Search, Clock, Phone, Mail, MapPin, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -144,6 +144,15 @@ export default function DentistDirectory() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-full"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
