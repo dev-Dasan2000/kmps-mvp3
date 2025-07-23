@@ -190,7 +190,7 @@ export const ChatModal: FC<ChatModalProps> = ({
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
-  const { user } = useContext(AuthContext);
+  const { user, apiClient } = useContext(AuthContext);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -223,8 +223,8 @@ export const ChatModal: FC<ChatModalProps> = ({
   const fetchNote = async (study_id: number) => {
     setGettingNotes(true);
     try {
-      const res = await axios.get(
-        `${backendURL}/notes/bystudy/${study_id}`,
+      const res = await apiClient.get(
+        `/notes/bystudy/${study_id}`,
       );
       if (res.status == 500) {
         throw new Error("Internal Server Error");
@@ -298,8 +298,8 @@ export const ChatModal: FC<ChatModalProps> = ({
         payload.radiologist_id = user.id;
       }
 
-      const response = await axios.post(
-        `${backendURL}/notes`, {
+      const response = await apiClient.post(
+        `/notes`, {
         note: payload.note,
         radiologist_id: payload.radiologist_id,
         dentist_id: payload.dentist_id,
