@@ -20,7 +20,7 @@ type Patient = {
   email: string;
   phone_number: string;
   address: string;
-  NIC: string;
+  nic: string;
   blood_group: string;
   date_of_birth: string;
   gender: string;
@@ -45,7 +45,7 @@ const PatientManagement = () => {
       email: '',
       phone_number: '',
       address: '',
-      NIC: '',
+      nic: '',
       blood_group: '',
       date_of_birth: '',
       gender: '',
@@ -63,7 +63,7 @@ const PatientManagement = () => {
     email: '',
     phone_number: '',
     address: '',
-    NIC: '',
+    nic: '',
     blood_group: '',
     date_of_birth: '',
     gender: '',
@@ -84,7 +84,7 @@ const PatientManagement = () => {
       email: '',
       phone_number: '',
       address: '',
-      NIC: '',
+      nic: '',
       blood_group: '',
       date_of_birth: '',
       gender: '',
@@ -136,7 +136,7 @@ const PatientManagement = () => {
             email: formData.email,
             phone_number: formData.phone_number,
             address: formData.address,
-            nic: formData.NIC,
+            nic: formData.nic,
             blood_group: formData.blood_group,
             date_of_birth: formData.date_of_birth,
             gender: formData.gender
@@ -180,7 +180,7 @@ const PatientManagement = () => {
           email: formData.email,
           phone_number: formData.phone_number,
           address: formData.address,
-          nic: formData.NIC,
+          nic: formData.nic,
           blood_group: formData.blood_group,
           date_of_birth: formData.date_of_birth,
           gender: formData.gender,
@@ -565,11 +565,11 @@ const PatientManagement = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="NIC" className="text-sm font-medium">NIC</Label>
+                    <Label htmlFor="nic" className="text-sm font-medium">NIC</Label>
                     <Input
-                      id="NIC"
+                      id="nic"
                       name="NIC"
-                      value={formData.NIC}
+                      value={formData.nic}
                       onChange={handleInputChange}
                       className="w-full"
                     />
