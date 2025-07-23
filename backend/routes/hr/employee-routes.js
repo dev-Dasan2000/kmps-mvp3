@@ -22,12 +22,16 @@ router.get('/', authenticateToken, async (req, res) => {
 
 router.get('/new', authenticateToken, async (req, res) => {
   try {
+    // Step 1: Get all employees
     const employees = await prisma.employees.findMany({
       select: { name: true, email: true },
     });
 
-    const employeeKeySet = new Set(employees.map(emp => `${emp.name.toLowerCase()}|${emp.email.toLowerCase()}`));
+    // Step 2: Create Sets for fast lookup (case-insensitive)
+    const employeeNamesSet = new Set(employees.map(emp => emp.name.toLowerCase()));
+    const employeeEmailsSet = new Set(employees.map(emp => emp.email.toLowerCase()));
 
+    // Step 3: Fetch all role-based users
     const dentistsRaw = await prisma.dentists.findMany({
       select: { dentist_id: true, name: true, email: true, phone_number: true },
     });
@@ -40,18 +44,26 @@ router.get('/new', authenticateToken, async (req, res) => {
       select: { radiologist_id: true, name: true, email: true, phone_number: true },
     });
 
+    // Step 4: Filter out entries if name OR email matches any employee
     const dentists = dentistsRaw.filter(
-      d => !employeeKeySet.has(`${d.name.toLowerCase()}|${d.email.toLowerCase()}`)
+      d =>
+        !employeeNamesSet.has(d.name.toLowerCase()) &&
+        !employeeEmailsSet.has(d.email.toLowerCase())
     );
 
     const receptionists = receptionistsRaw.filter(
-      r => !employeeKeySet.has(`${r.name.toLowerCase()}|${r.email.toLowerCase()}`)
+      r =>
+        !employeeNamesSet.has(r.name.toLowerCase()) &&
+        !employeeEmailsSet.has(r.email.toLowerCase())
     );
 
     const radiologists = radiologistsRaw.filter(
-      r => !employeeKeySet.has(`${r.name.toLowerCase()}|${r.email.toLowerCase()}`)
+      r =>
+        !employeeNamesSet.has(r.name.toLowerCase()) &&
+        !employeeEmailsSet.has(r.email.toLowerCase())
     );
 
+    // Step 5: Return filtered data
     res.json({
       dentists,
       receptionists,
@@ -63,6 +75,7 @@ router.get('/new', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
 
 router.get('/new/count', authenticateToken, async (req, res) => {
   try {
