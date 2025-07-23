@@ -440,7 +440,7 @@ export default function ExpenseManagement() {
                         size="sm"
                         className="p-1 h-8 w-8 hover:text-blue-600"
                         title="Download Receipt"
-                        onClick={() => window.open(`${expense.receipt_url}`, '_blank')}
+                        onClick={() => window.open(`${backendURL}${expense.receipt_url}`, '_blank')}
                       >
                         <Download size={16} />
                       </Button>
