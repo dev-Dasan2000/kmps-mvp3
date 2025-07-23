@@ -208,7 +208,7 @@ export const ChatModal: FC<ChatModalProps> = ({
       fetchNote(studyId);
     }
 
-    socket.on("note_updated", (updatedRoom) => {
+    socket.on("note_updated", (updatedNote) => {
 
     });
 
@@ -218,7 +218,6 @@ export const ChatModal: FC<ChatModalProps> = ({
       socket.off("note_deleted");
     };
   }, [studyId]);
-
 
   const fetchNote = async (study_id: number) => {
     setGettingNotes(true);
