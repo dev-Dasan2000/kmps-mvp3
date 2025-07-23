@@ -10,8 +10,8 @@ import { useRouter } from "next/navigation";
 import { Carattere } from 'next/font/google';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { ChangePasswordDialog } from '@/Components/ChangePasswordDialog';
-import { SignatureDialog } from '@/Components/SignatureDialog';
+import { ChangePasswordDialog } from '@/components/ChangePasswordDialog';
+import { SignatureDialog } from '@/components/SignatureDialog';
 import Image from 'next/image';
 
 interface radiologistData {

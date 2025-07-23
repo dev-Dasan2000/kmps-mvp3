@@ -39,6 +39,7 @@ interface Radiologist {
   specialization?: string;
 }
 
+// Update the Study interface to include report property
 interface Study {
   study_id: number;
   patient_id: string;
@@ -57,6 +58,10 @@ interface Study {
   dicom_file_url?: string;
   body_part?: string;
   reason?: string;
+  report?: {
+    status?: string;
+    report_file_url?: string;
+  };
 }
 
 // Interface for medical history and critical conditions
@@ -129,10 +134,33 @@ const RadiologistWorkspace: React.FC = () => {
     }
   }, [debouncedSearchTerm, radiologistId]);
 
+  // Add a function to open report file directly
+  const openReportFile = async (reportId: number) => {
+    try {
+      // First fetch the report data to get the file URL
+      const reportResponse = await apiClient.get(`/reports/${reportId}`);
+      const reportData = reportResponse.data;
+      
+      const fileUrl = reportData.report_file_url;
+      
+      if (!fileUrl) {
+        toast.error('Report file URL is missing');
+        return;
+      }
+      
+      // Open PDF in a new tab
+      window.open(`${backendURL}${fileUrl.startsWith('/') ? '' : '/'}${fileUrl}`, '_blank');
+    } catch (error) {
+      console.error('Error opening report file:', error);
+      toast.error('Failed to open report file');
+    }
+  };
+
+  // Update fetchStudyById to include report data
   const fetchStudyById = async (studyId: number) => {
     try {
       setIsLoading(true);
-      const response = await apiClient.get(`/studies/${studyId}`);
+      const response = await apiClient.get(`/studies/${studyId}?include=report`);
       setSelectedStudy(response.data);
       
       // Fetch patient's critical conditions when a study is selected
@@ -600,14 +628,24 @@ const RadiologistWorkspace: React.FC = () => {
                       size="sm" 
                       variant="outline" 
                       onClick={() => {
-                        router.push(`/radiologist/reports?studyId=${selectedStudy.study_id}`);
+                        if (selectedStudy.report?.status === 'finalized') {
+                          // If report has a file URL (finalized), open it directly
+                          openReportFile(selectedStudy.report_id!);
+                        } else {
+                          // Otherwise open in the editor
+                          router.push(`/radiologist/reports?studyId=${selectedStudy.study_id}`);
+                        }
                       }}
                     >
                       <Eye className="h-4 w-4 mr-2" />
-                      View Full Report
+                      {selectedStudy.report?.status === 'finalized' ? 'View Report' : 'Edit Report'}
                     </Button>
                   </div>
-                  <p className="text-gray-500 italic">Click the button above to view the full report.</p>
+                  <p className="text-gray-500 italic">
+                    {selectedStudy.report?.status === 'finalized'
+                      ? 'This report has been finalized. Click the button above to view it.'
+                      : 'This report is still in draft. Click the button above to edit it.'}
+                  </p>
                 </div>
               ) : (
                 <div className="text-center py-8">
