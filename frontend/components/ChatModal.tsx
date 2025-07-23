@@ -19,6 +19,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { AuthContext } from '@/context/auth-context';
 import socket from '@/hooks/socket';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Mock data for demonstration
 const mockUsers: { [key: string]: User } = {
@@ -57,6 +58,7 @@ interface User {
   role: string;
   avatar: string;
   color: string;
+  profile_picture?: string;
 }
 
 interface Message {
@@ -426,7 +428,7 @@ export const ChatModal: FC<ChatModalProps> = ({
         <div className="flex items-center justify-between p-3 sm:p-4 bg-emerald-600 text-white rounded-t-lg">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-              🏥
+              <MessageCircle size={20} className="text-emerald-600" />
             </div>
             <div>
               <h3 className="font-semibold text-base sm:text-lg">Study Discussion</h3>
@@ -476,9 +478,31 @@ export const ChatModal: FC<ChatModalProps> = ({
               <div key={message.note_id} className={`mb-3 flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                 <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-end space-x-2 max-w-[80vw] sm:max-w-xs`}>
                   {!isOwn && (
-                    <div className={`w-8 h-8 ${userInside?.color || 'bg-gray-500'} rounded-full flex items-center justify-center text-white text-sm flex-shrink-0`}>
-                      {userInside?.avatar || '👤'}
-                    </div>
+                    <Avatar className={`w-8 h-8 flex-shrink-0`}>
+                      <AvatarImage 
+                        src={message.radiologist?.profile_picture || message.dentist?.profile_picture 
+                          ? `${process.env.NEXT_PUBLIC_BACKEND_URL}${message.radiologist?.profile_picture || message.dentist?.profile_picture}`
+                          : undefined
+                        }
+                        alt={userInside?.name || 'User'}
+                        onError={(e) => {
+                          // If image fails to load, this will trigger the fallback
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                      <AvatarFallback className={`${userInside?.color || 'bg-gray-500'} text-white text-sm`}>
+                        {userInside?.name
+                          ? userInside.name
+                              .split(' ')
+                              .map(n => n[0])
+                              .join('')
+                              .toUpperCase()
+                              .substring(0, 2)
+                          : '👤'
+                        }
+                      </AvatarFallback>
+                    </Avatar>
                   )}
                   <div className={`${isOwn ? 'ml-2' : 'mr-2'} flex flex-col`}>
                     {!isOwn && (
@@ -591,4 +615,4 @@ export const ChatModal: FC<ChatModalProps> = ({
       />
     </div>
   );
-};   
+};        
