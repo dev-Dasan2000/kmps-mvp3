@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Search, Phone, Mail, Calendar, Clock, User } from 'lucide-react'
+import { Search, Phone, Mail, Calendar, Clock, User, X } from 'lucide-react'
 import { AuthContext } from '@/context/auth-context'
 import axios from 'axios';
 import { toast } from 'sonner';
-
 
 interface Patient {
   patient_id: string
@@ -156,6 +155,15 @@ export default function AppointmentsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 bg-white border-gray-200"
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              aria-label="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Desktop Table View */}

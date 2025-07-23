@@ -14,14 +14,14 @@
 
 .reportTitle {
   text-align: center;
-  border-bottom: 2px solid #0d7d85;
+  border-bottom: 2px solid #0d7d85; /* Explicitly using hex color */
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
   max-width: 100%;
 }
 
 .reportTitle h1 {
-  color: #0d7d85;
+  color: #0d7d85; /* Explicitly using hex color */
   font-size: 1.8rem;
   font-weight: bold;
   letter-spacing: 0.05em;
@@ -45,7 +45,7 @@
 .infoSection h2 {
   font-size: 1.2rem;
   font-weight: 700;
-  color: #0d7d85;
+  color: #0d7d85; /* Explicitly using hex color */
   border-bottom: 1px solid #e5e7eb;
   padding-bottom: 0.5rem;
   margin-top: 0;
@@ -119,10 +119,11 @@
   box-sizing: border-box;
 }
 
+/* Report Content Styles */
 .reportContent h1 {
   font-size: 1.8rem !important;
   font-weight: 700 !important;
-  color: #0d7d85 !important;
+  color: #0d7d85 !important; /* Explicitly using hex color */
   margin: 1.5rem 0 1rem !important;
   max-width: 100%;
   overflow-wrap: break-word;
@@ -131,7 +132,7 @@
 .reportContent h2 {
   font-size: 1.4rem !important;
   font-weight: 700 !important;
-  color: #0d7d85 !important;
+  color: #0d7d85 !important; /* Explicitly using hex color */
   margin: 1.5rem 0 0.75rem !important;
   max-width: 100%;
   overflow-wrap: break-word;
@@ -140,7 +141,7 @@
 .reportContent h3 {
   font-size: 1.2rem !important;
   font-weight: 700 !important;
-  color: #0d7d85 !important;
+  color: #0d7d85 !important; /* Explicitly using hex color */
   margin: 1.25rem 0 0.5rem !important;
   max-width: 100%;
   overflow-wrap: break-word;
@@ -268,7 +269,7 @@
 
 /* PDF header with improved styling */
 .pdfHeader {
-  background-color: #0d7d85;
+  background-color: #0d7d85; /* Explicitly using hex color */
   color: white;
   padding: 15px;
   display: flex;
