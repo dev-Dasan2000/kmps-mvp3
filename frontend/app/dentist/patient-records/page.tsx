@@ -2122,7 +2122,7 @@ export default function DentistDashboard({ params }: DashboardProps) {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium text-gray-900 truncate">{patient.name}</h3>
                         <p className="text-sm text-gray-500 truncate">{patient.email}</p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
                           {patient.blood_group && (
                             <Badge variant="secondary" className="text-xs">
                               {patient.blood_group}
@@ -2151,13 +2151,15 @@ export default function DentistDashboard({ params }: DashboardProps) {
                               </Tooltip>
                             </TooltipProvider>
                           )}
-                          {medicalHistory.length > 0 && (
+                          {/* Only show history badge if this patient is selected and has history */}
+                          {selectedPatient?.patient_id === patient.patient_id && medicalHistory.length > 0 && (
                             <Badge variant="outline" className="text-xs">
                               <Activity className="h-3 w-3 mr-1" />
                               History
                             </Badge>
                           )}
-                          {medicalReport.length > 0 && (
+                          {/* Only show reports badge if this patient is selected and has reports */}
+                          {selectedPatient?.patient_id === patient.patient_id && medicalReport.length > 0 && (
                             <Badge variant="outline" className="text-xs">
                               <FileText className="h-3 w-3 mr-1" />
                               Reports
