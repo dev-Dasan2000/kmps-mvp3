@@ -26,7 +26,7 @@ const findUserById = async (id) => {
   if (user) return { user, role: 'admin' };
 
   user = await prisma.lab.findUnique({ where: { lab_id: id } });
-  if(user) return {user, role: 'lab'};
+  if (user) return { user, role: 'lab' };
 
   return { user: null, role: null };
 };
@@ -98,23 +98,30 @@ router.get('/refresh_token', (req, res) => {
     }
 
     jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY, (error, user) => {
-      if (error) return res.status(403).json({ error: error.message });
+      
+      if (error) {
+        console.log('Refresh token verification error:', error.message);
+        return res.status(403).json({ error: error.message });
+      };
 
-      const { id, name, role } = user;
-
+      const { role, name } = user;
       const idKey = `${role}_id`;
+      const id = user[idKey];
+
+      if (!id) {
+        return res.status(403).json({ error: 'Invalid token payload' });
+      }
+
       const payload = {
         [idKey]: id,
         name,
         role
       };
 
-
       const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_KEY, {
         expiresIn: '15m',
       });
-
-      res.json({ accessToken, user: { id: id, name: name, role: role } });
+      res.json({ accessToken, user: { id, name, role } });
     });
   } catch (err) {
     console.error(err.message);

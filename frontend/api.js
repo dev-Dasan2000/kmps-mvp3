@@ -1,4 +1,3 @@
-// utils/api.js
 import axios from 'axios';
 import { toast } from 'sonner';
 
@@ -21,33 +20,51 @@ export const createAPIClient = ({ accessToken, setAccessToken, setUser }) => {
     (error) => Promise.reject(error)
   );
 
-  // Handle 401 and 403 token refresh
+  // Response interceptor for handling token refresh
   api.interceptors.response.use(
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
 
-      const isTokenExpired403 =
-        error.response?.status === 403 &&
-        (error.response?.data === 'Invalid token' || error.response?.data?.error === 'Invalid token');
+      if (!originalRequest) {
+        // no config on error, just reject
+        return Promise.reject(error);
+      }
+
+      // Check if error status is 401 or 403 with invalid token
+      const status = error.response?.status;
+      const errorData = error.response?.data;
+
+      const isInvalidToken =
+        status === 403 &&
+        (errorData === 'Invalid token' || errorData?.error === 'Invalid token');
 
       if (
-        (error.response?.status === 401 || isTokenExpired403) &&
+        (status === 401 || isInvalidToken) &&
         !originalRequest._retry
       ) {
-        originalRequest._retry = true;
+        originalRequest._retry = true; // avoid infinite loops
+
         try {
+          // Call refresh token endpoint
           const res = await axios.get(`${backendURL}/auth/refresh_token`, {
             withCredentials: true,
           });
 
-          const newToken = res.data.accessToken;
-          setAccessToken(newToken);
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          const newAccessToken = res.data.accessToken;
 
+          if (!newAccessToken) {
+            throw new Error('No access token returned');
+          }
+
+          // Update access token state
+          setAccessToken(newAccessToken);
+
+          // Update Authorization header and retry original request
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return api(originalRequest);
         } catch (refreshError) {
-          console.error('Refresh token failed:', refreshError);
+          // Refresh failed: logout user
           toast.error('Session expired. Please log in again.');
 
           try {
@@ -67,7 +84,8 @@ export const createAPIClient = ({ accessToken, setAccessToken, setUser }) => {
         }
       }
 
-      if (error.response?.status === 403 && !isTokenExpired403) {
+      // Handle other 403 (permission denied)
+      if (status === 403 && !isInvalidToken) {
         toast.error('You do not have permission to perform this action.');
       }
 
