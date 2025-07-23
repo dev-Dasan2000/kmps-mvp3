@@ -138,7 +138,6 @@ export function StaffDirectory({ employees, onEmployeeAdded }: StaffDirectoryPro
   }
 };
 
-
   const ScheduleBadge = ({ status }: { status: string }) => (
     <span className={`px-2 py-1 rounded-full ${
       status === 'full time' ? 'bg-green-100 text-green-800' :
