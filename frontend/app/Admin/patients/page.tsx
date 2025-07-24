@@ -570,6 +570,7 @@ const PatientManagement = () => {
                       value={formData.nic}
                       onChange={handleInputChange}
                       className="w-full"
+                      disabled={editingPatient !== null}
                     />
                   </div>
 
