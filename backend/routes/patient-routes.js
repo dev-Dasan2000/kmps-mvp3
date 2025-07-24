@@ -21,21 +21,23 @@ router.get('/search', authenticateToken, async (req, res) => {
 
     const searchTerm = `%${q}%`;
 
-    // Using Prisma's raw query for better search functionality
-    const patients = await prisma.$queryRaw`
-      SELECT 
-        patient_id, 
-        name, 
-        email, 
-        phone_number
-      FROM patients
-      WHERE 
-        LOWER(name) LIKE LOWER(${searchTerm}) OR
-        patient_id::TEXT LIKE ${searchTerm} OR
-        LOWER(email) LIKE LOWER(${searchTerm}) OR
-        phone_number LIKE ${searchTerm}
-      LIMIT 20
-    `;
+    const patients = await prisma.patients.findMany({
+      where: {
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { patient_id: { contains: q } },
+          { email: { contains: q, mode: 'insensitive' } },
+          { phone_number: { contains: q } }
+        ]
+      },
+      select: {
+        patient_id: true,
+        name: true,
+        email: true,
+        phone_number: true
+      },
+      take: 20
+    });
 
     console.log('Search results:', patients); // Debug log
     res.json(patients);

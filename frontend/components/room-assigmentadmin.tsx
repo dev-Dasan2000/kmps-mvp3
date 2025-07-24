@@ -237,7 +237,7 @@ export function RoomAssignment({ refreshKey }: { refreshKey: number }) {
 
     // Check for overlapping time slots
     if (hasTimeSlotOverlap(selectedRoomId, formData.date, formData.time_from, formData.time_to, undefined, formData.dentist_id)) {
-      toast.error("This room is already booked for the selected time slot")
+      toast.error("Time slot overlaps with an existing assignment")
       return
     }
 

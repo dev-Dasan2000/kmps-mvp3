@@ -8,26 +8,26 @@ const prisma = new PrismaClient();
 // Helper function to format time (extract only time part from datetime)
 function formatTimeOnly(dateTime) {
   if (!dateTime) return null;
-  
+
   const date = new Date(dateTime);
-  return date.toLocaleTimeString('en-US', { 
-    hour: '2-digit', 
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
     minute: '2-digit',
-    hour12: true 
+    hour12: true
   });
 }
 
 // Helper function to format date (extract only date part from datetime)
 function formatDateOnly(dateTime) {
   if (!dateTime) return null;
-  
+
   const date = new Date(dateTime);
   return date.toISOString().split('T')[0];
 }
 
 // Helper function to format day name
 function formatDayName(date) {
-  return new Intl.DateTimeFormat('en-US', { 
+  return new Intl.DateTimeFormat('en-US', {
     weekday: 'short',
     timeZone: 'UTC'
   }).format(date);
@@ -35,7 +35,7 @@ function formatDayName(date) {
 
 // Helper function to format date (month and day)
 function formatDate(date) {
-  return new Intl.DateTimeFormat('en-US', { 
+  return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
     timeZone: 'UTC'
@@ -44,7 +44,7 @@ function formatDate(date) {
 
 // Helper function to format full date (with year)
 function formatFullDate(date) {
-  return new Intl.DateTimeFormat('en-US', { 
+  return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -59,10 +59,10 @@ router.get('/today', authenticateToken, async (req, res) => {
     const today = new Date();
     const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
     const endOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-    
+
     // Get all employees
     const employees = await prisma.employees.findMany();
-    
+
     // Get today's attendance records
     const attendance = await prisma.employee_atd.findMany({
       where: {
@@ -72,17 +72,17 @@ router.get('/today', authenticateToken, async (req, res) => {
         }
       }
     });
-    
+
     // Process attendance data
     const attendanceByEmployee = {};
     attendance.forEach(record => {
       attendanceByEmployee[record.eid] = record;
     });
-    
+
     // Format response
     const todayAttendance = employees.map(employee => {
       const record = attendanceByEmployee[employee.eid];
-      
+
       return {
         eid: employee.eid,
         name: employee.name,
@@ -92,14 +92,14 @@ router.get('/today', authenticateToken, async (req, res) => {
         present: !!record
       };
     });
-    
+
     // Calculate stats
     const stats = {
       present: todayAttendance.filter(e => e.present).length,
       absent: todayAttendance.filter(e => !e.present).length,
       total: todayAttendance.length
     };
-    
+
     res.json({
       date: formatDateOnly(today),
       records: todayAttendance,
@@ -177,12 +177,22 @@ router.get('/total/:eid', authenticateToken, async (req, res) => {
     }
 
     // Count unique days with attendance records
-    const attendanceCount = await prisma.$queryRaw`
-      SELECT COUNT(DISTINCT DATE(clock_in)) as total_days
-      FROM employee_atd
-      WHERE eid = ${employeeId}
-    `;
-    
+    const attendanceCount = await prisma.employee_atd.groupBy({
+      by: ['eid'],
+      where: {
+        eid: employeeId
+      },
+      _count: {
+        // Using distinct with function to extract only the date part
+        _all: true
+      },
+      having: {
+        eid: {
+          equals: employeeId
+        }
+      }
+    });
+
     // Count approved leave days
     const leaves = await prisma.leaves.findMany({
       where: {
@@ -190,7 +200,7 @@ router.get('/total/:eid', authenticateToken, async (req, res) => {
         status: 'Approved'
       }
     });
-    
+
     // Calculate total leave days
     let totalLeaveDays = 0;
     leaves.forEach(leave => {
@@ -203,7 +213,7 @@ router.get('/total/:eid', authenticateToken, async (req, res) => {
 
     // Convert BigInt to Number to avoid type mixing issues
     const totalAttendanceDays = attendanceCount[0]?.total_days ? Number(attendanceCount[0].total_days) : 0;
-    
+
     res.json({
       eid: employeeId,
       name: employee.name,
@@ -239,7 +249,7 @@ router.get('/with-leaves/:eid', authenticateToken, async (req, res) => {
       employee.attendance.forEach(record => {
         uniqueDates.add(formatDateOnly(record.clock_in));
       });
-      
+
       // Calculate total leave days
       let totalLeaveDays = 0;
       const leaveDetails = employee.leaves.map(leave => {
@@ -248,7 +258,7 @@ router.get('/with-leaves/:eid', authenticateToken, async (req, res) => {
         const diffTime = Math.abs(toDate - fromDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
         totalLeaveDays += diffDays;
-        
+
         return {
           from_date: formatDateOnly(leave.from_date),
           to_date: formatDateOnly(leave.to_date),
@@ -284,7 +294,7 @@ router.get('/weekly/all', authenticateToken, async (req, res) => {
     const firstDayOfWeek = new Date(currentDate);
     firstDayOfWeek.setDate(currentDate.getDate() + mondayOffset);
     firstDayOfWeek.setHours(0, 0, 0, 0);
-    
+
     const lastDayOfWeek = new Date(firstDayOfWeek);
     lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
     lastDayOfWeek.setHours(23, 59, 59, 999);
@@ -332,13 +342,13 @@ router.get('/weekly/all', authenticateToken, async (req, res) => {
     const weeklyAttendance = employees.map(employee => {
       // Initialize attendance for each day of the week
       const attendanceByDay = {};
-      
+
       // Create dates for each day of the week
       for (let i = 0; i < 7; i++) {
         const date = new Date(firstDayOfWeek);
         date.setDate(firstDayOfWeek.getDate() + i);
         const isoDate = formatDateOnly(date);
-        
+
         attendanceByDay[isoDate] = {
           attendance: [],
           leave: false,
@@ -359,12 +369,12 @@ router.get('/weekly/all', authenticateToken, async (req, res) => {
           });
         }
       });
-      
+
       // Mark days with approved leaves
       employee.leaves.forEach(leave => {
         const leaveStart = new Date(leave.from_date);
         const leaveEnd = new Date(leave.to_date);
-        
+
         Object.keys(attendanceByDay).forEach(dateStr => {
           const date = new Date(dateStr);
           if (date >= leaveStart && date <= leaveEnd) {
@@ -373,11 +383,11 @@ router.get('/weekly/all', authenticateToken, async (req, res) => {
           }
         });
       });
-      
+
       // Count effective days present (including leave days)
       const daysPresent = Object.values(attendanceByDay).filter(day => day.attendance.length > 0).length;
       const daysOnLeave = Object.values(attendanceByDay).filter(day => day.leave && day.attendance.length === 0).length;
-      
+
       return {
         eid: employee.eid,
         name: employee.name,
@@ -484,7 +494,7 @@ router.post('/clock-in', authenticateToken, async (req, res) => {
     const currentDate = new Date();
     const startOfDay = new Date(currentDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     const existingAttendance = await prisma.employee_atd.findMany({
       where: {
         eid: employeeId,
@@ -542,7 +552,7 @@ router.post('/clock-out', authenticateToken, async (req, res) => {
     const currentDate = new Date();
     const startOfDay = new Date(currentDate);
     startOfDay.setHours(0, 0, 0, 0);
-    
+
     // Find the latest clock in without clock out
     const latestClockIn = await prisma.employee_atd.findFirst({
       where: {
