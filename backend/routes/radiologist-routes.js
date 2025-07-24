@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { sendAccountCreationNotice } from '../utils/mailer.js';
+import { sendAccountCreationNoticeWhatsApp } from '../utils/whatsapp.js';
 import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
@@ -9,7 +10,7 @@ const router = express.Router();
 const SALT_ROUNDS = 10;
 
 // Get all radiologists
-router.get('/',  authenticateToken,  async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const radiologists = await prisma.radiologists.findMany({
       select: {
@@ -69,7 +70,7 @@ router.put('/:radiologist_id/signature', authenticateToken, async (req, res) => 
 });
 
 // Get radiologist by ID
-router.get('/:radiologist_id',  authenticateToken,  async (req, res) => {
+router.get('/:radiologist_id', authenticateToken, async (req, res) => {
   try {
     const radiologist = await prisma.radiologists.findUnique({
       where: { radiologist_id: req.params.radiologist_id },
@@ -82,11 +83,11 @@ router.get('/:radiologist_id',  authenticateToken,  async (req, res) => {
         signature: true
       }
     });
-    
+
     if (!radiologist) {
       return res.status(404).json({ error: 'Radiologist not found' });
     }
-    
+
     res.json(radiologist);
   } catch (error) {
     console.error('Error fetching radiologist:', error);
@@ -95,7 +96,7 @@ router.get('/:radiologist_id',  authenticateToken,  async (req, res) => {
 });
 
 // Get the 10 most recent studies for a radiologist
-router.get('/:radiologist_id/recent-studies',  authenticateToken,  async (req, res) => {
+router.get('/:radiologist_id/recent-studies', authenticateToken, async (req, res) => {
   try {
     const radiologistId = req.params.radiologist_id;
 
@@ -103,15 +104,15 @@ router.get('/:radiologist_id/recent-studies',  authenticateToken,  async (req, r
     const existingRadiologist = await prisma.radiologists.findUnique({
       where: { radiologist_id: radiologistId }
     });
-    
+
     if (!existingRadiologist) {
       return res.status(404).json({ error: 'Radiologist not found' });
     }
 
     // Get the 10 most recent studies for the radiologist with report details
     const recentStudies = await prisma.study.findMany({
-      where: { 
-        radiologist_id: radiologistId 
+      where: {
+        radiologist_id: radiologistId
       },
       include: {
         patient: {
@@ -153,7 +154,7 @@ router.get('/:radiologist_id/recent-studies',  authenticateToken,  async (req, r
 });
 
 // Get counts of studies by report status for a radiologist
-router.get('/:radiologist_id/study-counts',  authenticateToken,  async (req, res) => {
+router.get('/:radiologist_id/study-counts', authenticateToken, async (req, res) => {
   try {
     const radiologistId = req.params.radiologist_id;
 
@@ -161,15 +162,15 @@ router.get('/:radiologist_id/study-counts',  authenticateToken,  async (req, res
     const existingRadiologist = await prisma.radiologists.findUnique({
       where: { radiologist_id: radiologistId }
     });
-    
+
     if (!existingRadiologist) {
       return res.status(404).json({ error: 'Radiologist not found' });
     }
 
     // Get all studies assigned to the radiologist
     const studies = await prisma.study.findMany({
-      where: { 
-        radiologist_id: radiologistId 
+      where: {
+        radiologist_id: radiologistId
       },
       include: {
         report: true
@@ -178,9 +179,9 @@ router.get('/:radiologist_id/study-counts',  authenticateToken,  async (req, res
 
     // Count studies by report status
     const counts = {
-      notReported: 0,   
-      draft: 0,         
-      finalized: 0 
+      notReported: 0,
+      draft: 0,
+      finalized: 0
     };
 
     studies.forEach(study => {
@@ -201,7 +202,7 @@ router.get('/:radiologist_id/study-counts',  authenticateToken,  async (req, res
 });
 
 // Create new radiologist
-router.post('/',  async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name, email, password, phone_number, profile_picture } = req.body;
 
@@ -209,7 +210,7 @@ router.post('/',  async (req, res) => {
     const existingRadiologist = await prisma.radiologists.findUnique({
       where: { email }
     });
-    
+
     if (existingRadiologist) {
       return res.status(409).json({ error: 'Email already in use' });
     }
@@ -252,6 +253,9 @@ router.post('/',  async (req, res) => {
     });
 
     sendAccountCreationNotice(email, new_radiologist_id);
+    if (newRadiologist.phone_number) {
+      sendAccountCreationNoticeWhatsApp(newRadiologist.phone_number, new_radiologist_id);
+    }
     res.status(201).json(newRadiologist);
   } catch (error) {
     console.error('Error creating radiologist:', error);
@@ -259,9 +263,8 @@ router.post('/',  async (req, res) => {
   }
 });
 
-
 // Update radiologist
-router.put('/:radiologist_id',  authenticateToken,  async (req, res) => {
+router.put('/:radiologist_id', authenticateToken, async (req, res) => {
   try {
     const { name, email, password, phone_number, profile_picture, signature } = req.body;
     const radiologistId = req.params.radiologist_id;
@@ -270,7 +273,7 @@ router.put('/:radiologist_id',  authenticateToken,  async (req, res) => {
     const existingRadiologist = await prisma.radiologists.findUnique({
       where: { radiologist_id: radiologistId }
     });
-    
+
     if (!existingRadiologist) {
       return res.status(404).json({ error: 'Radiologist not found' });
     }
@@ -280,7 +283,7 @@ router.put('/:radiologist_id',  authenticateToken,  async (req, res) => {
       const emailExists = await prisma.radiologists.findUnique({
         where: { email }
       });
-      
+
       if (emailExists) {
         return res.status(409).json({ error: 'Email already in use' });
       }
@@ -335,14 +338,14 @@ router.put('/change-password/:radiologist_id', authenticateToken, async (req, re
     });
 
     res.status(202).json(updatedRadiologist);
-  } catch(err) {
+  } catch (err) {
     console.log(err);
     res.status(500).json({ error: 'Failed to update radiologist' });
   }
 });
 
 // Delete radiologist
-router.delete('/:radiologist_id',  authenticateToken,  async (req, res) => {
+router.delete('/:radiologist_id', authenticateToken, async (req, res) => {
   try {
     const radiologistId = req.params.radiologist_id;
 
@@ -350,7 +353,7 @@ router.delete('/:radiologist_id',  authenticateToken,  async (req, res) => {
     const existingRadiologist = await prisma.radiologists.findUnique({
       where: { radiologist_id: radiologistId }
     });
-    
+
     if (!existingRadiologist) {
       return res.status(404).json({ error: 'Radiologist not found' });
     }
@@ -359,10 +362,10 @@ router.delete('/:radiologist_id',  authenticateToken,  async (req, res) => {
     const assignedStudies = await prisma.study.findMany({
       where: { radiologist_id: radiologistId }
     });
-    
+
     if (assignedStudies.length > 0) {
-      return res.status(400).json({ 
-        error: 'Cannot delete radiologist with assigned studies. Reassign or delete studies first.' 
+      return res.status(400).json({
+        error: 'Cannot delete radiologist with assigned studies. Reassign or delete studies first.'
       });
     }
 

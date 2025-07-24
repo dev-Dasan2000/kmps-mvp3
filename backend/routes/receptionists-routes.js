@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { sendAccountCreationNotice } from '../utils/mailer.js';
+import { sendAccountCreationNoticeWhatsApp } from '../utils/whatsapp.js';
 import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
@@ -76,6 +77,9 @@ router.post('/',  async (req, res) => {
     });
 
     sendAccountCreationNotice(email, new_receptionist_id);
+    if( created.phone_number) {
+      sendAccountCreationNoticeWhatsApp(created.phone_number, new_receptionist_id);
+    }
     res.status(201).json(created);
   } catch (err) {
     console.error('Error creating receptionist:', err);

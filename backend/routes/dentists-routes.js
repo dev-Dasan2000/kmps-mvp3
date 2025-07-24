@@ -2,6 +2,7 @@ import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { sendAccountCreationNotice } from '../utils/mailer.js';
+import { sendAccountCreationNoticeWhatsApp } from '../utils/whatsapp.js';
 import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
@@ -113,6 +114,9 @@ router.post('/', async (req, res) => {
 
     console.log('Dentist created successfully:', newDentist);
     sendAccountCreationNotice(email, new_dentist_id);
+    if (newDentist.phone_number) {
+      sendAccountCreationNoticeWhatsApp(newDentist.phone_number, new_dentist_id)
+    }
     res.status(201).json(newDentist);
   } catch (error) {
     console.error('Error creating dentist:', error);
@@ -180,7 +184,7 @@ router.put('/change-password/:dentist_id', authenticateToken, async (req, res) =
     });
 
     res.status(202).json(updatedDentist);
-  } catch(err) {
+  } catch (err) {
     console.log(err);
     res.status(500).json({ error: 'Failed to update dentist' });
   }

@@ -6,66 +6,259 @@ dotenv.config();
 const WHATSAPP_API_URL = `https://graph.facebook.com/v19.0/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 
-const sendWhatsAppTextMessage = async (phone, message) => {
+const sendAppointmentConfirmationWhatsApp = async (phone, date, time) => {
     try {
         const response = await axios.post(
             WHATSAPP_API_URL,
             {
                 messaging_product: 'whatsapp',
                 to: phone,
-                type: 'text',
-                text: { body: message },
-            },
-            {
-                headers: {
-                    'Authorization': `Bearer ${ACCESS_TOKEN}`,
-                    'Content-Type': 'application/json',
-                },
+                type: 'template',
+                template: {
+                    name: 'appointment_confirmation',
+                    language: {
+                        code: 'en_US'
+                    },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: date },
+                                { type: 'text', text: time }
+                            ]
+                        }
+                    ]
+                }
+            }, {
+            headers: {
+                Authorization: `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
             }
-        );
-        return response.data;
-    } catch (error) {
-        console.error('Error sending WhatsApp message:', error.response?.data || error.message);
+        });
+    }
+    catch (err) {
+        console.error('Error sending WhatsApp message:', err.response?.data || err.message);
     }
 };
 
-const sendVerificationCodeWhatsApp = async (phone, code) => {
-    const body = `👋 Hello from Kinross Dental Clinic!\n\nYour verification code is: *${code}*\n\nIf you did not request this, you can safely ignore this message.`;
-    return sendWhatsAppTextMessage(phone, body);
-};
-
-const sendAppointmentConfirmationWhatsApp = async (phone, date, time) => {
-    const body = `✅ Appointment Confirmed!\n\n📅 Date: *${date}*\n⏰ Time: *${time}*\n\nKinross Dental Clinic\nPlease arrive on time.`;
-    return sendWhatsAppTextMessage(phone, body);
-};
-
 const sendAppointmentCancellationWhatsApp = async (phone, date, time, provider, reason = '') => {
-    let body = `❌ Appointment Cancelled\n\nWith *${provider}*\n📅 *${date}* at *${time}*`;
-    if (reason) body += `\n\nReason: ${reason}`;
-    body += `\n\nPlease contact Kinross Dental Clinic to reschedule.`;
-    return sendWhatsAppTextMessage(phone, body);
+    try {
+        const response = await axios.post(
+            WHATSAPP_API_URL,
+            {
+                messaging_product: 'whatsapp',
+                to: phone,
+                type: 'template',
+                template: {
+                    name: 'appointment_cancellation',
+                    language: {
+                        code: 'en_US'
+                    },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: provider },
+                                { type: 'text', text: date },
+                                { type: 'text', text: time },
+                                { type: 'text', text: reason || '-' }
+                            ]
+                        }
+                    ]
+                }
+            }, {
+            headers: {
+                Authorization: `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+    catch (err) {
+        console.error('Error sending WhatsApp message:', err.response?.data || err.message);
+    }
 };
 
 const sendReminderWhatsApp = async (phone, date, time, dentistName) => {
-    const body = `📌 Reminder: You have a dental appointment tomorrow\n\n📅 *${date}*\n⏰ *${time}*\n👨‍⚕️ Dr. ${dentistName}\n\nPlease arrive a few minutes early.`;
-    return sendWhatsAppTextMessage(phone, body);
+    try {
+        const response = await axios.post(
+            WHATSAPP_API_URL,
+            {
+                messaging_product: 'whatsapp',
+                to: phone,
+                type: 'template',
+                template: {
+                    name: 'reminder',
+                    language: {
+                        code: 'en_US'
+                    },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: date },
+                                { type: 'text', text: time },
+                                { type: 'text', text: dentistName }
+                            ]
+                        }
+                    ]
+                }
+            }, {
+            headers: {
+                Authorization: `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+    catch (err) {
+        console.error('Error sending WhatsApp message:', err.response?.data || err.message);
+    }
 };
 
-const sendImageOrReportNoticeWhatsApp = async (phone, type, date, name) => {
-    const label = type === 'both'
-        ? 'a medical image and report'
-        : type === 'report'
-            ? 'a medical report'
-            : 'a medical image';
+const sendAccountCreationNoticeWhatsApp = async (phone, ID) => {
+    try {
+        const response = await axios.post(
+            WHATSAPP_API_URL,
+            {
+                messaging_product: 'whatsapp',
+                to: phone,
+                type: 'template',
+                template: {
+                    name: 'account_creation',
+                    language: {
+                        code: 'en_US'
+                    },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: ID },
+                            ]
+                        }
+                    ]
+                }
+            }, {
+            headers: {
+                Authorization: `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+    catch (err) {
+        console.error('Error sending WhatsApp message:', err.response?.data || err.message);
+    }
+}
 
-    const body = `📄 New ${label} has been added to your record on *${date}*.\n\nPatient: ${name}\n\nLog in to your portal to view it.`;
-    return sendWhatsAppTextMessage(phone, body);
-};
+const sendMedicalImageAddedNoticeWhatsApp = async (phone, date, patientName) => {
+    try {
+        const response = await axios.post(
+            WHATSAPP_API_URL,
+            {
+                messaging_product: 'whatsapp',
+                to: phone,
+                type: 'template',
+                template: {
+                    name: 'medical_image_added',
+                    language: {
+                        code: 'en_US'
+                    },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: patientName },
+                                { type: 'text', text: date }
+                            ]
+                        }
+                    ]
+                }
+            }, {
+            headers: {
+                Authorization: `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+    catch (err) {
+        console.error('Error sending WhatsApp message:', err.response?.data || err.message);
+    }
+}
+
+const sendMedicalReportAddedNoticeWhatsApp = async (phone, date, patientName) => {
+    try {
+        const response = await axios.post(
+            WHATSAPP_API_URL,
+            {
+                messaging_product: 'whatsapp',
+                to: phone,
+                type: 'template',
+                template: {
+                    name: 'medical_report_added',
+                    language: {
+                        code: 'en_US'
+                    },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: patientName },
+                                { type: 'text', text: date }
+                            ]
+                        }
+                    ]
+                }
+            }, {
+            headers: {
+                Authorization: `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+    catch (err) {
+        console.error('Error sending WhatsApp message:', err.response?.data || err.message);
+    }
+}
+
+const sendMedicalImageAndReportAddedNoticeWhatsApp = async (phone, date, patientName) => {
+    try {
+        const response = await axios.post(
+            WHATSAPP_API_URL,
+            {
+                messaging_product: 'whatsapp',
+                to: phone,
+                type: 'template',
+                template: {
+                    name: 'medical_report_and_report_added',
+                    language: {
+                        code: 'en_US'
+                    },
+                    components: [
+                        {
+                            type: 'body',
+                            parameters: [
+                                { type: 'text', text: patientName },
+                                { type: 'text', text: date }
+                            ]
+                        }
+                    ]
+                }
+            }, {
+            headers: {
+                Authorization: `Bearer ${ACCESS_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+    catch (err) {
+        console.error('Error sending WhatsApp message:', err.response?.data || err.message);
+    }
+}
 
 export {
-    sendVerificationCodeWhatsApp,
     sendAppointmentConfirmationWhatsApp,
     sendAppointmentCancellationWhatsApp,
     sendReminderWhatsApp,
-    sendImageOrReportNoticeWhatsApp,
+    sendAccountCreationNoticeWhatsApp,
+    sendMedicalImageAddedNoticeWhatsApp,
+    sendMedicalReportAddedNoticeWhatsApp,
+    sendMedicalImageAndReportAddedNoticeWhatsApp
 };

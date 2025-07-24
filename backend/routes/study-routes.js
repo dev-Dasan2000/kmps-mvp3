@@ -1,13 +1,14 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { sendMedicalImageAndReportAddedNotice, sendMedicalImageAddedNotice, sendMedicalReportAddedNotice } from '../utils/mailer.js';
+import { sendMedicalImageAndReportAddedNoticeWhatsApp, sendMedicalImageAddedNoticeWhatsApp, sendMedicalReportAddedNoticeWhatsApp } from '../utils/whatsapp.js';
 import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
 // Get all studies
-router.get('/',  authenticateToken,  async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const studies = await prisma.study.findMany({
       include: {
@@ -29,7 +30,7 @@ router.get('/',  authenticateToken,  async (req, res) => {
 });
 
 // Get a single study by ID
-router.get('/:study_id',  authenticateToken,  async (req, res) => {
+router.get('/:study_id', authenticateToken, async (req, res) => {
   try {
     const study = await prisma.study.findUnique({
       where: { study_id: parseInt(req.params.study_id) },
@@ -57,7 +58,7 @@ router.get('/:study_id',  authenticateToken,  async (req, res) => {
 });
 
 // Get studies by radiologist ID
-router.get('/radiologist/:radiologist_id',  authenticateToken,  async (req, res) => {
+router.get('/radiologist/:radiologist_id', authenticateToken, async (req, res) => {
   try {
     const studies = await prisma.study.findMany({
       where: {
@@ -87,7 +88,7 @@ router.get('/radiologist/:radiologist_id',  authenticateToken,  async (req, res)
 });
 
 // Get studies by patient ID
-router.get('/patient/:patient_id',  authenticateToken,  async (req, res) => {
+router.get('/patient/:patient_id', authenticateToken, async (req, res) => {
   console.debug("route called");
   console.debug(req.params.patient_id);
   try {
@@ -116,7 +117,7 @@ router.get('/patient/:patient_id',  authenticateToken,  async (req, res) => {
 });
 
 // Get studies by dentist ID
-router.get('/dentist/:dentist_id',  authenticateToken,  async (req, res) => {
+router.get('/dentist/:dentist_id', authenticateToken, async (req, res) => {
   try {
     const studies = await prisma.study.findMany({
       where: {
@@ -165,6 +166,7 @@ router.post('/', async (req, res) => {
     });
 
     const patientEmail = newStudy?.patient?.email;
+    const patientPhone = newStudy?.patient?.phone_number;
     const patientName = newStudy?.patient?.name;
     const formattedDate = new Date(data.date).toLocaleDateString('en-US', {
       year: 'numeric', month: 'long', day: 'numeric'
@@ -177,10 +179,19 @@ router.post('/', async (req, res) => {
 
         if (hasReport && hasImage) {
           await sendMedicalImageAndReportAddedNotice(patientEmail, formattedDate, patientName);
+          if (patientPhone) {
+            await sendMedicalImageAndReportAddedNoticeWhatsApp(patientPhone, formattedDate, patientName);
+          }
         } else if (!hasReport && hasImage) {
           await sendMedicalImageAddedNotice(patientEmail, formattedDate, patientName);
+          if (patientPhone) {
+            await sendMedicalImageAddedNoticeWhatsApp(patientPhone, formattedDate, patientName);
+          }
         } else if (hasReport && !hasImage) {
           await sendMedicalReportAddedNotice(patientEmail, formattedDate, patientName);
+          if (patientPhone) {
+            await sendMedicalReportAddedNoticeWhatsApp(patientPhone, formattedDate, patientName);
+          }
         }
       } catch (emailErr) {
         console.error('Failed to send email notice:', emailErr);
@@ -213,11 +224,11 @@ router.put('/:study_id', async (req, res) => {
       updateData.dentistAssigns = doctor_ids.length === 0
         ? { deleteMany: {} }
         : {
-            deleteMany: {},
-            create: doctor_ids.map((dentistId) => ({
-              dentist: { connect: { dentist_id: dentistId.toString() } }
-            }))
-          };
+          deleteMany: {},
+          create: doctor_ids.map((dentistId) => ({
+            dentist: { connect: { dentist_id: dentistId.toString() } }
+          }))
+        };
     }
 
     const updatedStudy = await prisma.study.update({
@@ -251,7 +262,7 @@ router.put('/:study_id', async (req, res) => {
 });
 
 // Delete a study
-router.delete('/:study_id',  authenticateToken,  async (req, res) => {
+router.delete('/:study_id', authenticateToken, async (req, res) => {
   try {
     const studyId = parseInt(req.params.study_id);
 
@@ -304,11 +315,11 @@ router.get('/today/count', async (req, res) => {
 });
 
 // Search studies by patient name or ID (filtered by radiologist)
-router.get('/search/radiologist/:radiologist_id',  authenticateToken,  async (req, res) => {
+router.get('/search/radiologist/:radiologist_id', authenticateToken, async (req, res) => {
   try {
     const searchTerm = req.query.term;
     const radiologistId = req.params.radiologist_id;
-    
+
     if (!searchTerm || typeof searchTerm !== 'string') {
       return res.status(400).json({ error: 'Search term is required' });
     }

@@ -1,7 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import { sendAccountCreationNotice, sendAccountCreationNoticeWithPassword } from '../utils/mailer.js';
+//import { sendAccountCreationNotice, sendAccountCreationNoticeWithPassword } from '../utils/mailer.js';
 import { authenticateToken } from '../middleware/authentication.js';
 
 const prisma = new PrismaClient();
@@ -149,13 +149,13 @@ router.post('/',  authenticateToken,  async (req, res) => {
       },
     });
 
-    if (!passwordGenerated) {
+    /*if (!passwordGenerated) {
       console.log("sending email with ID");
       sendAccountCreationNotice(email, newPatient_id);
     } else {
       console.log("sending email with ID and password");
       sendAccountCreationNoticeWithPassword(email, newPatient_id, password);
-    }
+    }*/
 
     res.status(201).json(created);
   } catch (err) {

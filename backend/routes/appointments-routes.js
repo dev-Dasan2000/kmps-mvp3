@@ -3,7 +3,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { DateTime } from 'luxon';
 import { authenticateToken } from '../middleware/authentication.js';
 import { sendAppointmentConfirmation, sendAppointmentCancelation } from '../utils/mailer.js';
-//import { sendAppointmentConfirmationWhatsApp } from '../utils/whatsapp.js';
+import { sendAppointmentConfirmationWhatsApp, sendAppointmentCancellationWhatsApp } from '../utils/whatsapp.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -219,7 +219,6 @@ router.get('/today/forpatient/:patient_id', authenticateToken, async (req, res) 
     res.status(500).json({ error: "Failed to fetch today's appointments" });
   }
 });
-
 
 router.get('/today', authenticateToken, async (req, res) => {
   try {
@@ -583,11 +582,11 @@ router.post('/', async (req, res) => {
         newAppointment.time_from
       );
 
-      /*sendAppointmentConfirmationWhatsApp(
+      sendAppointmentConfirmationWhatsApp(
         newAppointment.patient.phone_number,
         newAppointment.date,
         newAppointment.time_from
-      );*/
+      );
     }
     res.status(201).json(newAppointment);
   } catch (err) {
@@ -631,6 +630,15 @@ router.put('/:appointment_id', authenticateToken, async (req, res) => {
         dentist?.name || 'the dentist',
         data.cancel_note || null
       );
+
+      sendAppointmentCancellationWhatsApp(
+        appointment.patient.phone_number,
+        appointment.date,
+        appointment.time_from,
+        dentist?.name || 'the dentist',
+        data.cancel_note || ''
+      );
+
     }
     else if (data.status === "confirmed") {
       sendAppointmentConfirmation(
@@ -639,11 +647,11 @@ router.put('/:appointment_id', authenticateToken, async (req, res) => {
         appointment.time_from
       );
 
-      /*sendAppointmentConfirmationWhatsApp(
+      sendAppointmentConfirmationWhatsApp(
         appointment.patient.phone_number,
         appointment.date,
         appointment.time_from
-        );*/
+        );
     }
 
     res.status(202).json(updated);
