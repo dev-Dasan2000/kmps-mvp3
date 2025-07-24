@@ -46,7 +46,6 @@ interface User {
   status?: string;
   department?: string;
   experience?: string;
-  specialization?: string;
   bio?: string;
 }
 
@@ -219,13 +218,12 @@ export default function ViewUserDialog({ user, onClose }: Props) {
           </Card>
 
           {/* Professional Information */}
-          {(isDentist || isRadiologist) && (
+          {isDentist && (
             <Card className="border border-gray-200">
               <CardContent className="p-6">
                 <h4 className="font-semibold text-gray-900 mb-4">Professional Details</h4>
                 <div className="space-y-4">
-                  {user.specialization && renderInfoItem(<Briefcase className="w-4 h-4" />, "Specialization", user.specialization)}
-                  {user.experience && renderInfoItem(<Clock className="w-4 h-4" />, "Experience", user.experience)}
+                  {user.service_types && renderInfoItem(<Briefcase className="w-4 h-4" />, "Service Types", user.service_types)}
                   {user.language && renderInfoItem(<Globe className="w-4 h-4" />, "Language", user.language)}
                   {isDentist && user.appointment_fee !== undefined && user.appointment_fee !== null && renderInfoItem(
                     <DollarSign className="w-4 h-4" />, 
