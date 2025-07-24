@@ -577,7 +577,7 @@ const PatientManagement = () => {
                     <Label htmlFor="nic" className="text-sm font-medium">NIC</Label>
                     <Input
                       id="nic"
-                      name="NIC"
+                      name="nic"
                       value={formData.nic}
                       onChange={handleInputChange}
                       className="w-full"
