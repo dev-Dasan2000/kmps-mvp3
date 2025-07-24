@@ -58,8 +58,12 @@ router.post('/change', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    let finalizedRole = role;
+    if(role != "lab"){
+      finalizedRole = `${role}s`;
+    }
 
-    const updatedUser = await prisma[`${role}s`].update({
+    const updatedUser = await prisma[`${finalizedRole}`].update({
       where: {
         [`${role}_id`]: userID
       },

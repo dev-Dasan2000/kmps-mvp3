@@ -35,8 +35,16 @@ const PasswordResetPage = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [submittingPassword, setSubmittingPassword] = useState(false);
+    const [passwordValid, setPasswordValid] = useState(false);
+    const [passwordMatch, setPasswordMatch] = useState(true);
     const [error, setError] = useState('');
     const router = useRouter();
+
+    const validatePassword = (password: string) => {
+        const lengthCheck = password.length >= 8;
+        const complexityCheck = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password);
+        return lengthCheck && complexityCheck;
+    };
 
 
     const fetchQuestion = async () => {
@@ -137,11 +145,11 @@ const PasswordResetPage = () => {
             return;
         }
 
-        if(newPassword.length < 8){
+        if (newPassword.length < 8) {
             setError("Password needs at least 8 characters");
             return;
         }
-        if(!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)){
+        if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
             setError("Password need to contain special characters");
             return;
         }
@@ -150,20 +158,20 @@ const PasswordResetPage = () => {
 
         try {
             const response = await axios.post(
-                `${backendURL}/reset-password/change`,{
-                    userID: formData.userID,
-                    password: newPassword
-                },
+                `${backendURL}/reset-password/change`, {
+                userID: formData.userID,
+                password: newPassword
+            },
                 {
-                    headers:{
-                        "content-type":"application/json"
+                    headers: {
+                        "content-type": "application/json"
                     }
                 }
             );
-            if(response.status != 200){
+            if (response.status != 200) {
                 throw new Error("Error Changing Password");
             }
-            toast.success("Password Changed",{description: "You can now log in with your new password"});
+            toast.success("Password Changed", { description: "You can now log in with your new password" });
             router.push("/");
         } catch (error: any) {
             toast.error("Failed to reset password", {
@@ -350,23 +358,42 @@ const PasswordResetPage = () => {
                                 type="password"
                                 placeholder="New Password"
                                 value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setNewPassword(val);
+                                    setPasswordValid(validatePassword(val));
+                                    setPasswordMatch(val === confirmPassword);
+                                    setError('');
+                                }}
                             />
+
                             <Input
                                 type="password"
                                 placeholder="Confirm Password"
                                 value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setConfirmPassword(val);
+                                    setPasswordMatch(val === newPassword);
+                                    setError('');
+                                }}
                             />
                         </div>
-                        <div>
-                            <p className="text-red-500 text-small">{error}</p>
+                        <div className="space-y-1 text-sm">
+                            {!passwordValid && newPassword && (
+                                <p className="text-red-500">
+                                    Password must be at least 8 characters, include uppercase, lowercase, and a number.
+                                </p>
+                            )}
+                            {!passwordMatch && confirmPassword && (
+                                <p className="text-red-500">Passwords do not match.</p>
+                            )}
                         </div>
 
                         <DialogFooter>
                             <Button
                                 onClick={handlePasswordReset}
-                                disabled={submittingPassword}
+                                disabled={!passwordValid || !passwordMatch || submittingPassword}
                                 className="w-full bg-emerald-500 hover:bg-emerald-600"
                             >
                                 {submittingPassword ? <Loader className="animate-spin" /> : "Reset Password"}
