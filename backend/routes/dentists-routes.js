@@ -164,6 +164,27 @@ router.put('/forPicture/:dentist_id', async (req, res) => {
   }
 });
 
+router.put('/change-password/:dentist_id', authenticateToken, async (req, res) => {
+  try {
+    const { password, ...rest } = req.body;
+    const data = { ...rest };
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      data.password = hashedPassword;
+    }
+
+    const updatedDentist = await prisma.dentists.update({
+      where: { dentist_id: req.params.dentist_id },
+      data,
+    });
+
+    res.status(202).json(updatedDentist);
+  } catch(err) {
+    console.log(err);
+    res.status(500).json({ error: 'Failed to update dentist' });
+  }
+});
 
 router.delete('/:dentist_id', authenticateToken, async (req, res) => {
   try {

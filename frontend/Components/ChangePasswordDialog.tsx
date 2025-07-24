@@ -19,7 +19,7 @@ interface ChangePasswordDialogProps {
 export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialogProps) {
   const router = useRouter();
   const { user, accessToken, setUser, setAccessToken } = useAuth();
-  const {apiClient} = useContext(AuthContext);
+  const { apiClient } = useContext(AuthContext);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
@@ -153,7 +153,7 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
 
     try {
       // Update password
-      const endpoint = `/${userType}s/${user?.id}`;
+      const endpoint = `/${userType}s/change-password/${user?.id}`;
 
       // First, verify current password one last time
       const verifyResponse = await apiClient.post(`/auth/login`, {
@@ -174,7 +174,6 @@ export function ChangePasswordDialog({ userType, trigger }: ChangePasswordDialog
       // Then update the password
       const response = await apiClient.put(endpoint, {
         password: formData.newPassword.trim(),
-        currentPassword: formData.currentPassword
       },
         {
           headers: {

@@ -1,10 +1,8 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
-import { link } from 'fs';
 
 dotenv.config();
 
-// Create a transporter object using SMTP transport
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,

@@ -319,6 +319,28 @@ router.put('/:radiologist_id',  authenticateToken,  async (req, res) => {
   }
 });
 
+router.put('/change-password/:radiologist_id', authenticateToken, async (req, res) => {
+  try {
+    const { password, ...rest } = req.body;
+    const data = { ...rest };
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      data.password = hashedPassword;
+    }
+
+    const updatedRadiologist = await prisma.radiologists.update({
+      where: { radiologist_id: req.params.radiologist_id },
+      data,
+    });
+
+    res.status(202).json(updatedRadiologist);
+  } catch(err) {
+    console.log(err);
+    res.status(500).json({ error: 'Failed to update radiologist' });
+  }
+});
+
 // Delete radiologist
 router.delete('/:radiologist_id',  authenticateToken,  async (req, res) => {
   try {
