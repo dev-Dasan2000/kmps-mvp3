@@ -38,7 +38,7 @@ interface Dentist {
   name: string;
   phone_number: string;
   email: string;
-  specialization: string
+  service_types: string
 }
 
 interface InvoiceService {
@@ -347,6 +347,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
         }))
       };
 
+      console.log('Invoice Data:', invoiceWithServices);
       setSelectedInvoice(invoiceWithServices);
       setViewInvoiceDialogOpen(true);
     } catch (error) {
@@ -1676,7 +1677,7 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                 </div>
 
                 {/* Patient & Dentist Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                   {/* Patient Info */}
                   <div className="bg-white border rounded-lg p-5 shadow-sm">
                     <h4 className="font-medium text-gray-900 flex items-center gap-2 mb-4">
@@ -1723,7 +1724,12 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                         </div>
                         <div className="flex items-center gap-2">
                           <FileText size={15} className="text-gray-500" />
-                          <span className="text-sm">{selectedInvoice.dentists.specialization}</span>
+                          <span className="text-sm">
+                            {selectedInvoice.dentists.service_types ? 
+                              selectedInvoice.dentists.service_types.charAt(0).toUpperCase() + 
+                              selectedInvoice.dentists.service_types.slice(1).toLowerCase() 
+                              : 'No service specified'}
+                          </span>
                         </div>
                       </div>
                     ) : (
