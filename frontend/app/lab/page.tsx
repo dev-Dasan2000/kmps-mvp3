@@ -458,8 +458,8 @@ const OrderManagementDashboard: React.FC<OrderManagementDashboardProps> = ({
                             <User className="w-4 h-4 text-gray-600" />
                           </div>
                           <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">{order?.patient?.name}</div>
-                            <div className="text-sm text-gray-500">{order?.patient?.patient_id}</div>
+                            <div className="text-sm font-medium text-gray-900">{order?.patient?.name  || "Deleted Patient"}</div>
+                            <div className="text-sm text-gray-500">{order?.patient?.patient_id || "N/A"}</div>
                           </div>
                         </div>
                       </td>
