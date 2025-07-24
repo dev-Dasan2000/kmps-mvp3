@@ -179,14 +179,18 @@ const PatientManagement = () => {
         if(response.status != 201){
           throw new Error("Error Creating Patient");
         }
-        else{
-          toast.success("Patient created successfully");
-          setPatients(prev => [...prev, { ...formData, patient_id: newPatientId }]);
-        }
+        toast.success("Patient created successfully");
+        setPatients(prev => [...prev, { ...formData, patient_id: newPatientId }]);
       }
     }
     catch(err: any){
-      toast.error("Error updating", {description: err.message});
+      if (axios.isAxiosError(err) && err.response?.status === 409) {
+        toast.error("Patient already exists", {
+          description: "A patient with this email or NIC already exists in the system"
+        });
+      } else {
+        toast.error("Error updating", {description: err.message});
+      }
     }
     finally{
       fetchPatients();
