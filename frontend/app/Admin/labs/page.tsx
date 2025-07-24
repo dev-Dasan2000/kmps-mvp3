@@ -1069,7 +1069,7 @@ const DentalLabModule = () => {
                       </div>
                     </div>
                     <a
-                      href={`${file.url}`}
+                      href={`${backendURL}${file.url}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 text-sm"
