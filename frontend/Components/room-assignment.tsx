@@ -549,7 +549,7 @@ export function RoomAssignmentInterface() {
                     roomAssignments.map((assignment) => {
                       const startTime = new Date(`2000-01-01T${assignment.time_from}`)
                       const endTime = new Date(`2000-01-01T${assignment.time_to}`)
-                      const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)
+                      const duration = ((endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60)).toFixed(1);
 
                       return (
                         <div
