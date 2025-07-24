@@ -668,7 +668,7 @@ export default function ReportEditorPage() {
         setSaving(false);
         setSaveProgress(0);
       }, 1000);
-      router.push(`/radiologist/workspace?study_id=${studyData.study_id}`);
+      {/*router.push(`/radiologist/workspace?study_id=${studyData.study_id}`);*/}
     }
   };
 
@@ -2325,7 +2325,7 @@ const processColorsForPdf = (element: HTMLElement) => {
                     </Tooltip>
                   </TooltipProvider>
 
-                  <TooltipProvider>
+                  {/*<TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button 
@@ -2340,7 +2340,7 @@ const processColorsForPdf = (element: HTMLElement) => {
                       </TooltipTrigger>
                       <TooltipContent>Align Center</TooltipContent>
                     </Tooltip>
-                  </TooltipProvider>
+                  </TooltipProvider>*/}
 
                   <TooltipProvider>
                     <Tooltip>
