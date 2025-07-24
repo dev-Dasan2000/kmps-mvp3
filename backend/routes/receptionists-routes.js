@@ -122,15 +122,15 @@ router.put('/change-password/:receptionist_id', authenticateToken, async (req, r
       data.password = hashedPassword;
     }
 
-    const updatedLab = await prisma.lab.update({
+    const updatedReceptionist = await prisma.receptionists.update({
       where: { receptionist_id: req.params.receptionist_id },
       data,
     });
 
-    res.status(202).json(updatedLab);
+    res.status(202).json(updatedReceptionist);
   } catch(err) {
     console.log(err);
-    res.status(500).json({ error: 'Failed to update lab' });
+    res.status(500).json({ error: 'Failed to update receptionist' });
   }
 });
 

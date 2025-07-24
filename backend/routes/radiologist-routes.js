@@ -329,15 +329,15 @@ router.put('/change-password/:radiologist_id', authenticateToken, async (req, re
       data.password = hashedPassword;
     }
 
-    const updatedLab = await prisma.lab.update({
+    const updatedRadiologist = await prisma.radiologists.update({
       where: { radiologist_id: req.params.radiologist_id },
       data,
     });
 
-    res.status(202).json(updatedLab);
+    res.status(202).json(updatedRadiologist);
   } catch(err) {
     console.log(err);
-    res.status(500).json({ error: 'Failed to update lab' });
+    res.status(500).json({ error: 'Failed to update radiologist' });
   }
 });
 
