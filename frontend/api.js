@@ -4,34 +4,38 @@ import { toast } from 'sonner';
 export const createAPIClient = ({ accessToken, setAccessToken, setUser }) => {
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+  // Mutable reference to always hold latest token
+  const tokenRef = { current: accessToken };
+
+  // Keep tokenRef updated when accessToken changes
+  tokenRef.current = accessToken;
+
   const api = axios.create({
     baseURL: backendURL,
     withCredentials: true,
   });
 
-  // Attach access token to every request
+  // Attach latest accessToken from ref to every request
   api.interceptors.request.use(
     (config) => {
-      if (accessToken) {
-        config.headers.Authorization = `Bearer ${accessToken}`;
+      if (tokenRef.current) {
+        config.headers.Authorization = `Bearer ${tokenRef.current}`;
       }
       return config;
     },
     (error) => Promise.reject(error)
   );
 
-  // Response interceptor for handling token refresh
+  // Interceptor to refresh token if expired and retry request
   api.interceptors.response.use(
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
 
       if (!originalRequest) {
-        // no config on error, just reject
         return Promise.reject(error);
       }
 
-      // Check if error status is 401 or 403 with invalid token
       const status = error.response?.status;
       const errorData = error.response?.data;
 
@@ -39,14 +43,10 @@ export const createAPIClient = ({ accessToken, setAccessToken, setUser }) => {
         status === 403 &&
         (errorData === 'Invalid token' || errorData?.error === 'Invalid token');
 
-      if (
-        (status === 401 || isInvalidToken) &&
-        !originalRequest._retry
-      ) {
-        originalRequest._retry = true; // avoid infinite loops
+      if ((status === 401 || isInvalidToken) && !originalRequest._retry) {
+        originalRequest._retry = true;
 
         try {
-          // Call refresh token endpoint
           const res = await axios.get(`${backendURL}/auth/refresh_token`, {
             withCredentials: true,
           });
@@ -57,14 +57,14 @@ export const createAPIClient = ({ accessToken, setAccessToken, setUser }) => {
             throw new Error('No access token returned');
           }
 
-          // Update access token state
+          // Update ref and state
+          tokenRef.current = newAccessToken;
           setAccessToken(newAccessToken);
 
-          // Update Authorization header and retry original request
+          // Retry original request with new token
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return api(originalRequest);
         } catch (refreshError) {
-          // Refresh failed: logout user
           toast.error('Session expired. Please log in again.');
 
           try {
@@ -84,7 +84,6 @@ export const createAPIClient = ({ accessToken, setAccessToken, setUser }) => {
         }
       }
 
-      // Handle other 403 (permission denied)
       if (status === 403 && !isInvalidToken) {
         toast.error('You do not have permission to perform this action.');
       }
