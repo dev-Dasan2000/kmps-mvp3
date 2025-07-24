@@ -3,7 +3,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { DateTime } from 'luxon';
 import { authenticateToken } from '../middleware/authentication.js';
 import { sendAppointmentConfirmation, sendAppointmentCancelation } from '../utils/mailer.js';
-import { sendAppointmentConfirmationWhatsApp } from '../utils/whatsapp.js';
+//import { sendAppointmentConfirmationWhatsApp } from '../utils/whatsapp.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
@@ -583,11 +583,11 @@ router.post('/', async (req, res) => {
         newAppointment.time_from
       );
 
-      sendAppointmentConfirmationWhatsApp(
+      /*sendAppointmentConfirmationWhatsApp(
         newAppointment.patient.phone_number,
         newAppointment.date,
         newAppointment.time_from
-      );
+      );*/
     }
     res.status(201).json(newAppointment);
   } catch (err) {
@@ -639,11 +639,11 @@ router.put('/:appointment_id', authenticateToken, async (req, res) => {
         appointment.time_from
       );
 
-      sendAppointmentConfirmationWhatsApp(
+      /*sendAppointmentConfirmationWhatsApp(
         appointment.patient.phone_number,
         appointment.date,
         appointment.time_from
-        );
+        );*/
     }
 
     res.status(202).json(updated);
