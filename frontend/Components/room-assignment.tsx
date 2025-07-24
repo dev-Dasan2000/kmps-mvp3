@@ -195,25 +195,38 @@ export function RoomAssignmentInterface() {
   }, [assignments, searchTerm, selectedDate, viewFilter])
 
   // Check for overlapping time slots
-  const hasTimeSlotOverlap = (roomId: string, date: string, timeFrom: string, timeTo: string, excludeAssignmentId?: string) => {
-    const newStart = new Date(`${date}T${timeFrom}`).getTime()
-    const newEnd = new Date(`${date}T${timeTo}`).getTime()
-    
-    return assignments.some(assignment => {
-      // Skip the assignment we're editing (if any)
-      if (excludeAssignmentId && assignment.id === excludeAssignmentId) return false
-      
-      // Only check for the same room and date
-      if (assignment.room_id === roomId && assignment.date === date) {
-        const existingStart = new Date(`${assignment.date}T${assignment.time_from}`).getTime()
-        const existingEnd = new Date(`${assignment.date}T${assignment.time_to}`).getTime()
-        
-        // Check for overlap
-        return newStart < existingEnd && newEnd > existingStart
+  const hasTimeSlotOverlap = (
+    roomId: string,
+    date: string,
+    timeFrom: string,
+    timeTo: string,
+    excludeAssignmentId?: string,
+    dentistId?: string,
+    strictDentistCheck = true
+  ) => {
+    const newStart = new Date(`${date}T${timeFrom}`).getTime();
+    const newEnd = new Date(`${date}T${timeTo}`).getTime();
+
+    return assignments.some((assignment) => {
+      if (excludeAssignmentId && assignment.id === excludeAssignmentId) return false;
+
+      const sameDay = assignment.date === date;
+      const sameRoom = assignment.room_id === roomId;
+      const sameDentist = assignment.dentist_id === dentistId;
+
+      if (!sameDay) return false;
+
+      const existingStart = new Date(`${assignment.date}T${assignment.time_from}`).getTime();
+      const existingEnd = new Date(`${assignment.date}T${assignment.time_to}`).getTime();
+      const overlap = newStart < existingEnd && newEnd > existingStart;
+
+      if (strictDentistCheck) {
+        return sameDentist && overlap; // Check across all rooms
+      } else {
+        return sameRoom && overlap; // Default: only room-level conflict
       }
-      return false
-    })
-  }
+    });
+  };
 
   const handleAddAssignment = async () => {
     if (!selectedRoomId || !formData.dentist_id || !formData.date || !formData.time_from || !formData.time_to) {
@@ -228,7 +241,7 @@ export function RoomAssignmentInterface() {
     }
     
     // Check for overlapping time slots
-    if (hasTimeSlotOverlap(selectedRoomId, formData.date, formData.time_from, formData.time_to)) {
+    if (hasTimeSlotOverlap(selectedRoomId, formData.date, formData.time_from, formData.time_to, undefined, formData.dentist_id)) {
       toast.error("This room is already booked for the selected time slot")
       return
     }
@@ -270,7 +283,7 @@ export function RoomAssignmentInterface() {
     }
     
     // Check for overlapping time slots, excluding the current assignment being edited
-    if (hasTimeSlotOverlap(editingAssignment.room_id, formData.date, formData.time_from, formData.time_to, editingAssignment.id)) {
+    if (hasTimeSlotOverlap(editingAssignment.room_id, formData.date, formData.time_from, formData.time_to, editingAssignment.id, formData.dentist_id, false)) {
       toast.error("This room is already booked for the selected time slot")
       return
     }
