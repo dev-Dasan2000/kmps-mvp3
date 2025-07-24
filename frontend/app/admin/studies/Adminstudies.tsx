@@ -209,7 +209,7 @@ const MedicalStudyInterface: React.FC = () => {
   const [isuploading, setisuploading] = useState(false);
 
   const openInWorkspace = (studyId: number) => {
-    router.push(`/workspace?study_id=${studyId}`);
+    router.push(`/admin/studies/workspace?study_id=${studyId}`);
   };
 
   // Helper to convert API study payload into UI-friendly shape
@@ -1319,7 +1319,7 @@ const MedicalStudyInterface: React.FC = () => {
                                         }}
                                         className="flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium rounded transition-colors">
                                           <>
-                                            <Eye className="w-3 h-3" /> Open in Workspace
+                                            <Eye className="w-3 h-3" /> Open Study
                                           </>
                                       </button>
                                     ) : (

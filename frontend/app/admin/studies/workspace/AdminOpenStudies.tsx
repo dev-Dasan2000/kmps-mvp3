@@ -1,19 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { Search, Calendar, Clock, FileText, Film, User, Activity, Monitor, ScanLine, Eye, AlertTriangle } from 'lucide-react';
+import { FileText, Film, User, Activity, Monitor, ScanLine, Eye, AlertTriangle, Check, X, ChevronDown } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import axios from 'axios';
 
 // UI Components
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 // Types based on the database structure
 interface Patient {
@@ -58,9 +57,11 @@ interface Study {
   dicom_file_url?: string;
   body_part?: string;
   reason?: string;
+  status?: string;
   report?: {
     status?: string;
     report_file_url?: string;
+    report_id?: number;
   };
 }
 
@@ -81,58 +82,30 @@ interface CriticalCondition {
   conditions: string[];
 }
 
-// Custom debounce hook
-const useDebounce = <T,>(value: T, delay: number): T => {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
-
-const RadiologistWorkspace: React.FC = () => {
+const AdminOpenStudies: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const studyIdParam = searchParams.get('study_id');
   
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce
-  const [searchResults, setSearchResults] = useState<Study[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Add state for critical conditions
   const [criticalConditions, setCriticalConditions] = useState<CriticalCondition[]>([]);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   
   const { user, isLoggedIn, isLoadingAuth, apiClient } = useContext(AuthContext);
   const backendURL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const dicomurlx = process.env.NEXT_PUBLIC_DICOM_URL;
-  const radiologistId = user?.id;
   
   // Load study if ID is in URL parameters
   useEffect(() => {
     if (studyIdParam) {
       fetchStudyById(parseInt(studyIdParam));
+    } else {
+      setIsLoading(false);
     }
   }, [studyIdParam]);
-
-  // Effect to fetch search results when debounced search term changes
-  useEffect(() => {
-    if (debouncedSearchTerm.trim() && radiologistId) {
-      searchStudies(debouncedSearchTerm);
-    } else {
-      setSearchResults([]);
-    }
-  }, [debouncedSearchTerm, radiologistId]);
 
   // Add a function to open report file directly
   const openReportFile = async (reportId: number) => {
@@ -173,6 +146,38 @@ const RadiologistWorkspace: React.FC = () => {
       console.error('Error fetching study:', error);
       toast.error('Failed to load study');
       setIsLoading(false);
+    }
+  };
+
+  // Function to update report status
+  const updateReportStatus = async (newStatus: string) => {
+    if (!selectedStudy || !selectedStudy.report_id) return;
+    
+    try {
+      setUpdatingStatus(true);
+      
+      await apiClient.put(`/reports/${selectedStudy.report_id}`, {
+        status: newStatus
+      });
+      
+      // Update local state
+      setSelectedStudy(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          report: {
+            ...prev.report,
+            status: newStatus
+          }
+        };
+      });
+      
+      toast.success(`Report status updated to ${newStatus}`);
+      setUpdatingStatus(false);
+    } catch (error) {
+      console.error('Error updating report status:', error);
+      toast.error('Failed to update report status');
+      setUpdatingStatus(false);
     }
   };
 
@@ -225,30 +230,6 @@ const RadiologistWorkspace: React.FC = () => {
     return patientCondition?.conditions || [];
   };
 
-  const searchStudies = async (term: string) => {
-    if (!term.trim() || !radiologistId) {
-      setSearchResults([]);
-      return;
-    }
-
-    try {
-      setIsSearching(true);
-      const response = await apiClient.get(`/studies/search/radiologist/${radiologistId}`, {
-        params: { term }
-      });
-      setSearchResults(response.data);
-      setIsSearching(false);
-    } catch (error) {
-      console.error('Error searching studies:', error);
-      toast.error('Failed to search studies');
-      setIsSearching(false);
-    }
-  };
-
-  const openStudy = (studyId: number) => {
-    router.push(`/radiologist/workspace?study_id=${studyId}`);
-  };
-
   const openDicomViewer = (dicomUrl?: string) => {
     if (!dicomUrl) {
       toast.error('No DICOM file available');
@@ -294,132 +275,85 @@ const RadiologistWorkspace: React.FC = () => {
     }
   };
 
-  useEffect(()=>{
-      if(isLoadingAuth) return;
-      if(!isLoggedIn){
-        toast.error("You are not logged in");
-        router.push("/")
-      }
-      else if(user.role != "radiologist"){
-        toast.error("Access Denied");
-        router.push("/")
-      }
-    },[isLoadingAuth]);
+  const getStatusColor = (status?: string) => {
+    switch(status) {
+      case 'completed':
+      case 'finalized':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'in-progress':
+      case 'draft':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'new':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  useEffect(() => {
+    if(isLoadingAuth) return;
+    if(!isLoggedIn) {
+      toast.error("You are not logged in");
+      router.push("/")
+    }
+    else if(user.role != "admin") {
+      toast.error("Access Denied");
+      router.push("/")
+    }
+  }, [isLoadingAuth]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
+        <h2 className="text-xl font-medium text-gray-700">Loading study details...</h2>
+        <p className="text-gray-500 mt-2">Please wait while we fetch the information.</p>
+      </div>
+    );
+  }
+
+  if (!selectedStudy && !isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6">
+        <div className="text-center p-8 max-w-md">
+          <h2 className="text-2xl font-bold text-gray-700 mb-4">No Study Selected</h2>
+          <p className="text-gray-500 mb-6">
+            Please select a study from the studies list to view details.
+          </p>
+          <Button 
+            onClick={() => router.push('/admin/studies')}
+            className="bg-emerald-600 hover:bg-emerald-500"
+          >
+            Go to Studies List
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">Radiologist Workspace</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-gray-800">Study Details</h1>
+        <Button
+          variant="outline"
+          onClick={() => router.push('/admin/studies')}
+        >
+          Back to Studies
+        </Button>
+      </div>
       
-      {!selectedStudy ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Search Studies</CardTitle>
-            <CardDescription>
-              Search by patient name, ID, assertion number, or description
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex space-x-2 mb-6">
-              <Input
-                placeholder="Search studies by patient name or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1"
-              />
-              {isSearching && (
-                <div className="text-sm text-emerald-600 flex items-center">
-                  Searching...
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              {searchResults.length === 0 ? (
-                searchTerm ? (
-                  isSearching ? (
-                    <p className="text-center text-gray-500 py-8">Searching...</p>
-                  ) : (
-                    <p className="text-center text-gray-500 py-8">No results found. Try a different search term.</p>
-                  )
-                ) : (
-                  <p className="text-center text-gray-500 py-8">Type to search for studies.</p>
-                )
-              ) : (
-                <div className="space-y-2">
-                  {searchResults.map((study) => {
-                    const patientCriticalConditions = getPatientCriticalConditions(study.patient_id);
-                    const hasCriticalConditions = patientCriticalConditions.length > 0;
-                    
-                    return (
-                      <div 
-                        key={study.study_id}
-                        className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => openStudy(study.study_id)}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium text-gray-900 flex items-center gap-2">
-                              {study.patient?.name || 'Unknown Patient'} 
-                              {study.isurgent && <Badge className="bg-red-500">URGENT</Badge>}
-                              {hasCriticalConditions && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                        <AlertTriangle className="h-3 w-3 mr-1" />
-                                        Medical Alert
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-white p-3 shadow-lg border border-gray-200 rounded-lg max-w-xs">
-                                      <div className="space-y-2">
-                                        <p className="font-medium text-red-700">Critical Medical Conditions:</p>
-                                        <ul className="list-disc pl-4 text-sm text-gray-700">
-                                          {patientCriticalConditions.map((condition, idx) => (
-                                            <li key={idx}>{condition}</li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </h3>
-                            <p className="text-sm text-gray-500">ID: {study.patient_id}</p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {study.modality || 'Unknown Modality'} • {study.body_part || 'N/A'}
-                            </p>
-                          </div>
-                          <div className="text-sm text-gray-500 text-right">
-                            <div className="flex items-center justify-end">
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {formatDate(study.date)}
-                            </div>
-                            <div className="flex items-center justify-end mt-1">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {formatTime(study.time)}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
+      {selectedStudy && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedStudy(null);
-                router.push('/radiologist/workspace');
-              }}
-            >
-              Back to Search
-            </Button>
+            <div className="flex items-center space-x-4">
+              <Badge className={`${getStatusColor(selectedStudy.status)} px-3 py-1`}>
+                {selectedStudy.status || 'Unknown Status'}
+              </Badge>
+              {selectedStudy.isurgent && (
+                <Badge className="bg-red-500 text-white">URGENT</Badge>
+              )}
+            </div>
             
             {selectedStudy.dicom_file_url && (
               <Button 
@@ -611,54 +545,86 @@ const RadiologistWorkspace: React.FC = () => {
             </Card>
           )}
 
-          {/* Report Section - Would show existing report or form to create one */}
+          {/* Report Section - With status update dropdown */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center">
                 <FileText className="h-5 w-5 mr-2 text-emerald-600" />
                 Report
               </CardTitle>
+              
+              {selectedStudy.report_id && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild disabled={updatingStatus}>
+                    <Button variant="outline" size="sm" className="ml-auto">
+                      <span className="mr-1">Change Status</span>
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={() => updateReportStatus('new')}
+                      className="flex items-center gap-2"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                      New
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => updateReportStatus('draft')}
+                      className="flex items-center gap-2"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
+                      Draft
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => updateReportStatus('finalized')}
+                      className="flex items-center gap-2"
+                    >
+                      <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                      Finalized
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </CardHeader>
             <CardContent>
               {selectedStudy.report_id ? (
                 <div className="p-4 border rounded-md">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-medium">Report #{selectedStudy.report_id}</h3>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        if (selectedStudy.report?.status === 'finalized') {
-                          // If report has a file URL (finalized), open it directly
-                          openReportFile(selectedStudy.report_id!);
-                        } else {
-                          // Otherwise open in the editor
-                          router.push(`/radiologist/reports?studyId=${selectedStudy.study_id}`);
-                        }
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      {selectedStudy.report?.status === 'finalized' ? 'View Report' : 'Edit Report'}
-                    </Button>
+                    <div>
+                      <h3 className="font-medium">Report #{selectedStudy.report_id}</h3>
+                      <Badge variant="outline" className={`mt-1 ${getStatusColor(selectedStudy.report?.status)}`}>
+                        {selectedStudy.report?.status || 'Unknown Status'}
+                      </Badge>
+                    </div>
+                    
+                    {selectedStudy.report?.report_file_url && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => openReportFile(selectedStudy.report_id!)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Open Report
+                      </Button>
+                    )}
                   </div>
-                  <p className="text-gray-500 italic">
-                    {selectedStudy.report?.status === 'finalized'
-                      ? 'This report has been finalized. Click the button above to view it.'
-                      : 'This report is still in draft. Click the button above to edit it.'}
-                  </p>
+                  
+                  {updatingStatus ? (
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <div className="animate-spin h-4 w-4 border-2 border-gray-500 rounded-full border-t-transparent"></div>
+                      <span>Updating status...</span>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 italic">
+                      {selectedStudy.report?.report_file_url 
+                        ? 'This report has an attached document. Click the button above to view it.' 
+                        : 'This report does not have an attached document yet.'}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <p className="text-gray-500 mb-4">No report has been created for this study yet.</p>
-                  <Button 
-                    className="bg-emerald-600 hover:bg-emerald-500" 
-                    onClick={() => {
-                      router.push(`/radiologist/reports?studyId=${selectedStudy.study_id}`);
-                    }}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Create Report
-                  </Button>
                 </div>
               )}
             </CardContent>
@@ -669,4 +635,4 @@ const RadiologistWorkspace: React.FC = () => {
   );
 };
 
-export default RadiologistWorkspace;
+export default AdminOpenStudies;
