@@ -197,51 +197,50 @@ export default function AppointmentBooking() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
             <div className="flex flex-wrap items-center gap-2 sm:gap-4">
               {calendarView !== "list" && (
-  <>
-    {/* Date Picker */}
-    <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="flex items-center gap-2 text-sm">
-          <CalendarIcon className="h-4 w-4" />
-          <span className="font-medium">{formatSelectedDate(selectedDate)}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <CalendarComponent
-          mode="single"
-          selected={new Date(selectedDate)}
-          onSelect={handleDateSelect}
-          initialFocus
-        />
-      </PopoverContent>
-    </Popover>
+              <>
+                {/* Date Picker */}
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2 text-sm">
+                      <CalendarIcon className="h-4 w-4" />
+                      <span className="font-medium">{formatSelectedDate(selectedDate)}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={new Date(selectedDate)}
+                      onSelect={handleDateSelect}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
 
-    {/* View Mode Toggle */}
-    <div className="flex rounded-lg p-1 gap-2">
-      <Button
-        size="sm"
-        onClick={() => setViewMode("day")}
-        className={`flex items-center text-sm ${viewMode === "day"
-            ? 'bg-green-500 text-white hover:bg-green-600'
-            : 'bg-white text-black border hover:bg-green-100'
-          }`}
-      >
-        By day
-      </Button>
-      <Button
-        size="sm"
-        onClick={() => setViewMode("week")}
-        className={`flex items-center text-sm ${viewMode === "week"
-            ? 'bg-green-500 text-white hover:bg-green-600'
-            : 'bg-white text-black border hover:bg-green-100'
-          }`}
-      >
-        By Week
-      </Button>
-    </div>
-  </>
-)}
-
+                {/* View Mode Toggle */}
+                <div className="flex rounded-lg p-1 gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => setViewMode("day")}
+                    className={`flex items-center text-sm ${viewMode === "day"
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-white text-black border hover:bg-green-100'
+                      }`}
+                  >
+                    By day
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setViewMode("week")}
+                    className={`flex items-center text-sm ${viewMode === "week"
+                        ? 'bg-green-500 text-white hover:bg-green-600'
+                        : 'bg-white text-black border hover:bg-green-100'
+                      }`}
+                  >
+                    By Week
+                  </Button>
+                </div>
+              </>
+            )}
             </div>
 
             {/* Calendar View Dropdown */}
