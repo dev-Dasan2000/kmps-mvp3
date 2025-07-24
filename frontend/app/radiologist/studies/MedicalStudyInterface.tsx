@@ -79,6 +79,7 @@ const MedicalStudyInterface: React.FC = () => {
   const [radiologistID, setRadiologistID] = useState("");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedStudyId, setSelectedStudyId] = useState<number | null>(null);
+  const [isAssigning, setIsAssigning] = useState(false);
   const [activeTab, setActiveTab] = useState('ALL');
   const [activeModality, setActiveModality] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -383,10 +384,10 @@ const MedicalStudyInterface: React.FC = () => {
   const handleAssignStaff = async () => {
     if (!selectedStudyId) return;
 
+    setIsAssigning(true);
     try {
-      const payload: any = {
+      const payload = {
         radiologist_id: assignmentForm.radiologist_id,
-        //radiologist_id: assignmentForm.radiologist_id ? parseInt(assignmentForm.radiologist_id) : null,
         doctor_ids: assignmentForm.doctor_ids
       };
 
@@ -403,6 +404,8 @@ const MedicalStudyInterface: React.FC = () => {
         study.study_id === updatedStudy.study_id ? updatedStudy : study
       ));
 
+      toast.success('Staff assigned successfully');
+
       // Close modal and reset form
       setIsAssignModalOpen(false);
       setSelectedStudyId(null);
@@ -413,6 +416,8 @@ const MedicalStudyInterface: React.FC = () => {
     } catch (error) {
       console.error('Error assigning staff:', error);
       toast.error('Error assigning staff');
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -948,10 +953,17 @@ const MedicalStudyInterface: React.FC = () => {
                   </button>
                   <button
                     onClick={handleAssignStaff}
-                    disabled={!assignmentForm.radiologist_id}
-                    className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    disabled={!assignmentForm.radiologist_id || isAssigning}
+                    className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Assign Staff
+                    {isAssigning ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Assigning...
+                      </>
+                    ) : (
+                      'Assign Staff'
+                    )}
                   </button>
                 </div>
               </div>
