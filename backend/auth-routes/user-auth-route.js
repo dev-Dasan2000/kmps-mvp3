@@ -119,7 +119,7 @@ router.get('/refresh_token', (req, res) => {
       };
 
       const accessToken = jwt.sign(payload, process.env.ACCESS_TOKEN_KEY, {
-        expiresIn: '1m',
+        expiresIn: '15m',
       });
       res.json({ accessToken, user: { id, name, role } });
     });
