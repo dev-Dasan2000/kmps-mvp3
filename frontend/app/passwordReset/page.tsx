@@ -3,7 +3,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Loader } from "lucide-react";
+import { Loader, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,8 @@ const PasswordResetPage = () => {
     const [openDialog, setOpenDialog] = useState(false);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [submittingPassword, setSubmittingPassword] = useState(false);
     const [passwordValid, setPasswordValid] = useState(false);
     const [passwordMatch, setPasswordMatch] = useState(true);
@@ -354,30 +356,50 @@ const PasswordResetPage = () => {
                         </DialogHeader>
 
                         <div className="space-y-4">
-                            <Input
-                                type="password"
-                                placeholder="New Password"
-                                value={newPassword}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setNewPassword(val);
-                                    setPasswordValid(validatePassword(val));
-                                    setPasswordMatch(val === confirmPassword);
-                                    setError('');
-                                }}
-                            />
+                            <div className="relative">
+                                <Input
+                                    type={showNewPassword ? "text" : "password"}
+                                    placeholder="New Password"
+                                    value={newPassword}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setNewPassword(val);
+                                        setPasswordValid(validatePassword(val));
+                                        setPasswordMatch(val === confirmPassword);
+                                        setError('');
+                                    }}
+                                    className="pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                >
+                                    {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
 
-                            <Input
-                                type="password"
-                                placeholder="Confirm Password"
-                                value={confirmPassword}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setConfirmPassword(val);
-                                    setPasswordMatch(val === newPassword);
-                                    setError('');
-                                }}
-                            />
+                            <div className="relative">
+                                <Input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    placeholder="Confirm Password"
+                                    value={confirmPassword}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setConfirmPassword(val);
+                                        setPasswordMatch(val === newPassword);
+                                        setError('');
+                                    }}
+                                    className="pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                >
+                                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                            </div>
                         </div>
                         <div className="space-y-1 text-sm">
                             {!passwordValid && newPassword && (

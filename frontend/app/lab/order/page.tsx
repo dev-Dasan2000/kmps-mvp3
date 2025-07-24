@@ -133,7 +133,7 @@ const LabOrderModule = () => {
     setLoadingOrders(true);
     try {
       const fetchedOrders = await apiClient.get(
-        `/orders`
+        `/orders/forlab/${user.id}`
       );
       if (fetchedOrders.status == 500) {
         throw new Error("Error fetching orders");
@@ -197,12 +197,6 @@ const LabOrderModule = () => {
       setLoadingStageAssigns(false);
     }
   }
-
-  useEffect(() => {
-    fetchOrders();
-    fetchStages();
-    fetchStageAssigns();
-  }, []);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -468,6 +462,9 @@ const LabOrderModule = () => {
       })
       router.push("/");
     }
+    fetchOrders();
+    fetchStages();
+    fetchStageAssigns();
   }, [isLoadingAuth])
 
   return (
