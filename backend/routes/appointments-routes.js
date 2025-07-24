@@ -1,13 +1,14 @@
 import express from 'express';
-import { Prisma,PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { DateTime } from 'luxon';
 import { authenticateToken } from '../middleware/authentication.js';
 import { sendAppointmentConfirmation, sendAppointmentCancelation } from '../utils/mailer.js';
+import { sendAppointmentConfirmationWhatsApp } from '../utils/whatsapp.js';
 
 const prisma = new PrismaClient();
 const router = express.Router();
 
-router.get('/',  authenticateToken,  async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       include: {
@@ -36,7 +37,7 @@ router.get('/',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/fordentist/:dentist_id',  authenticateToken,  async (req, res) => {
+router.get('/fordentist/:dentist_id', authenticateToken, async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       where: { dentist_id: req.params.dentist_id },
@@ -66,7 +67,7 @@ router.get('/fordentist/:dentist_id',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/forpatient/:patient_id',  authenticateToken,  async (req, res) => {
+router.get('/forpatient/:patient_id', authenticateToken, async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       where: { patient_id: req.params.patient_id },
@@ -137,14 +138,14 @@ router.get('/today/fordentist/:dentist_id', async (req, res) => {
   }
 });
 
-router.get('/fordentist/patients/:dentist_id',  authenticateToken,  async (req, res) => {
+router.get('/fordentist/patients/:dentist_id', authenticateToken, async (req, res) => {
   try {
     const dentistId = req.params.dentist_id;
 
     const appointments = await prisma.appointments.findMany({
       where: {
         dentist_id: dentistId,
-        patient_id:{not:null}
+        patient_id: { not: null }
       },
       include: {
         patient: {
@@ -178,8 +179,7 @@ router.get('/fordentist/patients/:dentist_id',  authenticateToken,  async (req, 
   }
 });
 
-
-router.get('/today/forpatient/:patient_id',  authenticateToken,  async (req, res) => {
+router.get('/today/forpatient/:patient_id', authenticateToken, async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -221,7 +221,7 @@ router.get('/today/forpatient/:patient_id',  authenticateToken,  async (req, res
 });
 
 
-router.get('/today',  authenticateToken,  async (req, res) => {
+router.get('/today', authenticateToken, async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -263,7 +263,7 @@ router.get('/today',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/count/today',  authenticateToken,  async (req, res) => {
+router.get('/count/today', authenticateToken, async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -283,14 +283,14 @@ router.get('/count/today',  authenticateToken,  async (req, res) => {
       }
     });
 
-    res.json( count );
+    res.json(count);
   } catch (error) {
     console.error("Error fetching today's appointments count", error);
     res.status(500).json({ error: "Failed to fetch today's appointments" });
   }
 });
 
-router.get('/count/today-checked-in',  authenticateToken,  async (req, res) => {
+router.get('/count/today-checked-in', authenticateToken, async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -311,14 +311,14 @@ router.get('/count/today-checked-in',  authenticateToken,  async (req, res) => {
       }
     });
 
-    res.json( count );
+    res.json(count);
   } catch (error) {
     console.error("Error fetching today's appointments count", error);
     res.status(500).json({ error: "Failed to fetch today's appointments" });
   }
 });
 
-router.get('/count/today-not-checked-in',  authenticateToken,  async (req, res) => {
+router.get('/count/today-not-checked-in', authenticateToken, async (req, res) => {
   try {
     const colomboNow = DateTime.now().setZone('Asia/Colombo');
     const startOfDay = colomboNow.startOf('day').toJSDate();
@@ -339,14 +339,14 @@ router.get('/count/today-not-checked-in',  authenticateToken,  async (req, res) 
       }
     });
 
-    res.json( count );
+    res.json(count);
   } catch (error) {
     console.error("Error fetching today's appointments count", error);
     res.status(500).json({ error: "Failed to fetch today's appointments" });
   }
 });
 
-router.get('/fordentist/upcoming/:dentist_id',  authenticateToken,  async (req, res) => {
+router.get('/fordentist/upcoming/:dentist_id', authenticateToken, async (req, res) => {
   try {
     // Get today's date in Asia/Colombo (without time)
     const colomboToday = DateTime.now().setZone('Asia/Colombo').toISODate(); // '2025-06-20'
@@ -388,7 +388,7 @@ router.get('/fordentist/upcoming/:dentist_id',  authenticateToken,  async (req, 
   }
 });
 
-router.get('/forpatient/upcoming/:patient_id',  authenticateToken,  async (req, res) => {
+router.get('/forpatient/upcoming/:patient_id', authenticateToken, async (req, res) => {
   try {
     // Get today's date in Asia/Colombo (without time)
     const colomboToday = DateTime.now().setZone('Asia/Colombo').toISODate(); // '2025-06-20'
@@ -430,7 +430,7 @@ router.get('/forpatient/upcoming/:patient_id',  authenticateToken,  async (req, 
   }
 });
 
-router.get('/pending',  authenticateToken,  async (req, res) => {
+router.get('/pending', authenticateToken, async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       where: {
@@ -465,7 +465,7 @@ router.get('/pending',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/checkedin',  authenticateToken,  async (req, res) => {
+router.get('/checkedin', authenticateToken, async (req, res) => {
   try {
     const appointments = await prisma.appointments.findMany({
       where: {
@@ -500,7 +500,7 @@ router.get('/checkedin',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/count',  authenticateToken,  async (req, res) => {
+router.get('/count', authenticateToken, async (req, res) => {
   try {
     const count = await prisma.appointments.count();
     res.json(count);
@@ -509,16 +509,16 @@ router.get('/count',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/pending-count',  authenticateToken,  async (req, res) => {
+router.get('/pending-count', authenticateToken, async (req, res) => {
   try {
-    const count = await prisma.appointments.count({ where: { status: "pending", patient_id:{not:null}, dentist_id:{not: null} } });
+    const count = await prisma.appointments.count({ where: { status: "pending", patient_id: { not: null }, dentist_id: { not: null } } });
     res.json(count);
   } catch {
     res.status(500).json({ error: 'Failed to fetch appointments' });
   }
 });
 
-router.get('/completed-count',  authenticateToken,  async (req, res) => {
+router.get('/completed-count', authenticateToken, async (req, res) => {
   try {
     const count = await prisma.appointments.count({ where: { status: "completed" } });
     res.json(count);
@@ -527,7 +527,7 @@ router.get('/completed-count',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/confirmed-count',  authenticateToken,  async (req, res) => {
+router.get('/confirmed-count', authenticateToken, async (req, res) => {
   try {
     const count = await prisma.appointments.count({ where: { status: "confirmed" } });
     res.json(count);
@@ -536,7 +536,7 @@ router.get('/confirmed-count',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/:appointment_id',  authenticateToken,  async (req, res) => {
+router.get('/:appointment_id', authenticateToken, async (req, res) => {
   try {
     const appointment = await prisma.appointments.findUnique({
       where: { appointment_id: Number(req.params.appointment_id) },
@@ -583,17 +583,17 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.put('/:appointment_id',  authenticateToken,  async (req, res) => {
+router.put('/:appointment_id', authenticateToken, async (req, res) => {
   try {
     const data = req.body;
     if (data.date) data.date = new Date(data.date);
-    
+
     // Update the appointment with the new data
     const updated = await prisma.appointments.update({
       where: { appointment_id: Number(req.params.appointment_id) },
       data,
     });
-    
+
     // Fetch the updated appointment with related data
     const appointment = await prisma.appointments.findUnique({
       where: { appointment_id: Number(req.params.appointment_id) },
@@ -602,14 +602,14 @@ router.put('/:appointment_id',  authenticateToken,  async (req, res) => {
         dentist: true
       }
     });
-    
+
     // Send appropriate email based on status change
     if (data.status === "cancelled") {
       // Get the dentist name for the cancellation email
       const dentist = await prisma.dentists.findUnique({
         where: { dentist_id: appointment.dentist_id }
       });
-      
+
       // Send cancellation email with the note
       sendAppointmentCancelation(
         appointment.patient.email,
@@ -618,26 +618,32 @@ router.put('/:appointment_id',  authenticateToken,  async (req, res) => {
         dentist?.name || 'the dentist',
         data.cancel_note || null
       );
-    } 
+    }
     else if (data.status === "confirmed") {
       sendAppointmentConfirmation(
         appointment.patient.email,
         appointment.date,
         appointment.time_from
       );
+
+      sendAppointmentConfirmationWhatsApp(
+        appointment.patient.phone_number,
+        appointment.date,
+        appointment.time_from
+        );
     }
-    
+
     res.status(202).json(updated);
-  } catch(err) {
+  } catch (err) {
     console.error('Error updating appointment:', err);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update appointment',
-      details: err.message 
+      details: err.message
     });
   }
 });
 
-router.delete('/:appointment_id',  authenticateToken,  async (req, res) => {
+router.delete('/:appointment_id', authenticateToken, async (req, res) => {
   try {
     await prisma.appointments.delete({
       where: { appointment_id: Number(req.params.appointment_id) },
@@ -648,7 +654,7 @@ router.delete('/:appointment_id',  authenticateToken,  async (req, res) => {
   }
 });
 
-router.get('/payment-summary/:patient_id',  authenticateToken,  async (req, res) => {
+router.get('/payment-summary/:patient_id', authenticateToken, async (req, res) => {
   try {
     const { patient_id } = req.params;
 
@@ -656,26 +662,26 @@ router.get('/payment-summary/:patient_id',  authenticateToken,  async (req, res)
     const [paidAppointments, unpaidAppointments] = await Promise.all([
       // Get all paid appointments (where payment_status is 'completed')
       prisma.appointments.findMany({
-        where: { 
+        where: {
           patient_id,
           fee: { not: null },
           status: { not: 'cancelled' },
-          OR : [
-            {payment_status: 'paid'},
-            {payment_status: 'Paid'}
+          OR: [
+            { payment_status: 'paid' },
+            { payment_status: 'Paid' }
           ]
         },
         select: { fee: true }
       }),
       // Get all unpaid appointments (where payment_status is not 'completed' or missing)
       prisma.appointments.findMany({
-        where: { 
+        where: {
           patient_id,
           fee: { not: null },
           status: { not: 'cancelled' },
           payment_status: {
             notIn: ['paid', 'Paid']
-          }      
+          }
         },
         select: { fee: true }
       })
@@ -683,15 +689,15 @@ router.get('/payment-summary/:patient_id',  authenticateToken,  async (req, res)
 
     // Calculate totals
     const totalPaid = paidAppointments.reduce(
-      (sum, appt) => sum.plus(new Prisma.Decimal(appt.fee)), 
+      (sum, appt) => sum.plus(new Prisma.Decimal(appt.fee)),
       new Prisma.Decimal(0)
     );
-    
+
     const totalUnpaid = unpaidAppointments.reduce(
-      (sum, appt) => sum.plus(new Prisma.Decimal(appt.fee)), 
+      (sum, appt) => sum.plus(new Prisma.Decimal(appt.fee)),
       new Prisma.Decimal(0)
     );
-    
+
     const totalDue = totalUnpaid;
     const total = parseInt(totalPaid) + parseInt(totalDue);
     res.json({

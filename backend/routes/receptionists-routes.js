@@ -83,7 +83,6 @@ router.post('/',  async (req, res) => {
   }
 });
 
-
 router.put('/:receptionist_id',  authenticateToken,  async (req, res) => {
   try {
     const { receptionist_id } = req.params;
@@ -110,6 +109,28 @@ router.put('/:receptionist_id',  authenticateToken,  async (req, res) => {
     res.json(updated);
   } catch {
     res.status(500).json({ error: 'Failed to update receptionist' });
+  }
+});
+
+router.put('/change-password/:receptionist_id', authenticateToken, async (req, res) => {
+  try {
+    const { password, ...rest } = req.body;
+    const data = { ...rest };
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      data.password = hashedPassword;
+    }
+
+    const updatedLab = await prisma.lab.update({
+      where: { receptionist_id: req.params.receptionist_id },
+      data,
+    });
+
+    res.status(202).json(updatedLab);
+  } catch(err) {
+    console.log(err);
+    res.status(500).json({ error: 'Failed to update lab' });
   }
 });
 

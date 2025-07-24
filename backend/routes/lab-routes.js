@@ -95,10 +95,31 @@ router.post('/', async (req, res) => {
   }
 });
 
-
 router.put('/:lab_id', authenticateToken, async (req, res) => {
   try {
     const { password, ...rest } = req.body.formData;
+    const data = { ...rest };
+
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      data.password = hashedPassword;
+    }
+
+    const updatedLab = await prisma.lab.update({
+      where: { lab_id: req.params.lab_id },
+      data,
+    });
+
+    res.status(202).json(updatedLab);
+  } catch(err) {
+    console.log(err);
+    res.status(500).json({ error: 'Failed to update lab' });
+  }
+});
+
+router.put('/change-password/:lab_id', authenticateToken, async (req, res) => {
+  try {
+    const { password, ...rest } = req.body;
     const data = { ...rest };
 
     if (password) {
