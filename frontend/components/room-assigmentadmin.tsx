@@ -223,7 +223,6 @@ export function RoomAssignment({ refreshKey }: { refreshKey: number }) {
     });
   };
 
-
   const handleAddAssignment = async () => {
     if (!selectedRoomId || !formData.dentist_id || !formData.date || !formData.time_from || !formData.time_to) {
       toast.error("Please fill all required fields")
