@@ -1407,75 +1407,80 @@ const MedicalStudyInterface: React.FC = () => {
 
               <div className="space-y-6">
                 {/* Patient Information */}
-                <div className="relative">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Patient ID <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <input
-                      type="text"
-                      value={patientSearchTerm}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setPatientSearchTerm(value);
-                        
-                        // Reset patientId if the input field is cleared or modified
-                        if (!value || (newStudy.patient_id && !value.includes(newStudy.patient_id))) {
-                          setNewStudy(prev => ({
-                            ...prev,
-                            patient_id: '',
-                            patient_name: ''
-                          }));
-                          setPatientValidated(false);
-                          if (value.length > 0) {
-                            setPatientErrorMessage('Please select a patient from the dropdown list');
-                          } else {
-                            setPatientErrorMessage('');
+                  <div className="relative flex flex-col">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-[50%] -translate-y-[50%] text-gray-400 h-4 w-4 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={patientSearchTerm}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setPatientSearchTerm(value);
+                          
+                          // Reset patientId if the input field is cleared or modified
+                          if (!value || (newStudy.patient_id && !value.includes(newStudy.patient_id))) {
+                            setNewStudy(prev => ({
+                              ...prev,
+                              patient_id: '',
+                              patient_name: ''
+                            }));
+                            setPatientValidated(false);
+                            if (value.length > 0) {
+                              setPatientErrorMessage('Please select a patient from the dropdown list');
+                            } else {
+                              setPatientErrorMessage('');
+                            }
                           }
-                        }
-                        
-                        searchPatients(value);
-                        setShowPatientDropdown(true);
-                      }}
-                      onFocus={() => {
-                        setShowPatientDropdown(true);
-                        if (!newStudy.patient_id && patientSearchTerm.length > 0) {
-                          setPatientValidated(false);
-                          setPatientErrorMessage('Please select a patient from the dropdown list');
-                        }
-                      }}
-                      onBlur={() => setTimeout(() => {
-                        setShowPatientDropdown(false);
-                        // Check if a valid patient was selected
-                        if (!newStudy.patient_id && patientSearchTerm.length > 0) {
-                          setPatientValidated(false);
-                          setPatientErrorMessage('Please select a patient from the dropdown list');
-                        }
-                      }, 200)}
-                      placeholder="Search by patient name or ID..."
-                      className={`w-full pl-10 pr-10 py-2 border ${!patientValidated ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent`}
-                    />
-                    {patientSearchTerm && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPatientSearchTerm("");
-                          setNewStudy(prev => ({
-                            ...prev,
-                            patient_id: '',
-                            patient_name: ''
-                          }));
-                          setPatientValidated(false);
-                          setPatientErrorMessage('');
+                          
+                          searchPatients(value);
+                          setShowPatientDropdown(true);
                         }}
-                        className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                        onFocus={() => {
+                          setShowPatientDropdown(true);
+                          if (!newStudy.patient_id && patientSearchTerm.length > 0) {
+                            setPatientValidated(false);
+                            setPatientErrorMessage('Please select a patient from the dropdown list');
+                          }
+                        }}
+                        onBlur={() => setTimeout(() => {
+                          setShowPatientDropdown(false);
+                          // Check if a valid patient was selected
+                          if (!newStudy.patient_id && patientSearchTerm.length > 0) {
+                            setPatientValidated(false);
+                            setPatientErrorMessage('Please select a patient from the dropdown list');
+                          }
+                        }, 200)}
+                        placeholder="Search by patient name or ID..."
+                        className={`w-full pl-10 pr-10 py-2 border ${!patientValidated ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent`}
+                      />
+                      {patientSearchTerm && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPatientSearchTerm("");
+                            setNewStudy(prev => ({
+                              ...prev,
+                              patient_id: '',
+                              patient_name: ''
+                            }));
+                            setPatientValidated(false);
+                            setPatientErrorMessage('');
+                          }}
+                          className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    {!patientValidated && patientErrorMessage && (
+                      <div className="text-red-500 text-xs mt-1">{patientErrorMessage}</div>
                     )}
                     {showPatientDropdown && patientSearchResults.length > 0 && (
-                      <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                      <div className="absolute z-10 mt-[42px] w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
                         {patientSearchResults.map((patient) => (
                           <div
                             key={patient.patient_id}
@@ -1499,9 +1504,6 @@ const MedicalStudyInterface: React.FC = () => {
                           </div>
                         ))}
                       </div>
-                    )}
-                    {!patientValidated && patientErrorMessage && (
-                      <div className="text-red-500 text-xs mt-1">{patientErrorMessage}</div>
                     )}
                   </div>
                 </div>

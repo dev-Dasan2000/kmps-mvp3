@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useContext, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
-import { X, Package, FileText, AlertCircle, Clock } from 'lucide-react';
+import { X, Package, FileText, AlertCircle, Clock, Search } from 'lucide-react';
+import { AuthContext } from '@/context/auth-context';
 
 type Lab = {
   lab_id: string;
@@ -15,6 +16,7 @@ type WorkType = {
 type PatientType = {
   patient_id: string;
   name: string;
+  email?: string;
 };
 
 type DentistType = {
@@ -66,9 +68,41 @@ export const LabOrderForm: React.FC<LabOrderFormProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = React.useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const { apiClient } = useContext(AuthContext);
+
+  // New state for patient search
+  const [patientSearchTerm, setPatientSearchTerm] = useState('');
+  const [patientSearchResults, setPatientSearchResults] = useState<PatientType[]>([]);
+  const [showPatientDropdown, setShowPatientDropdown] = useState(false);
+  const [patientValidated, setPatientValidated] = useState(true);
+  const [patientErrorMessage, setPatientErrorMessage] = useState('');
 
   const workTypeId = watch('work_type_id');
   const selectedWorkType = workTypes.find(w => w.work_type_id === workTypeId);
+
+  // Search for patients
+  const searchPatients = async (term: string) => {
+    if (term.length < 2) {
+      setPatientSearchResults([]);
+      return;
+    }
+    
+    try {
+      const response = await apiClient.get(`/patients/search?q=${encodeURIComponent(term)}`);
+      if (response.data) {
+        setPatientSearchResults(response.data);
+        
+        // If no patients were found matching the search term
+        if (response.data.length === 0 && term.length > 2) {
+          setPatientValidated(false);
+          setPatientErrorMessage('No matching patients found. Please select a patient from the dropdown.');
+        }
+      }
+    } catch (err) {
+      console.error('Error searching patients:', err);
+      setPatientSearchResults([]);
+    }
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -111,25 +145,99 @@ export const LabOrderForm: React.FC<LabOrderFormProps> = ({
             <h3 className="text-lg font-medium text-gray-900 mb-4">Order Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Patient ID</label>
-                <Controller
-                  name="patient_id"
-                  control={control}
-                  defaultValue=""
-                  render={({ field }) => (
-                    <select
-                      {...field}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">Select patient</option>
-                      {patients.map((p) => (
-                        <option key={p.patient_id} value={p.patient_id}>
-                          {p.patient_id} - {p.name}
-                        </option>
-                      ))}
-                    </select>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Patient</label>
+                <div className="relative flex flex-col">
+                  <div className="relative">
+                    <Controller
+                      name="patient_id"
+                      control={control}
+                      defaultValue=""
+                      render={({ field }) => (
+                        <>
+                          <input
+                            type="text"
+                            value={patientSearchTerm}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setPatientSearchTerm(value);
+                              
+                              // Reset patientId if the input field is cleared or modified
+                              if (!value || (field.value && !value.includes(field.value))) {
+                                field.onChange('');
+                                setPatientValidated(false);
+                                if (value.length > 0) {
+                                  setPatientErrorMessage('Please select a patient from the dropdown list');
+                                } else {
+                                  setPatientErrorMessage('');
+                                }
+                              }
+                              
+                              searchPatients(value);
+                              setShowPatientDropdown(true);
+                            }}
+                            onFocus={() => {
+                              setShowPatientDropdown(true);
+                              if (!field.value && patientSearchTerm.length > 0) {
+                                setPatientValidated(false);
+                                setPatientErrorMessage('Please select a patient from the dropdown list');
+                              }
+                            }}
+                            onBlur={() => setTimeout(() => {
+                              setShowPatientDropdown(false);
+                              // Check if a valid patient was selected
+                              if (!field.value && patientSearchTerm.length > 0) {
+                                setPatientValidated(false);
+                                setPatientErrorMessage('Please select a patient from the dropdown list');
+                              }
+                            }, 200)}
+                            placeholder="Search by patient name or ID..."
+                            className={`w-full pl-10 pr-10 py-2 border ${!patientValidated ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                          />
+                          <Search className="absolute left-3 top-[50%] -translate-y-[50%] text-gray-400 h-4 w-4 pointer-events-none" />
+                          {patientSearchTerm && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPatientSearchTerm("");
+                                field.onChange('');
+                                setPatientValidated(false);
+                                setPatientErrorMessage('');
+                              }}
+                              className="absolute right-2 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600 transition-colors p-1"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          )}
+                          {showPatientDropdown && patientSearchResults.length > 0 && (
+                            <div className="absolute z-10 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none sm:text-sm">
+                              {patientSearchResults.map((patient) => (
+                                <div
+                                  key={patient.patient_id}
+                                  className="cursor-pointer hover:bg-gray-100 px-4 py-2 text-sm text-gray-700"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault(); // Prevent onBlur from firing before onClick
+                                    field.onChange(patient.patient_id);
+                                    setPatientSearchTerm(`${patient.name} (${patient.patient_id})`);
+                                    setShowPatientDropdown(false);
+                                    setPatientValidated(true);
+                                    setPatientErrorMessage('');
+                                  }}
+                                >
+                                  <div className="font-medium">{patient.name}</div>
+                                  <div className="text-xs text-gray-500">ID: {patient.patient_id}</div>
+                                  {patient.email && <div className="text-xs text-gray-500">{patient.email}</div>}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+                    />
+                  </div>
+                  {!patientValidated && patientErrorMessage && (
+                    <div className="text-red-500 text-xs mt-1">{patientErrorMessage}</div>
                   )}
-                />
+                </div>
               </div>
 
               <div>
@@ -496,4 +604,4 @@ export const LabOrderForm: React.FC<LabOrderFormProps> = ({
       </div>
     </div>
   );
-}; 
+};
