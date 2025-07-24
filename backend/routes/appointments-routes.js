@@ -576,6 +576,19 @@ router.post('/', async (req, res) => {
         payment_status: payment_status || "not-paid",
       },
     });
+    if (newAppointment.status === "confirmed") {
+      sendAppointmentConfirmation(
+        newAppointment.patient.email,
+        newAppointment.date,
+        newAppointment.time_from
+      );
+
+      sendAppointmentConfirmationWhatsApp(
+        newAppointment.patient.phone_number,
+        newAppointment.date,
+        newAppointment.time_from
+      );
+    }
     res.status(201).json(newAppointment);
   } catch (err) {
     console.log(err);
