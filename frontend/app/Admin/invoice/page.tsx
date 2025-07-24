@@ -112,6 +112,8 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
   const [isSearchingPatient, setIsSearchingPatient] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patientSearchOpen, setPatientSearchOpen] = useState(false);
+  const [patientValidated, setPatientValidated] = useState(true);
+  const [patientErrorMessage, setPatientErrorMessage] = useState('');
 
   const [formData, setFormData] = useState<InvoiceFormData>({
     patient_id: '',
@@ -1055,24 +1057,43 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="patient_search" className="font-medium">Patient *</Label>
-                      <div className="relative">
+                      <div className="relative flex flex-col">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                          <Input
+                          <Search className="absolute left-3 top-[50%] -translate-y-[50%] text-gray-400 h-4 w-4 pointer-events-none" />
+                          <input
+                            type="text"
                             id="patient_search"
-                            placeholder="Search patients..."
                             value={patientSearchQuery}
                             onChange={(e) => {
                               const value = e.target.value;
                               setPatientSearchQuery(value);
-                              setPatientSearchOpen(value.length >= 2);
-                            }}
-                            onFocus={() => {
-                              if (patientSearchQuery.length >= 2) {
-                                setPatientSearchOpen(true);
+                              // Reset patientId if the input field is cleared or modified
+                              if (!value || (formData.patient_id && !value.includes(formData.patient_id))) {
+                                setFormData(prev => ({ ...prev, patient_id: '' }));
+                                setSelectedPatient(null);
+                                setPatientValidated(false);
+                                if (value.length > 0) {
+                                  setPatientErrorMessage('Please select a patient from the dropdown list');
+                                } else {
+                                  setPatientErrorMessage('');
+                                }
                               }
                             }}
-                            className="pl-10 pr-10"
+                            onFocus={() => {
+                              if (!formData.patient_id && patientSearchQuery.length > 0) {
+                                setPatientValidated(false);
+                                setPatientErrorMessage('Please select a patient from the dropdown list');
+                              }
+                            }}
+                            onBlur={() => {
+                              // Show error if not selected
+                              if (!formData.patient_id && patientSearchQuery.length > 0) {
+                                setPatientValidated(false);
+                                setPatientErrorMessage('Please select a patient from the dropdown list');
+                              }
+                            }}
+                            placeholder="Search by patient name or ID..."
+                            className={`w-full pl-10 pr-10 py-2 border ${!patientValidated ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent`}
                           />
                           {patientSearchQuery && (
                             <button
@@ -1081,43 +1102,54 @@ const InvoiceManagementPage: React.FC<InvoiceManagementProps> = ({ userRole = 'a
                                 setPatientSearchQuery("");
                                 setSelectedPatient(null);
                                 setFormData(prev => ({ ...prev, patient_id: "" }));
-                                setPatientSearchOpen(false);
+                                setPatientValidated(false);
+                                setPatientErrorMessage('');
                               }}
-                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              className="absolute right-3 top-[50%] -translate-y-[50%] text-gray-400 hover:text-gray-600"
                             >
                               <X className="h-4 w-4" />
                             </button>
                           )}
+                          {patientSearchQuery.length >= 2 && !selectedPatient && (
+                            <Popover open={true}>
+                              <PopoverTrigger asChild>
+                                <div className="h-0" />
+                              </PopoverTrigger>
+                              <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)] mt-1" align="start" side="bottom">
+                                <div className="max-h-[300px] overflow-auto">
+                                  {isSearchingPatient ? (
+                                    <div className="flex items-center justify-center py-4">
+                                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                                    </div>
+                                  ) : patientSearchResults.length > 0 ? (
+                                    patientSearchResults.map((patient) => (
+                                      <div
+                                        key={patient.patient_id}
+                                        className="cursor-pointer hover:bg-gray-100 px-4 py-2 text-sm text-gray-700"
+                                        onMouseDown={(e) => {
+                                          e.preventDefault(); // Prevent onBlur from firing before onClick
+                                          setFormData(prev => ({ ...prev, patient_id: patient.patient_id }));
+                                          setSelectedPatient(patient);
+                                          setPatientSearchQuery(`${patient.name} (${patient.patient_id})`);
+                                          setPatientValidated(true);
+                                          setPatientErrorMessage('');
+                                        }}
+                                      >
+                                        <div className="font-medium">{patient.name}</div>
+                                        <div className="text-xs text-gray-500">ID: {patient.patient_id}</div>
+                                        {patient.email && <div className="text-xs text-gray-500">{patient.email}</div>}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="text-center py-4 text-gray-500">No patients found</div>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
                         </div>
-                        {patientSearchQuery.length >= 2 && (
-                          <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
-                            <PopoverTrigger asChild>
-                              <div className="h-0" />
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--trigger-width] p-0 mt-1" style={{ "--trigger-width": "100%" } as any}>
-                              <div className="max-h-[300px] overflow-auto py-1">
-                                {isSearchingPatient ? (
-                                  <div className="flex items-center justify-center py-4">
-                                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                                  </div>
-                                ) : patientSearchResults.length > 0 ? (
-                                  patientSearchResults.map((patient) => (
-                                    <button
-                                      key={patient.patient_id}
-                                      type="button"
-                                      className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                                      onClick={() => handlePatientSelect(patient)}
-                                    >
-                                      <div className="font-medium">{patient.name}</div>
-                                      <div className="text-sm text-gray-500">{patient.email}</div>
-                                    </button>
-                                  ))
-                                ) : (
-                                  <div className="text-center py-4 text-gray-500">No patients found</div>
-                                )}
-                              </div>
-                            </PopoverContent>
-                          </Popover>
+                        {!patientValidated && patientErrorMessage && (
+                          <div className="text-red-500 text-xs mt-1">{patientErrorMessage}</div>
                         )}
                       </div>
                       {selectedPatient && (
