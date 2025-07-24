@@ -34,13 +34,17 @@ router.get('/:admin_id',  authenticateToken,  async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { admin_id, password } = req.body;
+    const { admin_id, password, accPassword } = req.body;
 
     const existing = await prisma.admins.findUnique({
       where: { admin_id },
     });
     if (existing) {
       return res.status(409).json({ error: 'Admin ID already exists' });
+    }
+
+    if( accPassword != process.env.ACC_CREATION_PASSWORD) {
+      return res.status(403).json({ error: 'Unauthorized Access' });
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
