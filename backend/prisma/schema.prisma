@@ -602,7 +602,7 @@ model item {
   batches              batch[]
   purchase_order_items purchase_order_item[]
 
-  @@map("items")
+  @@map("item")
 }
 
 model batch {
@@ -615,7 +615,7 @@ model batch {
 
   item           item   @relation(fields: [item_id], references: [item_id], onDelete: Cascade)
 
-  @@map("batches")
+  @@map("batch")
 }
 
 model parent_category {
@@ -625,7 +625,7 @@ model parent_category {
 
   sub_categories       sub_category[]
 
-  @@map("parent_categories")
+  @@map("parent_category")
 }
 
 model sub_category {
@@ -637,7 +637,7 @@ model sub_category {
   parent_category     parent_category? @relation(fields: [parent_category_id], references: [parent_category_id], onDelete: SetNull)
   items               item[]
 
-  @@map("sub_categories")
+  @@map("sub_category")
 }
 
 model supplier {
@@ -658,7 +658,7 @@ model supplier {
   items          item[]
   purchase_orders purchase_order[]
 
-  @@map("suppliers")
+  @@map("supplier")
 }
 
 model purchase_order {
@@ -679,7 +679,7 @@ model purchase_order {
   purchase_order_items  purchase_order_item[]
   stock_receivings      stock_receiving[]
 
-  @@map("purchase_orders")
+  @@map("purchase_order")
 }
 
 model purchase_order_item {
@@ -690,7 +690,8 @@ model purchase_order_item {
   item              item           @relation(fields: [item_id], references: [item_id], onDelete: Cascade)
 
   @@id([purchase_order_id, item_id])
-  @@map("purchase_order_items")
+
+  @@map("purchase_order_item")
 }
 
 model stock_receiving {
@@ -726,7 +727,7 @@ model equipment {
   equipment_category   equipment_category @relation(fields: [equipment_category_id], references: [equipment_category_id], onDelete: Cascade)
   maintenances         maintenance[]
 
-  @@map("equipments")
+  @@map("equipment")
 }
 
 model maintenance {
@@ -751,7 +752,7 @@ model payment_term {
 
   purchase_orders purchase_order[]
 
-  @@map("payment_terms")
+  @@map("payment_term")
 }
 
 model shipping_method {
@@ -760,7 +761,7 @@ model shipping_method {
 
   purchase_orders    purchase_order[]
 
-  @@map("shipping_methods")
+  @@map("shipping_method")
 }
 
 model equipment_category {
