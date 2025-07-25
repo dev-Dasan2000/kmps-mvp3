@@ -5,15 +5,16 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Dashboard', href: '/admin/hrm' },
-  { name: 'PIM', href: '/admin/hrm/pim' },
-  { name: 'Leave', href: '/admin/hrm/leave' },
-  { name: 'Time', href: '/admin/hrm/time' },
-  { name: 'Directory', href: '/admin/hrm/directory' },
-  { name: 'Payroll', href: '/admin/hrm/payroll' },
+  { name: 'Dashboard', href: '/admin/inventory' },
+  { name: 'Inventory', href: '/admin/inventory/inventory' },
+  { name: 'Purchase Order', href: '/admin/inventory/purchase-order' },
+  { name: 'Stock Receiving', href: '/admin/inventory/stock-receiving' },
+  { name: 'Equipment', href: '/admin/inventory/equipment' },
+  { name: 'Suppliers', href: '/admin/inventory/suppliers' },
+  { name: 'Reports', href: '/admin/inventory/reports' },
 ];
 
-export default function HrmLayout({
+export default function InventoryLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -25,9 +26,9 @@ export default function HrmLayout({
       <div className="flex-none bg-gray-50">
         {/* Header Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 md:pt-6 pb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">HR Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory Management</h1>
           <p className="mt-1 text-sm text-gray-600">
-            Manage your human resources, employee information, and workforce operations.
+            Manage your inventory, stock levels, and supplier relationships efficiently.
           </p>
         </div>
 

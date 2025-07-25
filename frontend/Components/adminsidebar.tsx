@@ -87,7 +87,7 @@ const items = [
   },
   {
     title: "Inventory Management",
-    url: "https://dentax.globalpearlventures.com:5001/",
+    url: "/admin/inventory",
     icon: Archive
   },
 ];
