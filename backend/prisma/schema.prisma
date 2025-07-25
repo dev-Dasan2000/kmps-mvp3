@@ -374,7 +374,7 @@ model orders {
   work_type     work_types?     @relation(fields: [work_type_id], references: [work_type_id])
   shade_type    shades?         @relation(fields: [shade_type_id], references: [shade_type_id])
   material_type material_types? @relation(fields: [material_id], references: [material_id])
-  patient       patients?       @relation(fields: [patient_id], references: [patient_id])
+  patient       patients?       @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
   dentist       dentists?        @relation(fields: [dentist_id], references: [dentist_id])
 
   order_files   order_files[]
@@ -555,7 +555,7 @@ model invoice {
   total_amount  Float
   note          String?
 
-  patients       patients? @relation(fields: [patient_id], references: [patient_id])
+  patients       patients? @relation(fields: [patient_id], references: [patient_id], onDelete: Cascade)
   dentists       dentists? @relation(fields: [dentist_id], references: [dentist_id])
   services      invoice_service_assign[]
 }
