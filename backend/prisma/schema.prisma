@@ -583,3 +583,191 @@ model note{
   study       study? @relation(fields: [study_id], references: [study_id], onDelete: Cascade)   
   @@map("note")
 }
+
+model item {
+  item_id              Int      @id @default(autoincrement())
+  item_name            String
+  unit_of_measurements String
+  unit_price           Float
+  storage_location     String
+  barcode              String
+  expiry_alert_days    Int
+  description          String
+  sub_category_id      Int?
+  supplier_id          Int?
+  batch_tracking       Boolean
+
+  sub_category         sub_category? @relation(fields: [sub_category_id], references: [sub_category_id], onDelete: SetNull)
+  supplier             supplier?     @relation(fields: [supplier_id], references: [supplier_id], onDelete: SetNull)
+  batches              batch[]
+  purchase_order_items purchase_order_item[]
+
+  @@map("items")
+}
+
+model batch {
+  batch_id       Int    @id @default(autoincrement())
+  item_id        Int
+  current_stock  Int
+  minimum_stock  Int
+  expiry_date    String
+  stock_date     String
+
+  item           item   @relation(fields: [item_id], references: [item_id], onDelete: Cascade)
+
+  @@map("batches")
+}
+
+model parent_category {
+  parent_category_id   Int    @id @default(autoincrement())
+  parent_category_name String
+  description          String
+
+  sub_categories       sub_category[]
+
+  @@map("parent_categories")
+}
+
+model sub_category {
+  sub_category_id     Int    @id @default(autoincrement())
+  sub_category_name   String
+  description         String
+  parent_category_id  Int?
+
+  parent_category     parent_category? @relation(fields: [parent_category_id], references: [parent_category_id], onDelete: SetNull)
+  items               item[]
+
+  @@map("sub_categories")
+}
+
+model supplier {
+  supplier_id    Int    @id @default(autoincrement())
+  company_name   String
+  contact_person String
+  email          String
+  phone_number   String
+  address        String
+  city           String
+  state          String
+  postal_code    String
+  country        String
+  website        String
+  notes          String
+  status         String
+
+  items          item[]
+  purchase_orders purchase_order[]
+
+  @@map("suppliers")
+}
+
+model purchase_order {
+  purchase_order_id     Int    @id @default(autoincrement())
+  supplier_id           Int
+  requested_by          String
+  expected_delivery_date String
+  payment_term_id       Int?
+  shipping_method_id    Int?
+  order_date            String
+  authorized_by         String
+  delivery_address      String
+  notes                 String
+
+  supplier              supplier        @relation(fields: [supplier_id], references: [supplier_id], onDelete: Cascade)
+  payment_term          payment_term?   @relation(fields: [payment_term_id], references: [payment_term_id], onDelete: SetNull)
+  shipping_method       shipping_method? @relation(fields: [shipping_method_id], references: [shipping_method_id], onDelete: SetNull)
+  purchase_order_items  purchase_order_item[]
+  stock_receivings      stock_receiving[]
+
+  @@map("purchase_orders")
+}
+
+model purchase_order_item {
+  purchase_order_id Int
+  item_id           Int
+
+  purchase_order    purchase_order @relation(fields: [purchase_order_id], references: [purchase_order_id], onDelete: Cascade)
+  item              item           @relation(fields: [item_id], references: [item_id], onDelete: Cascade)
+
+  @@id([purchase_order_id, item_id])
+  @@map("purchase_order_items")
+}
+
+model stock_receiving {
+  stock_receiving_id Int    @id @default(autoincrement())
+  purchase_order_id  Int
+  received_date      String
+  received_by        String
+  invoice_url        String
+  delivery_note_url  String
+  qc_report_url      String
+  notes              String
+
+  purchase_order     purchase_order @relation(fields: [purchase_order_id], references: [purchase_order_id], onDelete: Cascade)
+
+  @@map("stock_receiving")
+}
+
+model equipment {
+  equipment_id         Int     @id @default(autoincrement())
+  equipment_name       String
+  equipment_category_id Int
+  brand                String
+  model                String
+  serial_number        String
+  purchase_date        String
+  purchase_price       Float
+  location             String
+  warranty_start_date  String
+  warranty_end_date    String
+  status               String
+  notes                String
+
+  equipment_category   equipment_category @relation(fields: [equipment_category_id], references: [equipment_category_id], onDelete: Cascade)
+  maintenances         maintenance[]
+
+  @@map("equipments")
+}
+
+model maintenance {
+  maintenance_id        Int     @id @default(autoincrement())
+  equipment_id          Int
+  maintain_type         String
+  maintenance_date      String
+  description           String
+  performed_by          String
+  cost                  Float
+  next_maintenance_date String
+  notes                 String
+
+  equipment             equipment @relation(fields: [equipment_id], references: [equipment_id], onDelete: Cascade)
+
+  @@map("maintenance")
+}
+
+model payment_term {
+  payment_term_id Int    @id @default(autoincrement())
+  payment_term    String
+
+  purchase_orders purchase_order[]
+
+  @@map("payment_terms")
+}
+
+model shipping_method {
+  shipping_method_id Int    @id @default(autoincrement())
+  shipping_method    String
+
+  purchase_orders    purchase_order[]
+
+  @@map("shipping_methods")
+}
+
+model equipment_category {
+  equipment_category_id Int    @id @default(autoincrement())
+  equipment_category    String
+
+  equipments            equipment[]
+
+  @@map("equipment_category")
+}

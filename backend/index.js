@@ -61,6 +61,20 @@ import hrPayrollRouter from './routes/hr/payroll-routes.js';
 import hrShiftsRouter from './routes/hr/shifts-routes.js';
 import createNotesRouter from './routes/note-routes.js';
 
+import itemsRouter from './routes/inventory/item-routes.js';
+import batchRouter from './routes/inventory/batch-routes.js';
+import parentCategoryRouter from './routes/inventory/parent-category-routes.js';
+import subCategoryRouter from './routes/inventory/sub-category-routes.js';
+import supplierRouter from './routes/inventory/supplier-routes.js';
+import purchaseOrderRouter from './routes/inventory/purchase-order-routes.js';
+import purchaseOrderItemRouter from './routes/inventory/purchase-order-item-routes.js';
+import stockReceivingRouter from './routes/inventory/stock-receiving-routes.js';
+import equipmentRouter from './routes/inventory/equipment-routes.js';
+import maintenanceRouter from './routes/inventory/maintenance-routes.js';
+import paymentTermRouter from './routes/inventory/payment-term-routes.js';
+import shippingMethodRouter from './routes/inventory/shipping-method-routes.js';
+import equipmentCategoryRouter from './routes/inventory/equipment-category-routes.js';
+
 import passwordResetRouter from './routes/password-reset-routes.js';
 
 import signatureRouter from './routes/signature-routes.js';   
@@ -141,6 +155,21 @@ app.use('/hr/attendance', hrAttendanceRouter);
 app.use('/hr/leaves', hrLeaveRouter);
 app.use('/hr/payroll', hrPayrollRouter);
 app.use('/hr/shifts', hrShiftsRouter);
+
+app.use('/inventory/items', itemsRouter);
+app.use('/inventory/batches', batchRouter);
+app.use('/inventory/parent-categories', parentCategoryRouter);
+app.use('/inventory/sub-categories', subCategoryRouter);
+app.use('/inventory/suppliers', supplierRouter);
+app.use('/inventory/purchase-orders', purchaseOrderRouter);
+app.use('/inventory/purchase-order-items', purchaseOrderItemRouter);
+app.use('/inventory/stock-receivings', stockReceivingRouter);
+app.use('/inventory/equipments', equipmentRouter);
+app.use('/inventory/maintenance', maintenanceRouter);
+app.use('/inventory/payment-terms', paymentTermRouter);
+app.use('/inventory/shipping-methods', shippingMethodRouter);
+app.use('/inventory/equipment-categories', equipmentCategoryRouter);
+
 
 app.use('/reset-password', passwordResetRouter);
 
