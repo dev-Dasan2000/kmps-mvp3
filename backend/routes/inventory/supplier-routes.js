@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all suppliers with their items and purchase_orders
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const suppliers = await prisma.supplier.findMany({
       include: {
@@ -22,7 +22,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single supplier by id with related items and purchase_orders
-router.get('/:supplier_id', authenticateToken, async (req, res) => {
+router.get('/:supplier_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const supplier = await prisma.supplier.findUnique({
       where: { supplier_id: Number(req.params.supplier_id) },
@@ -40,7 +40,7 @@ router.get('/:supplier_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new supplier
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const {
       company_name,
@@ -82,7 +82,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update supplier by id
-router.put('/:supplier_id', authenticateToken, async (req, res) => {
+router.put('/:supplier_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const supplierId = Number(req.params.supplier_id);
     const data = { ...req.body };
@@ -100,7 +100,7 @@ router.put('/:supplier_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE supplier by id
-router.delete('/:supplier_id', authenticateToken, async (req, res) => {
+router.delete('/:supplier_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const supplierId = Number(req.params.supplier_id);
     await prisma.supplier.delete({

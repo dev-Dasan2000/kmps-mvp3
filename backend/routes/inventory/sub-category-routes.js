@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all sub_categories with parent_category and items
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const subCategories = await prisma.sub_category.findMany({
       include: {
@@ -22,7 +22,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single sub_category by id with relations
-router.get('/:sub_category_id', authenticateToken, async (req, res) => {
+router.get('/:sub_category_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const subCategory = await prisma.sub_category.findUnique({
       where: { sub_category_id: Number(req.params.sub_category_id) },
@@ -40,7 +40,7 @@ router.get('/:sub_category_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new sub_category
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const { sub_category_name, description, parent_category_id } = req.body;
     const newSubCategory = await prisma.sub_category.create({
@@ -58,7 +58,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update sub_category by id
-router.put('/:sub_category_id', authenticateToken, async (req, res) => {
+router.put('/:sub_category_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const subCategoryId = Number(req.params.sub_category_id);
     const data = { ...req.body };
@@ -75,7 +75,7 @@ router.put('/:sub_category_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE sub_category by id
-router.delete('/:sub_category_id', authenticateToken, async (req, res) => {
+router.delete('/:sub_category_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const subCategoryId = Number(req.params.sub_category_id);
     await prisma.sub_category.delete({

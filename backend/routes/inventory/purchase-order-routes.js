@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all purchase orders with relations
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const purchaseOrders = await prisma.purchase_order.findMany({
       include: {
@@ -25,7 +25,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single purchase order by id with relations
-router.get('/:purchase_order_id', authenticateToken, async (req, res) => {
+router.get('/:purchase_order_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const purchaseOrder = await prisma.purchase_order.findUnique({
       where: { purchase_order_id: Number(req.params.purchase_order_id) },
@@ -46,7 +46,7 @@ router.get('/:purchase_order_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new purchase order
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const {
       supplier_id,
@@ -82,7 +82,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update purchase order by id
-router.put('/:purchase_order_id', authenticateToken, async (req, res) => {
+router.put('/:purchase_order_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const purchaseOrderId = Number(req.params.purchase_order_id);
     const data = { ...req.body };
@@ -100,7 +100,7 @@ router.put('/:purchase_order_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE purchase order by id
-router.delete('/:purchase_order_id', authenticateToken, async (req, res) => {
+router.delete('/:purchase_order_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const purchaseOrderId = Number(req.params.purchase_order_id);
     await prisma.purchase_order.delete({

@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all batches with related item info
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/',/*authenticateToken,*/ async (req, res) => {
   try {
     const batches = await prisma.batch.findMany({
       include: {
@@ -21,7 +21,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single batch by id with related item
-router.get('/:batch_id', authenticateToken, async (req, res) => {
+router.get('/:batch_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const batch = await prisma.batch.findUnique({
       where: { batch_id: Number(req.params.batch_id) },
@@ -38,7 +38,7 @@ router.get('/:batch_id', authenticateToken, async (req, res) => {
 });
 
 // GET batches by item_id (custom endpoint)
-router.get('/by-item/:item_id', authenticateToken, async (req, res) => {
+router.get('/by-item/:item_id',/* authenticateToken,*/ async (req, res) => {
   try {
     const itemId = Number(req.params.item_id);
     const batches = await prisma.batch.findMany({
@@ -53,7 +53,7 @@ router.get('/by-item/:item_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new batch
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const {
       item_id,
@@ -81,7 +81,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update batch by id
-router.put('/:batch_id', authenticateToken, async (req, res) => {
+router.put('/:batch_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const batchId = Number(req.params.batch_id);
     const data = { ...req.body };
@@ -99,7 +99,7 @@ router.put('/:batch_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE batch by id
-router.delete('/:batch_id', authenticateToken, async (req, res) => {
+router.delete('/:batch_id',/* authenticateToken,*/ async (req, res) => {
   try {
     const batchId = Number(req.params.batch_id);
     await prisma.batch.delete({

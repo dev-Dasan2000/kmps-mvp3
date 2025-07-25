@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all items with relations
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const items = await prisma.item.findMany({
       include: {
@@ -22,7 +22,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single item by id with relations
-router.get('/:item_id', authenticateToken, async (req, res) => {
+router.get('/:item_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const item = await prisma.item.findUnique({
       where: { item_id: Number(req.params.item_id) },
@@ -40,7 +40,7 @@ router.get('/:item_id', authenticateToken, async (req, res) => {
 });
 
 // GET item with batches included (custom endpoint)
-router.get('/with-batches/:item_id', authenticateToken, async (req, res) => {
+router.get('/with-batches/:item_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const item = await prisma.item.findUnique({
       where: { item_id: Number(req.params.item_id) },
@@ -59,7 +59,7 @@ router.get('/with-batches/:item_id', authenticateToken, async (req, res) => {
 });
 
 // GET items by supplier id (custom endpoint)
-router.get('/by-supplier/:supplier_id', authenticateToken, async (req, res) => {
+router.get('/by-supplier/:supplier_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const supplierId = Number(req.params.supplier_id);
     const items = await prisma.item.findMany({
@@ -77,7 +77,7 @@ router.get('/by-supplier/:supplier_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new item
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const {
       item_name,
@@ -115,7 +115,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update item by id
-router.put('/:item_id', authenticateToken, async (req, res) => {
+router.put('/:item_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const itemId = Number(req.params.item_id);
     const data = { ...req.body };
@@ -137,7 +137,7 @@ router.put('/:item_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE item by id
-router.delete('/:item_id', authenticateToken, async (req, res) => {
+router.delete('/:item_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const itemId = Number(req.params.item_id);
     await prisma.item.delete({

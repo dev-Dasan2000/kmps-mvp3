@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all maintenance records with related equipment
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const maintenances = await prisma.maintenance.findMany({
       include: {
@@ -21,7 +21,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single maintenance record by id with equipment
-router.get('/:maintenance_id', authenticateToken, async (req, res) => {
+router.get('/:maintenance_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const maintenanceId = Number(req.params.maintenance_id);
     const maintenance = await prisma.maintenance.findUnique({
@@ -39,7 +39,7 @@ router.get('/:maintenance_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new maintenance record
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',  /*authenticateToken,*/async (req, res) => {
   try {
     const {
       equipment_id,
@@ -73,7 +73,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update maintenance record by id
-router.put('/:maintenance_id', authenticateToken, async (req, res) => {
+router.put('/:maintenance_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const maintenanceId = Number(req.params.maintenance_id);
     const data = { ...req.body };
@@ -91,7 +91,7 @@ router.put('/:maintenance_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE maintenance record by id
-router.delete('/:maintenance_id', authenticateToken, async (req, res) => {
+router.delete('/:maintenance_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const maintenanceId = Number(req.params.maintenance_id);
     await prisma.maintenance.delete({

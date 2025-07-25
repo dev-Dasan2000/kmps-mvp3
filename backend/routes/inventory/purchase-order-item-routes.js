@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all purchase_order_items with related purchase_order and item
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const poi = await prisma.purchase_order_item.findMany({
       include: {
@@ -22,7 +22,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single purchase_order_item by composite key
-router.get('/:purchase_order_id/:item_id', authenticateToken, async (req, res) => {
+router.get('/:purchase_order_id/:item_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const purchaseOrderId = Number(req.params.purchase_order_id);
     const itemId = Number(req.params.item_id);
@@ -49,7 +49,7 @@ router.get('/:purchase_order_id/:item_id', authenticateToken, async (req, res) =
 });
 
 // POST create new purchase_order_item
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const { purchase_order_id, item_id } = req.body;
     if (!purchase_order_id || !item_id) {
@@ -70,7 +70,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // DELETE purchase_order_item by composite key
-router.delete('/:purchase_order_id/:item_id', authenticateToken, async (req, res) => {
+router.delete('/:purchase_order_id/:item_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const purchaseOrderId = Number(req.params.purchase_order_id);
     const itemId = Number(req.params.item_id);

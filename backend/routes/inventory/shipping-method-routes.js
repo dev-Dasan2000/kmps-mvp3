@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all shipping methods with related purchase_orders
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const shippingMethods = await prisma.shipping_method.findMany({
       include: { purchase_orders: true },
@@ -19,7 +19,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single shipping method by id with purchase_orders
-router.get('/:shipping_method_id', authenticateToken, async (req, res) => {
+router.get('/:shipping_method_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.shipping_method_id);
     const shippingMethod = await prisma.shipping_method.findUnique({
@@ -35,7 +35,7 @@ router.get('/:shipping_method_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new shipping method
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const { shipping_method } = req.body;
     if (!shipping_method) return res.status(400).json({ error: 'shipping_method is required' });
@@ -52,7 +52,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update shipping method by id
-router.put('/:shipping_method_id', authenticateToken, async (req, res) => {
+router.put('/:shipping_method_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.shipping_method_id);
     const data = { ...req.body };
@@ -70,7 +70,7 @@ router.put('/:shipping_method_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE shipping method by id
-router.delete('/:shipping_method_id', authenticateToken, async (req, res) => {
+router.delete('/:shipping_method_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.shipping_method_id);
     await prisma.shipping_method.delete({

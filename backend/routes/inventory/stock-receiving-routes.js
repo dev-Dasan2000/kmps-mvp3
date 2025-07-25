@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all stock_receivings with purchase_order
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const stockReceivings = await prisma.stock_receiving.findMany({
       include: {
@@ -21,7 +21,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single stock_receiving by id with purchase_order
-router.get('/:stock_receiving_id', authenticateToken, async (req, res) => {
+router.get('/:stock_receiving_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.stock_receiving_id);
     const stockReceiving = await prisma.stock_receiving.findUnique({
@@ -39,7 +39,7 @@ router.get('/:stock_receiving_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new stock_receiving
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const {
       purchase_order_id,
@@ -71,7 +71,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update stock_receiving by id
-router.put('/:stock_receiving_id', authenticateToken, async (req, res) => {
+router.put('/:stock_receiving_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.stock_receiving_id);
     const data = { ...req.body };
@@ -89,7 +89,7 @@ router.put('/:stock_receiving_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE stock_receiving by id
-router.delete('/:stock_receiving_id', authenticateToken, async (req, res) => {
+router.delete('/:stock_receiving_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.stock_receiving_id);
     await prisma.stock_receiving.delete({

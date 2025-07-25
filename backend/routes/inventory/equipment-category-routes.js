@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all equipment categories with related equipments
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const categories = await prisma.equipment_category.findMany({
       include: {
@@ -21,7 +21,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single equipment category by id with equipments
-router.get('/:equipment_category_id', authenticateToken, async (req, res) => {
+router.get('/:equipment_category_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.equipment_category_id);
     const category = await prisma.equipment_category.findUnique({
@@ -37,7 +37,7 @@ router.get('/:equipment_category_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new equipment category
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const { equipment_category } = req.body;
     if (!equipment_category) return res.status(400).json({ error: 'equipment_category is required' });
@@ -54,7 +54,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update equipment category by id
-router.put('/:equipment_category_id', authenticateToken, async (req, res) => {
+router.put('/:equipment_category_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.equipment_category_id);
     const data = { ...req.body };
@@ -72,7 +72,7 @@ router.put('/:equipment_category_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE equipment category by id
-router.delete('/:equipment_category_id', authenticateToken, async (req, res) => {
+router.delete('/:equipment_category_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.equipment_category_id);
     await prisma.equipment_category.delete({

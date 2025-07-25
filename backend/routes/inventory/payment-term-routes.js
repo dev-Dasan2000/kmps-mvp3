@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all payment terms with related purchase_orders
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const paymentTerms = await prisma.payment_term.findMany({
       include: {
@@ -21,7 +21,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single payment term by id with purchase_orders
-router.get('/:payment_term_id', authenticateToken, async (req, res) => {
+router.get('/:payment_term_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.payment_term_id);
     const paymentTerm = await prisma.payment_term.findUnique({
@@ -39,7 +39,7 @@ router.get('/:payment_term_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new payment term
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const { payment_term } = req.body;
     if (!payment_term) {
@@ -58,7 +58,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update payment term by id
-router.put('/:payment_term_id', authenticateToken, async (req, res) => {
+router.put('/:payment_term_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.payment_term_id);
     const data = { ...req.body };
@@ -76,7 +76,7 @@ router.put('/:payment_term_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE payment term by id
-router.delete('/:payment_term_id', authenticateToken, async (req, res) => {
+router.delete('/:payment_term_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const id = Number(req.params.payment_term_id);
     await prisma.payment_term.delete({

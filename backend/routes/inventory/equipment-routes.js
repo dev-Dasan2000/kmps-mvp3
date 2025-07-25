@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 // GET all equipments with related equipment_category and maintenances
-router.get('/', authenticateToken, async (req, res) => {
+router.get('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const equipments = await prisma.equipment.findMany({
       include: {
@@ -22,7 +22,7 @@ router.get('/', authenticateToken, async (req, res) => {
 });
 
 // GET single equipment by id with relations
-router.get('/:equipment_id', authenticateToken, async (req, res) => {
+router.get('/:equipment_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const equipmentId = Number(req.params.equipment_id);
     const equipment = await prisma.equipment.findUnique({
@@ -41,7 +41,7 @@ router.get('/:equipment_id', authenticateToken, async (req, res) => {
 });
 
 // POST create new equipment
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', /*authenticateToken,*/ async (req, res) => {
   try {
     const {
       equipment_name,
@@ -83,7 +83,7 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // PUT update equipment by id
-router.put('/:equipment_id', authenticateToken, async (req, res) => {
+router.put('/:equipment_id', /*authenticateToken,*/ async (req, res) => {
   try {
     const equipmentId = Number(req.params.equipment_id);
     const data = { ...req.body };
@@ -101,7 +101,7 @@ router.put('/:equipment_id', authenticateToken, async (req, res) => {
 });
 
 // DELETE equipment by id
-router.delete('/:equipment_id', authenticateToken, async (req, res) => {
+router.delete('/:equipment_id',  /*authenticateToken,*/ async (req, res) => {
   try {
     const equipmentId = Number(req.params.equipment_id);
     await prisma.equipment.delete({
