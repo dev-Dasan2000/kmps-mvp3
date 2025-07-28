@@ -25,6 +25,11 @@ import {
   X,
   Filter
 } from "lucide-react";
+import { AddItemDialog } from "@/Components/inventory/AddItemDialog";
+import { AddCategoryDialog } from "@/Components/inventory/AddCategoryDialog";
+import { AddParentCategoryDialog } from "@/Components/inventory/AddParentCategoryDialog";
+import { BarcodeScanner } from "@/Components/inventory/BarcodeScanner";
+import { StockOutDialog } from "@/Components/inventory/StockOutDialog";
 
 // Types based on your schema
 interface ParentCategory {
@@ -68,8 +73,12 @@ interface Item {
   sub_category_id: number | null;
   supplier_id: number | null;
   batch_tracking: boolean;
-  sub_category?: SubCategory;
-  supplier?: Supplier;
+  sub_category?: {
+    sub_category_name: string;
+  } | null;
+  supplier?: {
+    company_name: string;
+  } | null;
 }
 
 interface Batch {
@@ -216,7 +225,10 @@ const InventoryManagement = () => {
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Item | undefined>(undefined);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState<string | undefined>(undefined);
+  const [isStockOutOpen, setIsStockOutOpen] = useState(false);
 
   // Form states
   const [newParentCategory, setNewParentCategory] = useState({
@@ -274,7 +286,20 @@ const InventoryManagement = () => {
 
   const handleEdit = (item: Item) => {
     setSelectedItem(item);
-    setIsEditOpen(true);
+    setIsAddItemOpen(true);
+  };
+
+  const handleUpdateItem = (item: Item, batch: Batch) => {
+    // Update item
+    setItems(items.map(i => i.item_id === item.item_id ? item : i));
+
+    // Update batch
+    if (batch.batch_id) {
+      setBatches(batches.map(b => b.batch_id === batch.batch_id ? { ...batch, stock_date: batch.stock_date || new Date().toISOString().split('T')[0] } : b));
+    }
+
+    setIsAddItemOpen(false);
+    setSelectedItem(undefined);
   };
 
   const handleDelete = (item: Item) => {
@@ -370,91 +395,78 @@ const InventoryManagement = () => {
     setIsAddCategoryOpen(false);
   };
 
+  const handleScanResult = (code: string) => {
+    // Find item with matching barcode
+    const item = items.find(item => item.barcode === code);
+    if (item) {
+      setSelectedItem(item);
+      setScannedBarcode(undefined);
+      setIsAddItemOpen(true);
+    } else {
+      // If no item found, open add item dialog with barcode pre-filled
+      setSelectedItem(undefined);
+      setScannedBarcode(code);
+      setIsAddItemOpen(true);
+    }
+  };
+
+  const handleStockOut = (item: Item) => {
+    setSelectedItem(item);
+    setIsStockOutOpen(true);
+  };
+
+  const handleStockUpdate = (itemId: number, newStock: number) => {
+    // Update the batches state with the new stock value
+    setBatches(batches.map(batch => 
+      batch.item_id === itemId 
+        ? { ...batch, current_stock: newStock, stock_date: batch.stock_date || new Date().toISOString().split('T')[0] }
+        : batch
+    ));
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <div className="lg:hidden bg-white shadow-sm border-b px-4 py-3">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900">Inventory</h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
-      </div>
+      
+      
 
-      <div className="p-4 lg:p-6 space-y-4 lg:space-y-6">
+      <div className="pd-6 space-y-4">
         {/* Desktop Header */}
         <div className="hidden lg:block">
-          <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">Inventory</h1>
           <p className="text-gray-600 mt-1">Manage your inventory items and categories</p>
         </div>
 
         <Tabs value={currentView} onValueChange={(value: any) => setCurrentView(value)}>
-          {/* Mobile Menu Overlay */}
-          {isMobileMenuOpen && (
-            <div className="lg:hidden fixed inset-0 z-50 bg-black bg-opacity-50">
-              <div className="bg-white w-64 h-full p-4">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold">Menu</h2>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-                <TabsList className="flex flex-col h-auto w-full space-y-2">
-                  <TabsTrigger 
-                    value="items" 
-                    className="w-full justify-start"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Package className="h-4 w-4 mr-2" />
-                    Items
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="categories" 
-                    className="w-full justify-start"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Filter className="h-4 w-4 mr-2" />
-                    Categories
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="parent-categories" 
-                    className="w-full justify-start"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Filter className="h-4 w-4 mr-2" />
-                    Parent Categories
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-            </div>
-          )}
+         
 
           {/* Desktop Tabs */}
-          <TabsList className="hidden lg:grid w-full grid-cols-3">
-            <TabsTrigger value="items">Items</TabsTrigger>
-            <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="parent-categories">Parent Categories</TabsTrigger>
+          <TabsList className="mb-2 grid gap-2 w-full grid-cols-3">
+            <TabsTrigger  value="items">Items</TabsTrigger>
+            <TabsTrigger  value="categories">Categories</TabsTrigger>
+            <TabsTrigger  value="parent-categories">Parent Categories</TabsTrigger>
           </TabsList>
 
           <TabsContent value="items" className="space-y-4">
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               <Button 
-                onClick={() => setIsAddItemOpen(true)} 
-                className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                onClick={() => setIsScannerOpen(true)} 
+                className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
+              >
+                <Scan className="h-4 w-4 mr-2" />
+                Scan Item
+              </Button>
+              <Button 
+                onClick={() => {
+                  setSelectedItem(undefined);
+                  setIsAddItemOpen(true);
+                }} 
+                className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Item
               </Button>
+              
             </div>
 
             {/* Search and Filter */}
@@ -538,6 +550,13 @@ const InventoryManagement = () => {
                       <Button variant="outline" size="sm" onClick={() => handleEdit(item)}>
                         <Edit className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleStockOut(item)}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -562,13 +581,13 @@ const InventoryManagement = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="categories">
+          <TabsContent value="categories" className="space-y-4">
             <Card>
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-2">
                 <CardTitle>Sub Categories</CardTitle>
                 <Button 
                   onClick={() => setIsAddCategoryOpen(true)} 
-                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                  className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Category
@@ -631,13 +650,13 @@ const InventoryManagement = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="parent-categories">
+          <TabsContent value="parent-categories" className="space-y-4">
             <Card>
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-2">
                 <CardTitle>Parent Categories</CardTitle>
                 <Button 
                   onClick={() => setIsAddParentCategoryOpen(true)} 
-                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
+                  className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Parent Category
@@ -708,200 +727,60 @@ const InventoryManagement = () => {
         </Tabs>
 
         {/* Dialogs */}
-        
-        {/* Add Item Dialog */}
-        <Dialog open={isAddItemOpen} onOpenChange={setIsAddItemOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Item</DialogTitle>
-              <DialogDescription>Add a new item to your inventory</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={(e: React.FormEvent) => {
-              e.preventDefault();
-              const form = e.target as HTMLFormElement;
-              addItem(new FormData(form));
-            }} className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="item_name">Item Name *</Label>
-                <Input name="item_name" required placeholder="Enter item name" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sub_category_id">Category *</Label>
-                <Select name="sub_category_id" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subCategories.map((category) => (
-                      <SelectItem key={category.sub_category_id} value={category.sub_category_id.toString()}>
-                        {category.sub_category_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="current_stock">Current Stock *</Label>
-                <Input name="current_stock" type="number" min="0" required placeholder="Enter current stock" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="minimum_stock">Minimum Stock *</Label>
-                <Input name="minimum_stock" type="number" min="0" required placeholder="Enter minimum stock" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unit_of_measurements">Unit of Measurement</Label>
-                <Input name="unit_of_measurements" placeholder="e.g., pieces, boxes" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unit_price">Unit Price ($)</Label>
-                <Input name="unit_price" type="number" step="0.01" min="0" placeholder="Enter unit price" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="supplier_id">Supplier</Label>
-                <Select name="supplier_id">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select supplier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {suppliers.map((supplier) => (
-                      <SelectItem key={supplier.supplier_id} value={supplier.supplier_id.toString()}>
-                        {supplier.company_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="storage_location">Storage Location</Label>
-                <Input name="storage_location" placeholder="Enter storage location" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="barcode">Barcode/SKU</Label>
-                <Input name="barcode" placeholder="Enter barcode or SKU" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expiry_alert_days">Expiry Alert Days</Label>
-                <Input name="expiry_alert_days" type="number" min="0" placeholder="Default: 30 days" defaultValue={30} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expiry_date">Expiry Date</Label>
-                <Input name="expiry_date" type="date" />
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea name="description" placeholder="Enter item description" />
-              </div>
-              <div className="md:col-span-2 flex items-center space-x-2">
-                <Switch name="batch_tracking" />
-                <Label htmlFor="batch_tracking">Enable batch tracking for this item</Label>
-              </div>
-              <div className="md:col-span-2 flex flex-col sm:flex-row justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddItemOpen(false)} className="w-full sm:w-auto">
-                  Cancel
-                </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-                  Add Item
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <BarcodeScanner 
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          onScanResult={handleScanResult}
+        />
 
-        {/* Add Sub Category Dialog */}
-        <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add New Sub Category</DialogTitle>
-              <DialogDescription>
-                Create a new sub category for organizing inventory items
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={(e: React.FormEvent) => {
-              e.preventDefault();
-              const form = e.target as HTMLFormElement;
-              addSubCategory(new FormData(form));
-            }}>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sub_category_name">Category Name *</Label>
-                  <Input id="sub_category_name" name="sub_category_name" required placeholder="Enter category name" />
-                </div>
+        <AddItemDialog 
+          open={isAddItemOpen} 
+          onOpenChange={(open) => {
+            setIsAddItemOpen(open);
+            if (!open) {
+              setScannedBarcode(undefined);
+            }
+          }}
+          onSubmit={(item, batch) => {
+            if (selectedItem) {
+              handleUpdateItem(item, batch);
+            } else {
+              const newId = Math.max(...items.map(item => item.item_id)) + 1;
+              const newItem = { ...item, item_id: newId };
+              setItems([...items, newItem]);
 
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" name="description" placeholder="Enter category description" />
-                </div>
+              const newBatchId = Math.max(...batches.map(batch => batch.batch_id)) + 1;
+              const newBatch = { ...batch, batch_id: newBatchId, item_id: newId };
+              setBatches([...batches, newBatch]);
+              setIsAddItemOpen(false);
+              setScannedBarcode(undefined);
+            }
+          }}
+          subCategories={subCategories}
+          suppliers={suppliers}
+          editItem={selectedItem}
+          editBatch={selectedItem ? batches.find(b => b.item_id === selectedItem.item_id) : undefined}
+          scannedBarcode={scannedBarcode}
+        />
 
-                <div className="space-y-2">
-                  <Label htmlFor="parent_category_id">Parent Category</Label>
-                  <Select name="parent_category_id" required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select parent category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {parentCategories.map((category) => (
-                        <SelectItem key={category.parent_category_id} value={category.parent_category_id.toString()}>
-                          {category.parent_category_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        <AddCategoryDialog 
+          open={isAddCategoryOpen}
+          onOpenChange={setIsAddCategoryOpen}
+          onSubmit={(category) => {
+            const newId = Math.max(...subCategories.map(cat => cat.sub_category_id)) + 1;
+            setSubCategories([...subCategories, { ...category, sub_category_id: newId }]);
+          }}
+          parentCategories={parentCategories}
+        />
 
-                <div className="flex flex-col sm:flex-row justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsAddCategoryOpen(false)} className="w-full sm:w-auto">
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-                    Add Category
-                  </Button>
-                </div>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Add Parent Category Dialog */}
-        <Dialog open={isAddParentCategoryOpen} onOpenChange={setIsAddParentCategoryOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Add Parent Category</DialogTitle>
-              <DialogDescription>
-                Create a new parent category for organizing inventory items
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); handleAddParentCategory(); }}>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="parent_category_name">Category Name</Label>
-                  <Input
-                    id="parent_category_name"
-                    value={newParentCategory.parent_category_name}
-                    onChange={(e) => setNewParentCategory(prev => ({ ...prev, parent_category_name: e.target.value }))}
-                    placeholder="Enter category name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={newParentCategory.description}
-                    onChange={(e) => setNewParentCategory(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Enter category description"
-                  />
-                </div>
-                <div className="flex flex-col sm:flex-row justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsAddParentCategoryOpen(false)} className="w-full sm:w-auto">
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-                    Add Parent Category
-                  </Button>
-                </div>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <AddParentCategoryDialog 
+          open={isAddParentCategoryOpen}
+          onOpenChange={setIsAddParentCategoryOpen}
+          onSubmit={(category) => {
+            const newId = Math.max(...parentCategories.map(cat => cat.parent_category_id)) + 1;
+            setParentCategories([...parentCategories, { ...category, parent_category_id: newId }]);
+          }}
+        />
 
         {/* View Item Dialog */}
         <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
@@ -964,136 +843,6 @@ const InventoryManagement = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Edit Item Dialog */}
-        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Item</DialogTitle>
-              <DialogDescription>Edit the details for this inventory item</DialogDescription>
-            </DialogHeader>
-            {selectedItem && (
-              <form
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  const form = e.currentTarget;
-                  const formData = new FormData(form);
-                  
-                  // Update item
-                  const updatedItem: Item = {
-                    ...selectedItem,
-                    item_name: formData.get('item_name') as string,
-                    description: formData.get('description') as string,
-                    sub_category_id: parseInt(formData.get('sub_category_id') as string) || null,
-                    unit_price: parseFloat(formData.get('unit_price') as string),
-                    unit_of_measurements: formData.get('unit_of_measurements') as string,
-                    supplier_id: parseInt(formData.get('supplier_id') as string) || null,
-                    barcode: formData.get('barcode') as string,
-                    batch_tracking: formData.get('batch_tracking') === 'on',
-                    expiry_alert_days: parseInt(formData.get('expiry_alert_days') as string) || 30,
-                    storage_location: formData.get('storage_location') as string,
-                  };
-
-                  setItems(items.map(item => item.item_id === selectedItem.item_id ? updatedItem : item));
-
-                  // Update batch
-                  const updatedBatch = batches.find(b => b.item_id === selectedItem.item_id);
-                  if (updatedBatch) {
-                    const newBatch: Batch = {
-                      ...updatedBatch,
-                      current_stock: parseInt(formData.get('current_stock') as string) || 0,
-                      minimum_stock: parseInt(formData.get('minimum_stock') as string) || 0,
-                    };
-                    setBatches(batches.map(batch => batch.batch_id === updatedBatch.batch_id ? newBatch : batch));
-                  }
-
-                  setIsEditOpen(false);
-                  setSelectedItem(null);
-                }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="item_name">Item Name *</Label>
-                  <Input name="item_name" defaultValue={selectedItem.item_name || ''} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sub_category_id">Category *</Label>
-                  <Select name="sub_category_id" defaultValue={selectedItem.sub_category_id?.toString() || ''} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subCategories.map((category) => (
-                        <SelectItem key={category.sub_category_id} value={category.sub_category_id.toString()}>
-                          {category.sub_category_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="current_stock">Current Stock *</Label>
-                  <Input name="current_stock" type="number" defaultValue={batches.find(b => b.item_id === selectedItem.item_id)?.current_stock || 0} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="minimum_stock">Minimum Stock *</Label>
-                  <Input name="minimum_stock" type="number" defaultValue={batches.find(b => b.item_id === selectedItem.item_id)?.minimum_stock || 0} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="unit_of_measurements">Unit of Measurement</Label>
-                  <Input name="unit_of_measurements" defaultValue={selectedItem.unit_of_measurements || ''} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="unit_price">Unit Price ($)</Label>
-                  <Input name="unit_price" type="number" step="0.01" defaultValue={selectedItem.unit_price || 0} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="supplier_id">Supplier</Label>
-                  <Select name="supplier_id" defaultValue={selectedItem.supplier_id?.toString() || ''}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select supplier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map((supplier) => (
-                        <SelectItem key={supplier.supplier_id} value={supplier.supplier_id.toString()}>
-                          {supplier.company_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="storage_location">Storage Location</Label>
-                  <Input name="storage_location" defaultValue={selectedItem.storage_location || ''} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="barcode">Barcode/SKU</Label>
-                  <Input name="barcode" defaultValue={selectedItem.barcode || ''} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="expiry_alert_days">Expiry Alert Days</Label>
-                  <Input name="expiry_alert_days" type="number" defaultValue={selectedItem.expiry_alert_days || 30} />
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea name="description" defaultValue={selectedItem.description || ''} />
-                </div>
-                <div className="md:col-span-2 flex items-center space-x-2">
-                  <Switch name="batch_tracking" defaultChecked={!!selectedItem.batch_tracking} />
-                  <Label htmlFor="batch_tracking">Enable batch tracking for this item</Label>
-                </div>
-                <div className="md:col-span-2 flex flex-col sm:flex-row justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto">
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-                    Save Changes
-                  </Button>
-                </div>
-              </form>
-            )}
-          </DialogContent>
-        </Dialog>
-
         {/* Delete Confirmation Dialog */}
         <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
           <DialogContent className="max-w-md">
@@ -1136,6 +885,17 @@ const InventoryManagement = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        <StockOutDialog 
+          isOpen={isStockOutOpen}
+          onClose={() => {
+            setIsStockOutOpen(false);
+            setSelectedItem(undefined);
+          }}
+          item={selectedItem || null}
+          batch={selectedItem ? (batches.find(b => b.item_id === selectedItem.item_id) || null) : null}
+          onUpdate={handleStockUpdate}
+        />
       </div>
     </div>
   );
