@@ -21,6 +21,121 @@ router.get('/', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
+//GET all items count
+router.get('/count', /*authenticateToken,*/ async (req, res) => {
+  try {
+    const count = await prisma.item.count();
+    res.json(count);
+  } catch (error) {
+    console.error('Error fetching item count:', error);
+    res.status(500).json({ error: 'Failed to fetch item count' });
+  }
+});
+
+//GET value of all items
+router.get('/total-value', /*authenticateToken,*/ async (req, res) => {
+  try {
+    // Fetch all batches with their item's unit price
+    const batches = await prisma.batch.findMany({
+      include: {
+        item: {
+          select: {
+            unit_price: true,
+          },
+        },
+      },
+    });
+
+    // Calculate total inventory value
+    const totalValue = batches.reduce((sum, batch) => {
+      const price = batch.item?.unit_price || 0;
+      return sum + (price * batch.current_stock);
+    }, 0);
+
+    res.json(totalValue);
+  } catch (error) {
+    console.error('Error calculating total value:', error);
+    res.status(500).json({ error: 'Failed to calculate total inventory value' });
+  }
+});
+
+//GET low stock items
+router.get('/low-stock', async (req, res) => {
+  try {
+    const batches = await prisma.batch.findMany({
+      include: {
+        item: true,
+      },
+    });
+
+    // Map to group low-stock batches per item
+    const lowStockMap = new Map();
+
+    batches.forEach(batch => {
+      // Only consider batches where current_stock <= minimum_stock
+      if (batch.current_stock <= batch.minimum_stock) {
+        if (!lowStockMap.has(batch.item_id)) {
+          lowStockMap.set(batch.item_id, {
+            item: batch.item,
+            batches: [],
+          });
+        }
+        lowStockMap.get(batch.item_id).batches.push(batch);
+      }
+    });
+
+    const lowStockItemsWithBatches = Array.from(lowStockMap.values());
+
+    res.json(lowStockItemsWithBatches);
+  } catch (error) {
+    console.error('Error fetching low stock items:', error);
+    res.status(500).json({ error: 'Failed to fetch low stock items' });
+  }
+});
+
+// GET expiring soon items
+router.get('/expiring-soon', async (req, res) => {
+  try {
+    const today = new Date();
+
+    // Fetch batches with related item data
+    const batches = await prisma.batch.findMany({
+      include: {
+        item: true,
+      },
+    });
+
+    // Filter batches that are expiring soon
+    const expiringSoonMap = new Map();
+
+    batches.forEach((batch) => {
+      const item = batch.item;
+      const expiryAlertDays = item.expiry_alert_days;
+
+      const expiryDate = new Date(batch.expiry_date);
+      const alertDate = new Date();
+      alertDate.setDate(today.getDate() + expiryAlertDays);
+
+      if (expiryDate <= alertDate) {
+        if (!expiringSoonMap.has(item.item_id)) {
+          expiringSoonMap.set(item.item_id, {
+            item,
+            batches: [],
+          });
+        }
+        expiringSoonMap.get(item.item_id).batches.push(batch);
+      }
+    });
+
+    const expiringSoonItems = Array.from(expiringSoonMap.values());
+
+    res.json(expiringSoonItems);
+  } catch (error) {
+    console.error('Error fetching expiring soon items:', error);
+    res.status(500).json({ error: 'Failed to fetch expiring soon items' });
+  }
+});
+
 // GET single item by id with relations
 router.get('/:item_id',  /*authenticateToken,*/ async (req, res) => {
   try {
