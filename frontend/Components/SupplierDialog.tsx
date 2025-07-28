@@ -19,7 +19,8 @@ export interface Supplier {
   country: string;
   website: string;
   notes: string;
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' ;
+  purchase_orders?: any[]; // Add this line
 }
 
 interface SupplierDialogProps {
@@ -50,10 +51,10 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
       city: formData.get('city')?.toString().trim() || '',
       state: formData.get('state')?.toString().trim() || '',
       postal_code: formData.get('postal_code')?.toString().trim() || '',
-      country: formData.get('country')?.toString().trim() || 'USA',
+      country: formData.get('country')?.toString().trim() || '',
       website: formData.get('website')?.toString().trim() || '',
       notes: formData.get('notes')?.toString().trim() || '',
-      status: formData.get('status')?.toString() as 'active' | 'inactive' | 'pending' || 'active',
+      status: formData.get('status')?.toString() as 'active' | 'inactive' || 'active',
     };
     if (!data.company_name || !data.email || !data.contact_person) return;
     onSubmit(data);
@@ -106,7 +107,7 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="country">Country *</Label>
-            <Input name="country" defaultValue={initialData?.country || 'USA'} required />
+            <Input name="country" defaultValue={initialData?.country || ''} required />
           </div>
           <div className="col-span-1 md:col-span-2 space-y-2">
             <Label htmlFor="website">Website</Label>
@@ -122,18 +123,18 @@ const SupplierDialog: React.FC<SupplierDialogProps> = ({
               name="status" 
               defaultValue={initialData?.status || 'active'} 
               required 
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
-              <option value="pending">Pending</option>
+              
             </select>
           </div>
           <div className="col-span-1 md:col-span-2 flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
+            <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto">
               {mode === 'add' ? 'Add Supplier' : 'Save Changes'}
             </Button>
           </div>

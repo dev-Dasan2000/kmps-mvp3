@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/Components/ui/card";
+import { Button } from "@/Components/ui/button";
+import { Input } from "@/Components/ui/input";
+import { Badge } from "@/Components/ui/badge";
+import { Label } from "@/Components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
 import { 
   Plus, 
   Search, 
@@ -20,102 +20,16 @@ import {
   Menu,
   X
 } from "lucide-react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import SupplierDialog, { Supplier } from "@/components/SupplierDialog";
-
-// Mock data based on the schema
-const mockSuppliers: Supplier[] = [
-  {
-    supplier_id: 1,
-    company_name: "DentalPro Supplies Inc.",
-    contact_person: "Sarah Johnson",
-    email: "sarah.johnson@dentalpro.com",
-    phone_number: "+1-555-0123",
-    address: "1234 Medical Drive, Suite 100",
-    city: "Boston",
-    state: "MA",
-    postal_code: "02108",
-    country: "USA",
-    website: "https://www.dentalpro.com",
-    notes: "Primary supplier for dental equipment. Excellent customer service.",
-    status: "active"
-  },
-  {
-    supplier_id: 2,
-    company_name: "MedEquip Solutions",
-    contact_person: "Michael Chen",
-    email: "m.chen@medequip.com",
-    phone_number: "+1-555-0456",
-    address: "5678 Healthcare Blvd",
-    city: "San Francisco",
-    state: "CA",
-    postal_code: "94102",
-    country: "USA",
-    website: "https://www.medequip.com",
-    notes: "Specializes in advanced dental imaging equipment.",
-    status: "active"
-  },
-  {
-    supplier_id: 3,
-    company_name: "Global Dental Supply",
-    contact_person: "Emma Rodriguez",
-    email: "emma@globaldentalsupp.com",
-    phone_number: "+1-555-0789",
-    address: "910 Industrial Park Way",
-    city: "Chicago",
-    state: "IL",
-    postal_code: "60601",
-    country: "USA",
-    website: "https://www.globaldentalsu.com",
-    notes: "Competitive pricing on bulk orders. Ships internationally.",
-    status: "pending"
-  },
-  {
-    supplier_id: 4,
-    company_name: "TechDent Innovations",
-    contact_person: "David Kim",
-    email: "david.kim@techdent.com",
-    phone_number: "+1-555-0321",
-    address: "2468 Innovation Circle",
-    city: "Austin",
-    state: "TX",
-    postal_code: "73301",
-    country: "USA",
-    website: "https://www.techdent.com",
-    notes: "Cutting-edge dental technology and software solutions.",
-    status: "active"
-  },
-  {
-    supplier_id: 5,
-    company_name: "Eco Dental Materials",
-    contact_person: "Lisa Thompson",
-    email: "lisa@ecodental.com",
-    phone_number: "+1-555-0654",
-    address: "1357 Green Valley Road",
-    city: "Portland",
-    state: "OR",
-    postal_code: "97201",
-    country: "USA",
-    website: "https://www.ecodental.com",
-    notes: "Environmentally friendly dental supplies and materials.",
-    status: "inactive"
-  }
-];
-
-// Toast hook replacement (simplified)
-const useToast = () => ({
-  toast: ({ title, description, variant }: { title: string; description: string; variant?: string }) => {
-    console.log(`${variant === 'destructive' ? 'ERROR' : 'SUCCESS'}: ${title} - ${description}`);
-    // In a real app, this would show a toast notification
-  }
-});
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/Components/ui/alert-dialog";
+import SupplierDialog, { Supplier } from "@/Components/SupplierDialog";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 const SupplierManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
-  const [suppliers, setSuppliers] = useState<Supplier[]>(mockSuppliers);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -123,64 +37,78 @@ const SupplierManagement = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("cards");
 
+  const { apiClient } = useAuth();
+
   const stats = {
     activeCount: suppliers.filter(s => s.status === 'active').length,
-    pendingReviews: suppliers.filter(s => s.status === 'pending').length,
-    totalOrders: 142, // Mock data
-    avgRating: 4.3 // Mock data
+    inactiveReviews: suppliers.filter(s => s.status === 'inactive').length,
+    totalOrders: suppliers.reduce((acc, curr) => acc + (curr.purchase_orders?.length || 0), 0),
   };
 
-  const addSupplier = (formData: Omit<Supplier, 'supplier_id'>) => {
+  // Fetch suppliers
+  const fetchSuppliers = async () => {
     try {
-      const newSupplier: Supplier = {
-        ...formData,
-        supplier_id: Math.max(...suppliers.map(s => s.supplier_id)) + 1
-      };
-      setSuppliers([...suppliers, newSupplier]);
-      toast({ title: "Success", description: "Supplier added successfully" });
-      setIsAddSupplierOpen(false);
+      setLoading(true);
+      const response = await apiClient.get('/inventory/suppliers');
+      setSuppliers(response.data);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to add supplier", variant: "destructive" });
+      console.error('Error fetching suppliers:', error);
+      toast.error('Failed to fetch suppliers');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateSupplier = (formData: Omit<Supplier, 'supplier_id'>) => {
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  const addSupplier = async (formData: Omit<Supplier, 'supplier_id'>) => {
+    try {
+      const response = await apiClient.post('/inventory/suppliers', formData);
+      setSuppliers([...suppliers, response.data]);
+      toast.success('Supplier added successfully');
+      setIsAddSupplierOpen(false);
+    } catch (error) {
+      console.error('Error adding supplier:', error);
+      toast.error('Failed to add supplier');
+    }
+  };
+
+  const updateSupplier = async (formData: Omit<Supplier, 'supplier_id'>) => {
     if (!selectedSupplier) return;
     try {
+      const response = await apiClient.put(`/inventory/suppliers/${selectedSupplier.supplier_id}`, formData);
       const updatedSuppliers = suppliers.map(supplier =>
         supplier.supplier_id === selectedSupplier.supplier_id
-          ? { ...formData, supplier_id: selectedSupplier.supplier_id }
+          ? response.data
           : supplier
       );
       setSuppliers(updatedSuppliers);
-      toast({ title: "Success", description: "Supplier updated successfully" });
+      toast.success('Supplier updated successfully');
       setIsEditOpen(false);
       setSelectedSupplier(null);
     } catch (error) {
-      toast({ title: "Error", description: "Failed to update supplier", variant: "destructive" });
+      console.error('Error updating supplier:', error);
+      toast.error('Failed to update supplier');
     }
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!supplierToDelete) return;
     
     try {
+      await apiClient.delete(`/inventory/suppliers/${supplierToDelete.supplier_id}`);
       const updatedSuppliers = suppliers.filter(s => s.supplier_id !== supplierToDelete.supplier_id);
       setSuppliers(updatedSuppliers);
       
-      toast({ 
-        title: "Supplier Deleted", 
-        description: `${supplierToDelete.company_name} has been removed successfully.`
-      });
+      toast.success(`${supplierToDelete.company_name} has been removed successfully`);
       
       setIsDeleteDialogOpen(false);
       setSupplierToDelete(null);
     } catch (error) {
-      toast({ 
-        title: "Error", 
-        description: "Failed to delete supplier. Please try again.", 
-        variant: "destructive" 
-      });
+      console.error('Error deleting supplier:', error);
+      toast.error('Failed to delete supplier. Please try again.');
     }
   };
 
@@ -216,6 +144,17 @@ const SupplierManagement = () => {
     supplier.notes.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mx-auto"></div>
+          <p className="mt-2 text-gray-500">Loading suppliers...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="pb-6 space-y-6 max-w-7xl mx-auto">
@@ -236,7 +175,7 @@ const SupplierManagement = () => {
 
         {/* Search */}
         <Card>
-          <CardContent className="p-4">
+          <CardContent>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
@@ -250,7 +189,7 @@ const SupplierManagement = () => {
         </Card>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -271,8 +210,8 @@ const SupplierManagement = () => {
                   <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-600" />
                 </div>
                 <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Pending</p>
-                  <p className="text-lg sm:text-xl font-bold text-gray-900">{stats.pendingReviews}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Inactive</p>
+                  <p className="text-lg sm:text-xl font-bold text-gray-900">{stats.inactiveReviews}</p>
                 </div>
               </div>
             </CardContent>
@@ -286,19 +225,6 @@ const SupplierManagement = () => {
                 <div>
                   <p className="text-xs sm:text-sm text-gray-600">Orders</p>
                   <p className="text-lg sm:text-xl font-bold text-gray-900">{stats.totalOrders}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-3">
-                <div className="bg-purple-100 p-2 rounded-lg">
-                  <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Rating</p>
-                  <p className="text-lg sm:text-xl font-bold text-gray-900">{stats.avgRating}</p>
                 </div>
               </div>
             </CardContent>
@@ -368,7 +294,7 @@ const SupplierManagement = () => {
                             href={supplier.website} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 truncate"
+                            className="text-emerald-600 hover:text-emerald-800 truncate"
                           >
                             {supplier.website}
                           </a>
@@ -414,7 +340,7 @@ const SupplierManagement = () => {
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[800px]">
-                    <thead className="bg-gray-50 border-b">
+                    <thead className="bg-emerald-50 border-b">
                       <tr>
                         <th className="text-left p-3 sm:p-4 font-semibold text-gray-900 text-sm">Company</th>
                         <th className="text-left p-3 sm:p-4 font-semibold text-gray-900 text-sm">Contact</th>
@@ -479,7 +405,7 @@ const SupplierManagement = () => {
               </p>
               {!searchTerm && (
                 <Button 
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-emerald-500 hover:bg-emerald-600"
                   onClick={() => setIsAddSupplierOpen(true)}
                 >
                   <Plus className="h-4 w-4 mr-2" />
