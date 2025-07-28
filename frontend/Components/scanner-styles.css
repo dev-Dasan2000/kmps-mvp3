@@ -1,0 +1,53 @@
+/* Custom scanning animation for the barcode scanner */
+.compact-scanner {
+  max-height: 300px !important;
+}
+
+/* Create a scanning animation line */
+#qr-reader__scan_region::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #3b82f6, transparent);
+  animation: scanning 2s linear infinite;
+  z-index: 10;
+}
+
+@keyframes scanning {
+  0% {
+    top: 0;
+  }
+  50% {
+    top: 100%;
+  }
+  100% {
+    top: 0;
+  }
+}
+
+/* Additional fine-tuning for specific elements that need !important */
+#qr-reader {
+  border: none !important;
+  padding: 0 !important;
+  width: 100% !important;
+}
+
+/* Make sure the scanner buttons are properly styled */
+#qr-reader__dashboard button {
+  background-color: #059669 !important;
+  color: white !important;
+  border: none !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  margin: 2px !important;
+  transition: background-color 0.2s !important;
+}
+
+#qr-reader__dashboard button:hover {
+  background-color: #10b981 !important;
+}
