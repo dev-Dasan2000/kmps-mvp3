@@ -288,7 +288,7 @@ const Dashboard = () => {
         {/* Main Content Grid - Responsive */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
           {/* Low Stock Alerts */}
-          <Card className="hover:shadow-md transition-shadow duration-200">
+          <Card className="hover:shadow-md transition-shadow duration-200 overflow-auto">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold flex items-center">
@@ -356,7 +356,7 @@ const Dashboard = () => {
 
 
           {/* Expiring Items */}
-          <Card className="hover:shadow-md transition-shadow duration-200">
+          <Card className="hover:shadow-md transition-shadow duration-200 overflow-auto">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold flex items-center">
@@ -410,7 +410,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Recent Activity - Full Width */}
+        {/* Recent Activity - Full Width 
         <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -452,7 +452,7 @@ const Dashboard = () => {
               )}
             </div>
           </CardContent>
-        </Card>
+        </Card>*/}
       </div>
     </div>
   );
