@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Loader } from "lucide-react";
 
 interface ParentCategory {
   parent_category_id: number;
@@ -19,6 +20,7 @@ interface SubCategory {
 }
 
 interface AddCategoryDialogProps {
+  onSubmitChange: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (category: SubCategory) => void;
@@ -27,6 +29,7 @@ interface AddCategoryDialogProps {
 }
 
 export function AddCategoryDialog({
+  onSubmitChange,
   open,
   onOpenChange,
   onSubmit,
@@ -112,10 +115,11 @@ export function AddCategoryDialog({
                 Cancel
               </Button>
               <Button 
+              disabled={onSubmitChange}
                 type="submit" 
                 className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
               >
-                {editCategory ? 'Save Changes' : 'Add Category'}
+                {onSubmitChange? <Loader/> : editCategory ? 'Save Changes' : 'Add Category' }
               </Button>
             </div>
           </div>

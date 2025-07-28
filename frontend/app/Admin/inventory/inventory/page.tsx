@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,15 +23,18 @@ import {
   Scan,
   Menu,
   X,
-  Filter
+  Filter,
+  Loader
 } from "lucide-react";
-import { AddItemDialog } from "@/Components/inventory/AddItemDialog";
-import { AddCategoryDialog } from "@/Components/inventory/AddCategoryDialog";
-import { AddParentCategoryDialog } from "@/Components/inventory/AddParentCategoryDialog";
-import { BarcodeScanner } from "@/Components/inventory/BarcodeScanner";
-import { StockOutDialog } from "@/Components/inventory/StockOutDialog";
+import { AddItemDialog } from "@/components/inventory/AddItemDialog";
+import { AddCategoryDialog } from "@/components/inventory/AddCategoryDialog";
+import { AddParentCategoryDialog } from "@/components/inventory/AddParentCategoryDialog";
+import { BarcodeScanner } from "@/components/inventory/BarcodeScanner";
+import { StockOutDialog } from "@/components/inventory/StockOutDialog";
+import { AuthContext } from "@/context/auth-context";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-// Types based on your schema
 interface ParentCategory {
   parent_category_id: number;
   parent_category_name: string;
@@ -83,26 +86,12 @@ interface Item {
 
 interface Batch {
   batch_id: number;
-  item_id: number;
+  item: Item;
   current_stock: number;
   minimum_stock: number;
   expiry_date: string;
   stock_date: string;
 }
-
-// Mock data
-const mockParentCategories: ParentCategory[] = [
-  { parent_category_id: 1, parent_category_name: "Medical Supplies", description: "All medical and surgical supplies" },
-  { parent_category_id: 2, parent_category_name: "Office Supplies", description: "General office and administrative supplies" },
-  { parent_category_id: 3, parent_category_name: "Cleaning Supplies", description: "Sanitization and cleaning materials" },
-];
-
-const mockSubCategories: SubCategory[] = [
-  { sub_category_id: 1, sub_category_name: "Dental Tools", description: "Dental instruments and tools", parent_category_id: 1 },
-  { sub_category_id: 2, sub_category_name: "Disposables", description: "Single-use medical items", parent_category_id: 1 },
-  { sub_category_id: 3, sub_category_name: "Stationery", description: "Paper and writing materials", parent_category_id: 2 },
-  { sub_category_id: 4, sub_category_name: "Disinfectants", description: "Chemical cleaning agents", parent_category_id: 3 },
-];
 
 const mockSuppliers: Supplier[] = [
   {
@@ -137,87 +126,19 @@ const mockSuppliers: Supplier[] = [
   },
 ];
 
-const mockItems: Item[] = [
-  {
-    item_id: 1,
-    item_name: "Dental Probe",
-    unit_of_measurements: "pieces",
-    unit_price: 15.99,
-    storage_location: "Cabinet A1",
-    barcode: "DEN001",
-    expiry_alert_days: 30,
-    description: "Stainless steel dental probe",
-    sub_category_id: 1,
-    supplier_id: 1,
-    batch_tracking: false,
-  },
-  {
-    item_id: 2,
-    item_name: "Disposable Gloves",
-    unit_of_measurements: "boxes",
-    unit_price: 12.50,
-    storage_location: "Storage Room B",
-    barcode: "GLV001",
-    expiry_alert_days: 60,
-    description: "Latex-free disposable gloves",
-    sub_category_id: 2,
-    supplier_id: 1,
-    batch_tracking: true,
-  },
-  {
-    item_id: 3,
-    item_name: "Copy Paper",
-    unit_of_measurements: "reams",
-    unit_price: 8.99,
-    storage_location: "Office Storage",
-    barcode: "PAP001",
-    expiry_alert_days: 0,
-    description: "A4 white copy paper",
-    sub_category_id: 3,
-    supplier_id: 2,
-    batch_tracking: false,
-  },
-];
-
-const mockBatches: Batch[] = [
-  {
-    batch_id: 1,
-    item_id: 1,
-    current_stock: 25,
-    minimum_stock: 10,
-    expiry_date: "2024-12-31",
-    stock_date: "2024-01-15"
-  },
-  {
-    batch_id: 2,
-    item_id: 2,
-    current_stock: 5,
-    minimum_stock: 15,
-    expiry_date: "2024-11-30",
-    stock_date: "2024-02-01"
-  },
-  {
-    batch_id: 3,
-    item_id: 3,
-    current_stock: 50,
-    minimum_stock: 20,
-    expiry_date: "",
-    stock_date: "2024-03-01"
-  },
-];
 
 const InventoryManagement = () => {
-  const [parentCategories, setParentCategories] = useState<ParentCategory[]>(mockParentCategories);
-  const [subCategories, setSubCategories] = useState<SubCategory[]>(mockSubCategories);
+  const [parentCategories, setParentCategories] = useState<ParentCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>(mockSuppliers);
-  const [items, setItems] = useState<Item[]>(mockItems);
-  const [batches, setBatches] = useState<Batch[]>(mockBatches);
-  
+  const [items, setItems] = useState<Item[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [currentView, setCurrentView] = useState<'items' | 'categories' | 'parent-categories'>('items');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   // Dialog states
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
   const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
@@ -230,6 +151,20 @@ const InventoryManagement = () => {
   const [scannedBarcode, setScannedBarcode] = useState<string | undefined>(undefined);
   const [isStockOutOpen, setIsStockOutOpen] = useState(false);
 
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
+  const router = useRouter();
+
+  const [loadingParentCategories, setLoadingParentCategories] = useState(false);
+  const [submittingNewParentCategory, setSubmittingNewParentCategory] = useState(false);
+  const [deletingParentCategory, setDeletingParentCategory] = useState(false);
+  const [deletingParentID, setDeletingParentID] = useState(0);
+
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
+  const [submittingNewSubCategory, setSubmittingNewSubCategory] = useState(false);
+  const [deletingSubCategory, setDeletingSubCategory] = useState(false);
+  const [deletingSubID, setDeletingSubID] = useState(0);
+
+
   // Form states
   const [newParentCategory, setNewParentCategory] = useState({
     parent_category_name: "",
@@ -241,8 +176,8 @@ const InventoryManagement = () => {
     return items.map(item => {
       const subCategory = subCategories.find(cat => cat.sub_category_id === item.sub_category_id);
       const supplier = suppliers.find(sup => sup.supplier_id === item.supplier_id);
-      const batch = batches.find(b => b.item_id === item.item_id);
-      
+      const batch = batches.find(b => b.item.item_id === item.item_id);
+
       return {
         ...item,
         sub_category: subCategory,
@@ -310,88 +245,107 @@ const InventoryManagement = () => {
   const confirmDelete = () => {
     if (selectedItem) {
       setItems(items.filter(item => item.item_id !== selectedItem.item_id));
-      setBatches(batches.filter(batch => batch.item_id !== selectedItem.item_id));
+      setBatches(batches.filter(batch => batch.item.item_id !== selectedItem.item_id));
       setIsDeleteConfirmOpen(false);
-      setSelectedItem(null);
+      setSelectedItem(undefined);
     }
   };
 
-  const handleAddParentCategory = () => {
-    if (newParentCategory.parent_category_name.trim()) {
-      const newId = Math.max(...parentCategories.map(cat => cat.parent_category_id)) + 1;
-      setParentCategories([...parentCategories, {
-        parent_category_id: newId,
-        parent_category_name: newParentCategory.parent_category_name.trim(),
-        description: newParentCategory.description.trim()
-      }]);
+  const handleAddParentCategory = async (category: any) => {
+    setSubmittingNewParentCategory(true);
+    try {
+      const response = await apiClient.post(
+        `/inventory/parent-categories`, category
+      );
+      if (response.status != 201) {
+        throw new Error("Error Submitting New Parent Category");
+      }
+      setParentCategories([...parentCategories, response.data]);
+    }
+    catch (error: any) {
+      toast.error(error.message);
+    }
+    finally {
+      setSubmittingNewParentCategory(false);
       setNewParentCategory({ parent_category_name: "", description: "" });
       setIsAddParentCategoryOpen(false);
+
     }
   };
 
-  const handleDeleteParentCategory = (categoryId: number) => {
-    // Check if any sub-categories use this parent
+  const handleDeleteParentCategory = async (categoryId: number) => {
     const hasSubCategories = subCategories.some(sub => sub.parent_category_id === categoryId);
     if (hasSubCategories) {
-      alert("Cannot delete category with sub-categories. Please delete sub-categories first.");
+      toast.error("Cannot delete category", { description: "Please delete sub-categories first." });
       return;
     }
-    setParentCategories(parentCategories.filter(cat => cat.parent_category_id !== categoryId));
+    setDeletingParentCategory(true);
+    setDeletingParentID(categoryId);
+    try {
+      const response = await apiClient.delete(
+        `/inventory/parent-categories/${categoryId}`
+      );
+      if (response.status == 500) {
+        throw new Error("Error Deleting Parent Category");
+      }
+      setParentCategories(parentCategories.filter(cat => cat.parent_category_id !== categoryId));
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setDeletingParentCategory(false);
+      setDeletingParentID(0);
+    }
   };
 
-  const handleDeleteSubCategory = (categoryId: number) => {
-    // Check if any items use this category
+  const handleDeleteSubCategory = async (categoryId: number) => {
     const hasItems = items.some(item => item.sub_category_id === categoryId);
     if (hasItems) {
-      alert("Cannot delete category with items. Please reassign items first.");
+      toast.error("Error Deleting Category.", { description: "Please Assign items belong to this category before deleting" });
       return;
     }
-    setSubCategories(subCategories.filter(cat => cat.sub_category_id !== categoryId));
+    setDeletingSubCategory(true);
+    setDeletingSubID(categoryId);
+    try {
+      const response = await apiClient.delete(
+        `/inventory/sub-categories/${categoryId}`
+      );
+      if (response.status == 500) {
+        throw new Error("Error Deleting the Sub Category");
+      }
+      setSubCategories(subCategories.filter(cat => cat.sub_category_id !== categoryId));
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setDeletingSubCategory(false);
+      setDeletingSubID(0);
+    }
   };
 
   const addItem = (formData: FormData) => {
-    const newId = Math.max(...items.map(item => item.item_id)) + 1;
-    const newItem: Item = {
-      item_id: newId,
-      item_name: formData.get('item_name') as string,
-      unit_of_measurements: formData.get('unit_of_measurements') as string,
-      unit_price: parseFloat(formData.get('unit_price') as string),
-      storage_location: formData.get('storage_location') as string,
-      barcode: formData.get('barcode') as string,
-      expiry_alert_days: parseInt(formData.get('expiry_alert_days') as string),
-      description: formData.get('description') as string,
-      sub_category_id: parseInt(formData.get('sub_category_id') as string) || null,
-      supplier_id: parseInt(formData.get('supplier_id') as string) || null,
-      batch_tracking: formData.get('batch_tracking') === 'on',
-    };
 
-    setItems([...items, newItem]);
-
-    // Add initial batch
-    const newBatchId = Math.max(...batches.map(batch => batch.batch_id)) + 1;
-    const newBatch: Batch = {
-      batch_id: newBatchId,
-      item_id: newId,
-      current_stock: parseInt(formData.get('current_stock') as string) || 0,
-      minimum_stock: parseInt(formData.get('minimum_stock') as string) || 0,
-      expiry_date: formData.get('expiry_date') as string || "",
-      stock_date: new Date().toISOString().split('T')[0]
-    };
-
-    setBatches([...batches, newBatch]);
-    setIsAddItemOpen(false);
   };
 
-  const addSubCategory = (formData: FormData) => {
-    const newId = Math.max(...subCategories.map(cat => cat.sub_category_id)) + 1;
-    const newCategory: SubCategory = {
-      sub_category_id: newId,
-      sub_category_name: formData.get('sub_category_name') as string,
-      description: formData.get('description') as string,
-      parent_category_id: parseInt(formData.get('parent_category_id') as string) || null,
-    };
-
-    setSubCategories([...subCategories, newCategory]);
+  const addSubCategory = async (category: any) => {
+    setSubmittingNewSubCategory(true);
+    try {
+      const response = await apiClient.post(
+        `/inventory/sub-categories`, category
+      );
+      if (response.status != 201) {
+        throw new Error("Error Creating New Sub Category");
+      }
+      setSubCategories([...subCategories, response.data]);
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setSubmittingNewSubCategory(false);
+    }
     setIsAddCategoryOpen(false);
   };
 
@@ -417,18 +371,70 @@ const InventoryManagement = () => {
 
   const handleStockUpdate = (itemId: number, newStock: number) => {
     // Update the batches state with the new stock value
-    setBatches(batches.map(batch => 
-      batch.item_id === itemId 
+    setBatches(batches.map(batch =>
+      batch.item.item_id === itemId
         ? { ...batch, current_stock: newStock, stock_date: batch.stock_date || new Date().toISOString().split('T')[0] }
         : batch
     ));
   };
 
+  const fetchParentCategories = async () => {
+    setLoadingParentCategories(true);
+    try {
+      const response = await apiClient.get(
+        `/inventory/parent-categories`
+      );
+      if (response.status == 500) {
+        throw new Error("Error fetching parent categories");
+      }
+      setParentCategories(response.data);
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setLoadingParentCategories(false);
+    }
+  };
+
+  const fetchSubCategories = async () => {
+    setLoadingSubCategories(true);
+    try {
+      const response = await apiClient.get(
+        `/inventory/sub-categories`
+      );
+      if (response.status == 500) {
+        throw new Error("Error fetching sub categories");
+      }
+      setSubCategories(response.data);
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setLoadingSubCategories(false);
+    }
+  }
+
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
+      toast.error("Please Log in");
+      router.push("/");
+    }
+    else if (user.role != "admin") {
+      toast.error("Access Denied");
+      router.push("/");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchParentCategories();
+    fetchSubCategories();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      
-      
-
       <div className="pd-6 space-y-4">
         {/* Desktop Header */}
         <div className="hidden lg:block">
@@ -437,36 +443,36 @@ const InventoryManagement = () => {
         </div>
 
         <Tabs value={currentView} onValueChange={(value: any) => setCurrentView(value)}>
-         
+
 
           {/* Desktop Tabs */}
           <TabsList className="mb-2 grid gap-2 w-full grid-cols-3">
-            <TabsTrigger  value="items">Items</TabsTrigger>
-            <TabsTrigger  value="categories">Categories</TabsTrigger>
-            <TabsTrigger  value="parent-categories">Parent Categories</TabsTrigger>
+            <TabsTrigger value="items">Items</TabsTrigger>
+            <TabsTrigger value="categories">{loadingSubCategories ? <Loader /> : 'Sub Categories'}</TabsTrigger>
+            <TabsTrigger value="parent-categories">{loadingParentCategories ? <Loader /> : 'Parent Categories'}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="items" className="space-y-4">
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-              <Button 
-                onClick={() => setIsScannerOpen(true)} 
+              <Button
+                onClick={() => setIsScannerOpen(true)}
                 className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
               >
                 <Scan className="h-4 w-4 mr-2" />
                 Scan Item
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   setSelectedItem(undefined);
                   setIsAddItemOpen(true);
-                }} 
+                }}
                 className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add New Item
               </Button>
-              
+
             </div>
 
             {/* Search and Filter */}
@@ -487,7 +493,7 @@ const InventoryManagement = () => {
                       <SelectValue placeholder="Filter by category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="all">{loadingSubCategories ? <Loader /> : "All Categories"}</SelectItem>
                       {subCategories.map((category) => (
                         <SelectItem key={category.sub_category_id} value={category.sub_category_id.toString()}>
                           {category.sub_category_name}
@@ -557,9 +563,9 @@ const InventoryManagement = () => {
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleDelete(item)}
                         className="text-red-500 hover:text-red-600"
                       >
@@ -585,8 +591,8 @@ const InventoryManagement = () => {
             <Card>
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-2">
                 <CardTitle>Sub Categories</CardTitle>
-                <Button 
-                  onClick={() => setIsAddCategoryOpen(true)} 
+                <Button
+                  onClick={() => setIsAddCategoryOpen(true)}
                   className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -606,12 +612,13 @@ const InventoryManagement = () => {
                             </CardDescription>
                           </div>
                           <Button
+                            disabled={deletingSubCategory && deletingSubID === category.sub_category_id}
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteSubCategory(category.sub_category_id)}
                             className="text-red-500 hover:text-red-600 flex-shrink-0"
                           >
-                            <Trash className="h-4 w-4" />
+                            {deletingSubCategory && deletingSubID === category.sub_category_id ? <Loader /> : <Trash className="h-4 w-4" />}
                           </Button>
                         </div>
                       </CardHeader>
@@ -629,7 +636,7 @@ const InventoryManagement = () => {
                                 {items
                                   .filter(item => item.sub_category_id === category.sub_category_id)
                                   .map(item => {
-                                    const batch = batches.find(b => b.item_id === item.item_id);
+                                    const batch = batches.find(b => b.item.item_id === item.item_id);
                                     return (
                                       <li key={item.item_id} className="text-sm">
                                         {item.item_name} ({batch?.current_stock || 0} {item.unit_of_measurements})
@@ -654,8 +661,8 @@ const InventoryManagement = () => {
             <Card>
               <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0 pb-2">
                 <CardTitle>Parent Categories</CardTitle>
-                <Button 
-                  onClick={() => setIsAddParentCategoryOpen(true)} 
+                <Button
+                  onClick={() => setIsAddParentCategoryOpen(true)}
                   className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -668,7 +675,7 @@ const InventoryManagement = () => {
                     const subCategoriesCount = subCategories.filter(
                       sub => sub.parent_category_id === category.parent_category_id
                     ).length;
-                    
+
                     return (
                       <Card key={category.parent_category_id} className="flex flex-col">
                         <CardHeader>
@@ -680,12 +687,13 @@ const InventoryManagement = () => {
                               </CardDescription>
                             </div>
                             <Button
+                              disabled={deletingParentCategory && deletingParentID === category.parent_category_id}
                               variant="ghost"
                               size="icon"
                               onClick={() => handleDeleteParentCategory(category.parent_category_id)}
                               className="text-red-500 hover:text-red-600 flex-shrink-0"
                             >
-                              <Trash className="h-4 w-4" />
+                              {deletingParentCategory && deletingParentID === category.parent_category_id ? <Loader /> : <Trash className="h-4 w-4" />}
                             </Button>
                           </div>
                         </CardHeader>
@@ -727,14 +735,14 @@ const InventoryManagement = () => {
         </Tabs>
 
         {/* Dialogs */}
-        <BarcodeScanner 
+        <BarcodeScanner
           isOpen={isScannerOpen}
           onClose={() => setIsScannerOpen(false)}
           onScanResult={handleScanResult}
         />
 
-        <AddItemDialog 
-          open={isAddItemOpen} 
+        <AddItemDialog
+          open={isAddItemOpen}
           onOpenChange={(open) => {
             setIsAddItemOpen(open);
             if (!open) {
@@ -763,23 +771,19 @@ const InventoryManagement = () => {
           scannedBarcode={scannedBarcode}
         />
 
-        <AddCategoryDialog 
+        <AddCategoryDialog
+          onSubmitChange={submittingNewSubCategory}
           open={isAddCategoryOpen}
           onOpenChange={setIsAddCategoryOpen}
-          onSubmit={(category) => {
-            const newId = Math.max(...subCategories.map(cat => cat.sub_category_id)) + 1;
-            setSubCategories([...subCategories, { ...category, sub_category_id: newId }]);
-          }}
+          onSubmit={(category) => { addSubCategory(category); }}
           parentCategories={parentCategories}
         />
 
-        <AddParentCategoryDialog 
+        <AddParentCategoryDialog
+          onSubmitChange={submittingNewParentCategory}
           open={isAddParentCategoryOpen}
           onOpenChange={setIsAddParentCategoryOpen}
-          onSubmit={(category) => {
-            const newId = Math.max(...parentCategories.map(cat => cat.parent_category_id)) + 1;
-            setParentCategories([...parentCategories, { ...category, parent_category_id: newId }]);
-          }}
+          onSubmit={(category) => { handleAddParentCategory(category); }}
         />
 
         {/* View Item Dialog */}
@@ -815,11 +819,11 @@ const InventoryManagement = () => {
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Current Stock</Label>
-                    <p className="text-sm">{batches.find(b => b.item_id === selectedItem.item_id)?.current_stock || 0} {selectedItem.unit_of_measurements}</p>
+                    <p className="text-sm">{batches.find(b => b.item.item_id === selectedItem.item_id)?.current_stock || 0} {selectedItem.unit_of_measurements}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Minimum Stock</Label>
-                    <p className="text-sm">{batches.find(b => b.item_id === selectedItem.item_id)?.minimum_stock || 0} {selectedItem.unit_of_measurements}</p>
+                    <p className="text-sm">{batches.find(b => b.item.item_id === selectedItem.item_id)?.minimum_stock || 0} {selectedItem.unit_of_measurements}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Storage Location</Label>
@@ -866,15 +870,15 @@ const InventoryManagement = () => {
                   </p>
                 </div>
                 <div className="flex flex-col sm:flex-row justify-end gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setIsDeleteConfirmOpen(false)}
                     className="w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     onClick={confirmDelete}
                     className="w-full sm:w-auto"
                   >
@@ -886,14 +890,14 @@ const InventoryManagement = () => {
           </DialogContent>
         </Dialog>
 
-        <StockOutDialog 
+        <StockOutDialog
           isOpen={isStockOutOpen}
           onClose={() => {
             setIsStockOutOpen(false);
             setSelectedItem(undefined);
           }}
           item={selectedItem || null}
-          batch={selectedItem ? (batches.find(b => b.item_id === selectedItem.item_id) || null) : null}
+          batch={selectedItem ? (batches.find(b => b.item.item_id === selectedItem.item_id) || null) : null}
           onUpdate={handleStockUpdate}
         />
       </div>
