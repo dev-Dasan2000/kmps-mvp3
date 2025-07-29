@@ -13,11 +13,27 @@ router.get('/',  /*authenticateToken,*/ async (req, res) => {
         supplier: true,
         payment_term: true,
         shipping_method: true,
-        purchase_order_items: true,
         stock_receivings: true,
+        purchase_order_items: {
+          include: {
+            item: true,
+          },
+        },
       },
     });
-    res.json(purchaseOrders);
+    const enrichedPurchaseOrders = purchaseOrders.map((po) => {
+      const totalAmount = po.purchase_order_items.reduce((sum, poi) => {
+        const unitPrice = poi.item?.unit_price || 0;
+        return sum + poi.quantity * unitPrice;
+      }, 0);
+
+      return {
+        ...po,
+        total_amount: totalAmount,
+      };
+    });
+
+    res.json(enrichedPurchaseOrders);
   } catch (error) {
     console.error('Error fetching purchase orders:', error);
     res.status(500).json({ error: 'Failed to fetch purchase orders' });

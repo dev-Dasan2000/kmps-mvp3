@@ -60,6 +60,13 @@ interface Item {
   batch_tracking: boolean;
 }
 
+interface PurchaseOrderItem {
+  purchase_order_id: number;
+  item_id: number;
+  quantity: number;
+  item: Item;
+}
+
 interface PurchaseOrder {
   purchase_order_id: number;
   supplier_id: number;
@@ -71,10 +78,12 @@ interface PurchaseOrder {
   authorized_by: string;
   delivery_address: string;
   notes: string;
-  
+
   total_amount: number;
   supplier?: Supplier;
-  items?: Item[];
+  payment_term?: PaymentTerm;
+  shipping_method?: ShippingMethod;
+  purchase_order_items: PurchaseOrderItem[];
 }
 
 interface PaymentTerm {
@@ -115,76 +124,85 @@ const PurchaseOrdersPage = () => {
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
+  const { isLoadingAuth, isLoggedIn, user, apiClient } = useContext(AuthContext);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const supplierRes = await apiClient.get(
-          `/inventory/suppliers`
-        );
-        if(supplierRes.status == 500){
-          throw new Error("Error Fetching Suppliers");
-        }
-        setSuppliers(supplierRes.data);
-
-        const itemsRes = await apiClient.get(
-          `/inventory/items`
-        ) ;
-        if(itemsRes.status == 500){
-          throw new Error("Error Fetching Items");
-        }
-        setItems(itemsRes.data);
-
-        const paymentTermsRes = await apiClient.get(
-          `/inventory/payment-terms`
-        );
-        if(paymentTermsRes.status == 500){
-          throw new Error("Error Fetching Payment Terms");
-        }
-        setPaymentTerms(paymentTermsRes.data);
-        
-        const shippingMethodsRes = await apiClient.get(
-          `/inventory/shipping-methods`
-        );
-        if(shippingMethodsRes.status == 500){
-          throw new Error("Error Fetching Shipping Methods");
-        }
-        setShippingMethods(shippingMethodsRes.data);
-
-        const parentCatRes = await apiClient.get(
-          `/inventory/parent-categories`
-        );
-        if(parentCatRes.status == 500){
-          throw new Error("Error Fetching Parent Categories");
-        }
-        setParentCategories(parentCatRes.data);
-
-        const subCatRes = await apiClient.get(
-          `/inventory/sub-categories`
-        );
-        if(subCatRes.status == 500){
-          throw new Error("Error Fetching Sub Categories");
-        }
-        setSubCategories(subCatRes.data);
-        
-        const purchaseOrderRes = await apiClient.get(
-          `/inventory/purchase-orders`
-        );
-        if(purchaseOrderRes.status == 500){
-          throw new Error("Error Fetching Purchase Orders");
-        }
-        setPurchaseOrders(purchaseOrderRes.data);
-      } catch (error: any) {
-        toast.error(error.message);
-      } finally {
-        setLoading(false);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const supplierRes = await apiClient.get(
+        `/inventory/suppliers`
+      );
+      if (supplierRes.status == 500) {
+        throw new Error("Error Fetching Suppliers");
       }
-    };
+      setSuppliers(supplierRes.data);
 
+      const itemsRes = await apiClient.get(
+        `/inventory/items`
+      );
+      if (itemsRes.status == 500) {
+        throw new Error("Error Fetching Items");
+      }
+      setItems(itemsRes.data);
+
+      const paymentTermsRes = await apiClient.get(
+        `/inventory/payment-terms`
+      );
+      if (paymentTermsRes.status == 500) {
+        throw new Error("Error Fetching Payment Terms");
+      }
+      setPaymentTerms(paymentTermsRes.data);
+
+      const shippingMethodsRes = await apiClient.get(
+        `/inventory/shipping-methods`
+      );
+      if (shippingMethodsRes.status == 500) {
+        throw new Error("Error Fetching Shipping Methods");
+      }
+      setShippingMethods(shippingMethodsRes.data);
+
+      const parentCatRes = await apiClient.get(
+        `/inventory/parent-categories`
+      );
+      if (parentCatRes.status == 500) {
+        throw new Error("Error Fetching Parent Categories");
+      }
+      setParentCategories(parentCatRes.data);
+
+      const subCatRes = await apiClient.get(
+        `/inventory/sub-categories`
+      );
+      if (subCatRes.status == 500) {
+        throw new Error("Error Fetching Sub Categories");
+      }
+      setSubCategories(subCatRes.data);
+
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPurchaseOrders = async () => {
+    try {
+      const purchaseOrderRes = await apiClient.get(
+        `/inventory/purchase-orders`
+      );
+      if (purchaseOrderRes.status == 500) {
+        throw new Error("Error Fetching Purchase Orders");
+      }
+      setPurchaseOrders(purchaseOrderRes.data);
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+  }
+
+  useEffect(() => {
     fetchData();
+    fetchPurchaseOrders();
   }, []);
 
   const filteredOrders = purchaseOrders.filter((order) => {
@@ -195,17 +213,17 @@ const PurchaseOrdersPage = () => {
     );
   });
 
-  useEffect(()=>{
-    if(isLoadingAuth) return;
-    if(!isLoggedIn){
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
       toast.error("Please Log in");
       router.push("/");
     }
-    else if(user.role != "admin"){
+    else if (user.role != "admin") {
       toast.error("Access Denied");
       router.push("/");
     }
-  },[]);
+  }, []);
 
   if (loading) {
     return (
@@ -426,9 +444,8 @@ const PurchaseOrdersPage = () => {
           isOpen={isAddOpen}
           onOpenChange={setIsAddOpen}
           onSuccess={(data: Omit<PurchaseOrder, 'purchase_order_id'>) => {
-            // Handle form submission
+            fetchPurchaseOrders();
             setIsAddOpen(false);
-            // You can add additional logic here like refreshing the orders list
           }}
           suppliers={suppliers}
           items={items}
