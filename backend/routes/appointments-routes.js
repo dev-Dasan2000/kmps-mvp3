@@ -574,8 +574,12 @@ router.post('/', async (req, res) => {
         status: status || "confirmed",
         payment_status: payment_status || "not-paid",
       },
+      include:{
+        patient: true
+      }
     });
-    if (newAppointment.status === "confirmed") {
+    if (newAppointment.status === "confirmed" && newAppointment.patient.email && newAppointment.patient.phone_number) {
+
       sendAppointmentConfirmation(
         newAppointment.patient.email,
         newAppointment.date,
