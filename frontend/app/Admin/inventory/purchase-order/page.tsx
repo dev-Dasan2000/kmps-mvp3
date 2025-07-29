@@ -275,7 +275,7 @@ const PurchaseOrdersPage = () => {
         </Card>
 
         {/* Purchase Orders List */}
-       <div className={`grid gap-4 ${filteredOrders.length === 0 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+       <div className={`grid gap-4 ${filteredOrders.length === 0 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
           {filteredOrders.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
