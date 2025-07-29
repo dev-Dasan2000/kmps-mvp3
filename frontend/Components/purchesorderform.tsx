@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { Plus, Trash2, AlertCircle, Package, User, Truck, Calendar, MapPin } fro
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { AuthContext } from "@/context/auth-context";
 
 // Types based on your schema
 interface Supplier {
@@ -91,16 +93,16 @@ interface OrderItem {
   remarks: string;
 }
 
-export const PurchaseOrderForm = ({ 
-  suppliers, 
-  items, 
+export const PurchaseOrderForm = ({
+  suppliers,
+  items,
   parentCategories,
   subCategories,
   paymentTerms,
   shippingMethods,
-  onSuccess, 
-  isOpen, 
-  onOpenChange 
+  onSuccess,
+  isOpen,
+  onOpenChange
 }: PurchaseOrderFormProps) => {
   const [formData, setFormData] = useState({
     supplier_id: '',
@@ -112,7 +114,7 @@ export const PurchaseOrderForm = ({
     authorized_by: '',
     notes: ''
   });
-  
+
   const [orderItems, setOrderItems] = useState<OrderItem[]>([{
     id: '1',
     item_id: '',
@@ -128,11 +130,12 @@ export const PurchaseOrderForm = ({
   }]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const { apiClient } = useContext(AuthContext);
 
   // Validation function
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
 
     // Validate main form
     if (!formData.supplier_id) {
@@ -170,16 +173,16 @@ export const PurchaseOrderForm = ({
 
   // Check if form is valid for submit button
   const isFormValid = () => {
-    return formData.supplier_id && 
-           formData.requested_by && 
-           formData.payment_term_id && 
-           formData.shipping_method_id && 
-           formData.delivery_address &&
-           orderItems.every(item => 
-             item.item_id && 
-             item.quantity > 0 && 
-             item.unit_price > 0
-           );
+    return formData.supplier_id &&
+      formData.requested_by &&
+      formData.payment_term_id &&
+      formData.shipping_method_id &&
+      formData.delivery_address &&
+      orderItems.every(item =>
+        item.item_id &&
+        item.quantity > 0 &&
+        item.unit_price > 0
+      );
   };
 
   const addOrderItem = () => {
@@ -210,16 +213,16 @@ export const PurchaseOrderForm = ({
       return prevItems.map(item => {
         if (item.id === id) {
           const updatedItem = { ...item, [field]: value };
-          
+
           // Auto-calculate total price
           if (field === 'quantity' || field === 'unit_price') {
             updatedItem.total_price = Number(updatedItem.quantity || 0) * Number(updatedItem.unit_price || 0);
           }
-          
+
           // Auto-populate from selected item
           if (field === 'item_id' && value) {
             const selectedItem = items.find(itm => itm.item_id.toString() === value);
-            
+
             if (selectedItem) {
               updatedItem.item_name = selectedItem.item_name;
               updatedItem.item_description = selectedItem.description;
@@ -227,7 +230,7 @@ export const PurchaseOrderForm = ({
               updatedItem.unit_of_measurements = selectedItem.unit_of_measurements;
               updatedItem.unit_price = Number(selectedItem.unit_price) || 0;
               updatedItem.total_price = Number(updatedItem.quantity || 0) * Number(selectedItem.unit_price || 0);
-              
+
               // Find parent category from sub category
               const subCat = subCategories.find(sc => sc.sub_category_id === selectedItem.sub_category_id);
               if (subCat) {
@@ -241,7 +244,7 @@ export const PurchaseOrderForm = ({
               updatedItem.total_price = 0;
             }
           }
-          
+
           // Clear item selection when parent category changes
           if (field === 'parent_category_id' && value !== item.parent_category_id) {
             updatedItem.sub_category_id = '';
@@ -251,7 +254,7 @@ export const PurchaseOrderForm = ({
             updatedItem.unit_price = 0;
             updatedItem.total_price = 0;
           }
-          
+
           // Clear item selection when sub category changes
           if (field === 'sub_category_id' && value !== item.sub_category_id) {
             updatedItem.item_id = '';
@@ -260,7 +263,7 @@ export const PurchaseOrderForm = ({
             updatedItem.unit_price = 0;
             updatedItem.total_price = 0;
           }
-          
+
           return updatedItem;
         }
         return item;
@@ -284,22 +287,40 @@ export const PurchaseOrderForm = ({
     return orderItems.reduce((sum, item) => sum + item.total_price, 0);
   };
 
+  const getConsolidatedItems = () => {
+    const itemMap: Record<number, number> = {};
+
+    orderItems.forEach((item) => {
+      const itemId = Number(item.item_id);
+      const qty = Number(item.quantity);
+
+      if (!itemId || !qty) return;
+
+      if (itemMap[itemId]) {
+        itemMap[itemId] += qty;
+      } else {
+        itemMap[itemId] = qty;
+      }
+    });
+
+    return Object.entries(itemMap).map(([item_id, quantity]) => ({
+      item_id: Number(item_id),
+      quantity,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
-    
-    try {
-      // Generate PO number (you can customize this logic)
-      const poNumber = `PO${Date.now().toString().slice(-6)}`;
 
-      // Create purchase order object
+    try {
+
       const purchaseOrder = {
-        po_number: poNumber,
         supplier_id: parseInt(formData.supplier_id),
         requested_by: formData.requested_by,
         expected_delivery_date: formData.expected_delivery_date || null,
@@ -310,20 +331,33 @@ export const PurchaseOrderForm = ({
         notes: formData.notes || '',
         total_amount: getTotalAmount(),
         order_date: new Date().toISOString().split('T')[0],
-        items: orderItems.map(item => ({
-          item_id: parseInt(item.item_id),
-          quantity: Number(item.quantity),
-          unit_price: Number(item.unit_price),
-          unit_of_measurements: item.unit_of_measurements,
-          item_description: item.item_description || null,
-          remarks: item.remarks || null
-        }))
       };
 
-      // Call onSuccess with the purchase order data
-      onSuccess(purchaseOrder);
+      const purchaseOrderRes = await apiClient.post(
+        `/inventory/purchase-orders`, purchaseOrder
+      );
+
+      if (purchaseOrderRes.status != 201) {
+        throw new Error("Error Creating a Purchase Order");
+      }
+
+      const consolidatedItems = getConsolidatedItems();
+
+      await Promise.all(consolidatedItems.map(async (item) => {
+        const poiRes = await apiClient.post(`/inventory/purchase-order-items`, {
+          purchase_order_id: purchaseOrderRes.data.purchase_order_id,
+          item_id: item.item_id,
+          quantity: item.quantity
+        });
+
+        if (poiRes.status !== 201) {
+          throw new Error("Error Creating New Purchase Order Item");
+        }
+      }));
+
+      onSuccess(purchaseOrderRes.data);
       onOpenChange(false);
-      
+
       // Reset form
       setFormData({
         supplier_id: '',
@@ -349,8 +383,9 @@ export const PurchaseOrderForm = ({
         remarks: ''
       }]);
       setErrors({});
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating purchase order:', error);
+      toast.error(error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -513,7 +548,7 @@ export const PurchaseOrderForm = ({
                   )}
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="delivery_address" className="text-xs sm:text-sm font-medium flex items-center gap-1">
                   <MapPin className="h-3 w-3" />
@@ -541,10 +576,10 @@ export const PurchaseOrderForm = ({
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <CardTitle className="text-base sm:text-lg">Order Items</CardTitle>
-                <Button 
-                  type="button" 
-                  onClick={addOrderItem} 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  onClick={addOrderItem}
+                  variant="outline"
                   size="sm"
                   className="w-full sm:w-auto bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
                 >
@@ -735,7 +770,7 @@ export const PurchaseOrderForm = ({
               ))}
 
               <Separator />
-              
+
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border">
                 <div className="text-lg sm:text-xl font-semibold text-right text-blue-900">
                   Total Amount: ${getTotalAmount().toFixed(2)}
@@ -765,17 +800,17 @@ export const PurchaseOrderForm = ({
 
           {/* Form Actions */}
           <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t">
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
               className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 order-1 sm:order-2"
               disabled={!isFormValid() || isSubmitting}
             >

@@ -48,26 +48,42 @@ router.get('/:purchase_order_id/:item_id',  /*authenticateToken,*/ async (req, r
   }
 });
 
-// POST create new purchase_order_item
-router.post('/', /*authenticateToken,*/ async (req, res) => {
+router.post('/', async (req, res) => {
+  let purchase_order_id
+
   try {
-    const { purchase_order_id, item_id } = req.body;
-    if (!purchase_order_id || !item_id) {
-      return res.status(400).json({ error: 'purchase_order_id and item_id are required' });
+    const { purchase_order_id: poId, item_id, quantity } = req.body;
+    purchase_order_id = poId; // assign for use in catch
+
+    if (!poId || !item_id || !quantity) {
+      return res.status(400).json({ error: 'purchase_order_id, item_id and quantity are required' });
     }
 
     const newPOI = await prisma.purchase_order_item.create({
       data: {
-        purchase_order_id,
+        purchase_order_id: poId,
         item_id,
+        quantity,
       },
     });
+
     res.status(201).json(newPOI);
   } catch (error) {
     console.error('Error creating purchase_order_item:', error);
+
+    // Only delete if we have a valid ID
+    if (purchase_order_id) {
+      try {
+        await prisma.purchase_order.delete({ where: { purchase_order_id } });
+      } catch (deleteError) {
+        console.error('Error deleting purchase_order after POI failure:', deleteError);
+      }
+    }
+
     res.status(500).json({ error: 'Failed to create purchase order item' });
   }
 });
+
 
 // DELETE purchase_order_item by composite key
 router.delete('/:purchase_order_id/:item_id',  /*authenticateToken,*/ async (req, res) => {
