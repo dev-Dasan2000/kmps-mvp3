@@ -98,7 +98,7 @@ export function AddItemDialog({
     const fetchBatches = async () => {
       if (editItem?.item_id && editItem.batch_tracking) {
         try {
-          const response = await apiClient.get(`/inventory/items/${editItem.item_id}/batches`);
+          const response = await apiClient.get(`/inventory/batches/by-item/${editItem.item_id}`);
           setBatches(response.data || []);
         } catch (error) {
           console.error('Error fetching batches:', error);

@@ -1100,11 +1100,21 @@ const InventoryManagement = () => {
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Current Stock</Label>
-                    <p className="text-sm">{batches.find(b => b.item.item_id === selectedItem.item_id)?.current_stock || 0} {selectedItem.unit_of_measurements}</p>
+                    <p className="text-sm">
+                      {batches
+                        .filter(b => b.item?.item_id === selectedItem.item_id)
+                        .reduce((sum, batch) => sum + (batch.current_stock || 0), 0)} 
+                      {selectedItem.unit_of_measurements}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Minimum Stock</Label>
-                    <p className="text-sm">{batches.find(b => b.item.item_id === selectedItem.item_id)?.minimum_stock || 0} {selectedItem.unit_of_measurements}</p>
+                    <p className="text-sm">
+                      {batches
+                        .filter(b => b.item?.item_id === selectedItem.item_id)
+                        .reduce((min, batch) => Math.min(min, batch.minimum_stock || 0), Number.MAX_SAFE_INTEGER) || 0} 
+                      {selectedItem.unit_of_measurements}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Storage Location</Label>
