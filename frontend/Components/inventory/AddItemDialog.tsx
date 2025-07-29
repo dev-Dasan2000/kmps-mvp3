@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Trash2 } from "lucide-react";
+import { AuthContext } from "@/context/auth-context";
+import { toast } from "sonner";
 
 interface Item {
   item_id?: number;
@@ -63,16 +65,52 @@ export function AddItemDialog({
   scannedBarcode
 }: AddItemDialogProps) {
   const [batchTracking, setBatchTracking] = useState(editItem?.batch_tracking || false);
-  const [batches, setBatches] = useState<Partial<Batch>[]>([
-    {
-      ...(editBatch || {}),
-      item: editItem || {} as Item,
-      current_stock: editBatch?.current_stock || 0,
-      minimum_stock: editBatch?.minimum_stock || 0,
-      expiry_date: editBatch?.expiry_date || new Date().toISOString().split('T')[0],
-      stock_date: editBatch?.stock_date || new Date().toISOString()
+  const [batches, setBatches] = useState<Partial<Batch>[]>(
+    editBatch && editItem?.batch_tracking 
+      ? [{
+          ...editBatch,
+          item: editItem,
+          current_stock: editBatch.current_stock || 0,
+          minimum_stock: editBatch.minimum_stock || 0,
+          expiry_date: editBatch.expiry_date || new Date().toISOString().split('T')[0],
+          stock_date: editBatch.stock_date || new Date().toISOString()
+        }]
+      : editItem && !editItem.batch_tracking && editBatch
+      ? [{
+          ...editBatch,
+          item: editItem,
+          current_stock: editBatch.current_stock || 0,
+          minimum_stock: editBatch.minimum_stock || 0,
+          expiry_date: editBatch.expiry_date || new Date().toISOString().split('T')[0],
+          stock_date: editBatch.stock_date || new Date().toISOString()
+        }]
+      : [{
+          current_stock: 0,
+          minimum_stock: 0,
+          expiry_date: new Date().toISOString().split('T')[0],
+          stock_date: new Date().toISOString(),
+          item: editItem || {} as Item
+        }]
+  );
+  
+  // Fetch batches when editing an item with batch tracking
+  useEffect(() => {
+    const fetchBatches = async () => {
+      if (editItem?.item_id && editItem.batch_tracking) {
+        try {
+          const response = await apiClient.get(`/inventory/items/${editItem.item_id}/batches`);
+          setBatches(response.data || []);
+        } catch (error) {
+          console.error('Error fetching batches:', error);
+          toast.error('Failed to load batch information');
+        }
+      }
+    };
+
+    if (editItem?.batch_tracking) {
+      fetchBatches();
     }
-  ]);
+  }, [editItem?.item_id, editItem?.batch_tracking]);
 
   const addNewBatch = () => {
     setBatches([
@@ -86,6 +124,9 @@ export function AddItemDialog({
       }
     ]);
   };
+  
+  // Add the apiClient to the component's props
+  const { apiClient } = useContext(AuthContext);
 
   const removeBatch = (index: number) => {
     const newBatches = [...batches];
@@ -93,9 +134,18 @@ export function AddItemDialog({
     setBatches(newBatches);
   };
 
-  const updateBatch = (index: number, field: keyof Omit<Batch, 'item'>, value: any) => {
+  const updateBatch = (index: number, field: keyof Omit<Batch, 'item' | 'item_id'>, value: any) => {
     const newBatches = [...batches];
     newBatches[index] = { ...newBatches[index], [field]: value };
+    
+    // If updating expiry_date, ensure it's in the correct format
+    if (field === 'expiry_date' && value) {
+      const date = new Date(value);
+      if (!isNaN(date.getTime())) {
+        newBatches[index].expiry_date = date.toISOString().split('T')[0];
+      }
+    }
+    
     setBatches(newBatches);
   };
 
@@ -105,10 +155,11 @@ export function AddItemDialog({
     }
   }, [editItem]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
+    // Create the item object
     const item: Item = {
       ...(editItem?.item_id ? { item_id: editItem.item_id } : {}),
       item_name: formData.get('item_name') as string,
@@ -120,35 +171,75 @@ export function AddItemDialog({
       description: formData.get('description') as string,
       sub_category_id: parseInt(formData.get('sub_category_id') as string) || null,
       supplier_id: parseInt(formData.get('supplier_id') as string) || null,
-      batch_tracking: formData.get('batch_tracking') === 'on',
+      batch_tracking: batchTracking,
     };
 
-    // If batch tracking is enabled, use the batches from state
-    // Otherwise, use the single batch from the form
-    if (batchTracking) {
-      // Submit the item and batches
-      batches.forEach(batchData => {
-        const batchToSubmit: Batch = {
-          batch_id: batchData.batch_id || 0, // Will be set by the backend
-          item: item,
-          current_stock: Number(batchData.current_stock) || 0,
-          minimum_stock: Number(batchData.minimum_stock) || 0,
-          expiry_date: batchData.expiry_date || new Date().toISOString().split('T')[0],
-          stock_date: batchData.stock_date || new Date().toISOString()
-        };
-        onSubmit(item, batchToSubmit);
-      });
-    } else {
-      // Single batch mode (legacy behavior)
-      const batch: Batch = {
-        batch_id: editBatch?.batch_id || 0, // Will be set by the backend
-        item: item,
-        current_stock: parseInt(formData.get('current_stock') as string) || 0,
-        minimum_stock: parseInt(formData.get('minimum_stock') as string) || 0,
-        expiry_date: formData.get('expiry_date') as string || new Date().toISOString().split('T')[0],
-        stock_date: editBatch?.stock_date || new Date().toISOString()
-      };
-      onSubmit(item, batch);
+    // Log the item payload for debugging
+    console.log('Submitting item:', JSON.stringify(item, null, 2));
+
+    try {
+      if (batchTracking) {
+        // For batch tracking, submit the item first, then batches
+        const itemResponse = await apiClient.post('/inventory/items', item);
+        const savedItem = itemResponse.data;
+        
+        // Submit each batch
+        const batchPromises = batches.map(async (batchData) => {
+          const batchToSubmit = {
+            ...batchData,
+            item_id: savedItem.item_id,
+            current_stock: Number(batchData.current_stock) || 0,
+            minimum_stock: Number(batchData.minimum_stock) || 0,
+            expiry_date: batchData.expiry_date || new Date().toISOString().split('T')[0],
+            stock_date: batchData.stock_date || new Date().toISOString()
+          };
+          
+          const batchResponse = await apiClient.post('/inventory/batches', batchToSubmit);
+          return batchResponse.data;
+        });
+
+        const savedBatches = await Promise.all(batchPromises);
+        onSubmit(savedItem, savedBatches[0]); // Pass the first batch to maintain compatibility
+      } else {
+        try {
+          // For non-batch items, submit item and single batch
+          console.log('Submitting non-batch item...');
+          const itemResponse = await apiClient.post('/inventory/items', item);
+          const savedItem = itemResponse.data;
+          
+          console.log('Item saved successfully:', savedItem);
+          
+          const batch = {
+            item_id: savedItem.item_id,
+            current_stock: Number(formData.get('current_stock')) || 0,
+            minimum_stock: Number(formData.get('minimum_stock')) || 0,
+            expiry_date: (formData.get('expiry_date') as string) || new Date().toISOString().split('T')[0],
+            stock_date: new Date().toISOString()
+          };
+          
+          console.log('Submitting batch:', batch);
+          const batchResponse = await apiClient.post('/inventory/batches', batch);
+          const savedBatch = batchResponse.data;
+          console.log('Batch saved successfully:', savedBatch);
+          
+          onSubmit(savedItem, { ...savedBatch, item: savedItem });
+        } catch (error) {
+          console.error('Error in non-batch item submission:', error);
+          if (error.response) {
+            console.error('Error response data:', error.response.data);
+            console.error('Error status:', error.response.status);
+            console.error('Error headers:', error.response.headers);
+          } else if (error.request) {
+            console.error('No response received:', error.request);
+          } else {
+            console.error('Error message:', error.message);
+          }
+          throw error; // Re-throw to be caught by the outer catch
+        }
+      }
+    } catch (error) {
+      console.error('Error saving item:', error);
+      toast.error('Failed to save item. Please try again.');
     }
   };
 
