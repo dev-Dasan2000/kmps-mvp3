@@ -414,7 +414,7 @@ export const PurchaseOrderForm = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="supplier_id" className="text-xs sm:text-sm font-medium">Supplier *</Label>
                   <Select
@@ -483,7 +483,7 @@ export const PurchaseOrderForm = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="expected_delivery_date" className="text-xs sm:text-sm font-medium flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
@@ -609,7 +609,7 @@ export const PurchaseOrderForm = ({
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Category Selection */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       <div className="space-y-2">
                         <Label className="text-xs sm:text-sm font-medium">Parent Category</Label>
                         <Select
@@ -685,7 +685,7 @@ export const PurchaseOrderForm = ({
                     </div>
 
                     {/* Item Details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-xs sm:text-sm font-medium">Quantity *</Label>
                         <Input
@@ -811,7 +811,7 @@ export const PurchaseOrderForm = ({
             </Button>
             <Button
               type="submit"
-              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 order-1 sm:order-2"
+              className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 order-1 sm:order-2"
               disabled={!isFormValid() || isSubmitting}
             >
               {isSubmitting ? 'Creating...' : 'Create Purchase Order'}

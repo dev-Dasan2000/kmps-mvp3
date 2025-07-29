@@ -275,7 +275,7 @@ const PurchaseOrdersPage = () => {
         </Card>
 
         {/* Purchase Orders List */}
-        <div className="space-y-4">
+       <div className={`grid gap-4 ${filteredOrders.length === 0 ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
           {filteredOrders.length === 0 ? (
             <Card>
               <CardContent className="p-8 text-center">
@@ -286,64 +286,76 @@ const PurchaseOrdersPage = () => {
             </Card>
           ) : (
             filteredOrders.map((order) => (
-              <Card key={order.purchase_order_id} className="overflow-hidden hover:shadow-md transition-shadow">
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col space-y-4">
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                        <h3 className="text-lg font-semibold">PO #{order.purchase_order_id}</h3>
-
+              <Card key={order.purchase_order_id} className="overflow-hidden  h-full flex flex-col group">
+                <CardContent className="p-5 flex-1 flex flex-col">
+                  {/* Header with status */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-50 rounded-lg">
+                        <FileText className="h-5 w-5 text-blue-600" />
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedPurchaseOrder(order);
-                            setIsViewOpen(true);
-                          }}
-                          className="text-xs"
-                        >
-                          <Eye className="h-3 w-3 mr-1" />
-                          View
-                        </Button>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">PO #{order.purchase_order_id}</h3>
+                       
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedPurchaseOrder(order);
+                        setIsViewOpen(true);
+                      }}
+                      className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                    >
+                      <Eye className="h-4 w-4 mr-1.5" />
+                      <span className="text-sm">View</span>
+                    </Button>
+                  </div>
 
+                  {/* Order details */}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Supplier</p>
+                        <p className="text-sm font-medium flex items-center">
+                          <Building2 className="h-4 w-4 mr-2 text-gray-400" />
+                          {order.supplier?.company_name || 'N/A'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Order Date</p>
+                        <p className="text-sm flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                          {new Date(order.order_date).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Details Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-                      <div className="flex items-center text-gray-600">
-                        <User className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">By: {order.requested_by}</span>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1">Expected</p>
+                        <p className="text-sm flex items-center">
+                          <Truck className="h-4 w-4 mr-2 text-gray-400" />
+                          {new Date(order.expected_delivery_date).toLocaleDateString()}
+                        </p>
                       </div>
-                      <div className="flex items-center text-gray-600">
-                        <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span>Date: {new Date(order.order_date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span className="truncate">{order.supplier?.company_name}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <DollarSign className="h-4 w-4 mr-2 flex-shrink-0" />
-                        <span>LKR {order.total_amount?.toLocaleString()}</span>
-                      </div>
+                     {/* <div>
+                        <p className="text-xs text-gray-500 mb-1">Total Amount</p>
+                        <p className="text-sm font-semibold text-blue-600">
+                          LKR {order.total_amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>*/}
                     </div>
+                  </div>
 
-                    {/* Mobile-specific additional info */}
-                    <div className="sm:hidden space-y-2 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        <span>Expected: {new Date(order.expected_delivery_date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-start">
-                        <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-                        <span className="line-clamp-2">{order.delivery_address}</span>
-                      </div>
-                    </div>
+                  {/* Requested by */}
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 mb-1">Requested By</p>
+                    <p className="text-sm flex items-center">
+                      <User className="h-4 w-4 mr-2 text-gray-400" />
+                      {order.requested_by}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -359,7 +371,7 @@ const PurchaseOrdersPage = () => {
             </DialogHeader>
             {selectedPurchaseOrder && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">Order Information</CardTitle>
@@ -377,10 +389,10 @@ const PurchaseOrdersPage = () => {
                         <Label className="font-medium">Expected Delivery</Label>
                         <p className="mt-1 text-gray-700">{new Date(selectedPurchaseOrder.expected_delivery_date).toLocaleDateString()}</p>
                       </div>
-                      <div>
+                     {/* <div>
                         <Label className="font-medium">Total Amount</Label>
                         <p className="mt-1 text-gray-700 font-semibold">LKR {selectedPurchaseOrder.total_amount?.toLocaleString()}</p>
-                      </div>
+                      </div>*/}
                     </CardContent>
                   </Card>
 
