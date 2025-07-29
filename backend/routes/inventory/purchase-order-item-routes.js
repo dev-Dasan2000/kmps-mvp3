@@ -51,15 +51,16 @@ router.get('/:purchase_order_id/:item_id',  /*authenticateToken,*/ async (req, r
 // POST create new purchase_order_item
 router.post('/', /*authenticateToken,*/ async (req, res) => {
   try {
-    const { purchase_order_id, item_id } = req.body;
-    if (!purchase_order_id || !item_id) {
-      return res.status(400).json({ error: 'purchase_order_id and item_id are required' });
+    const { purchase_order_id, item_id, quantity } = req.body;
+    if (!purchase_order_id || !item_id || !quantity) {
+      return res.status(400).json({ error: 'purchase_order_id, item_id and quantity are required' });
     }
 
     const newPOI = await prisma.purchase_order_item.create({
       data: {
         purchase_order_id,
         item_id,
+        quantity
       },
     });
     res.status(201).json(newPOI);

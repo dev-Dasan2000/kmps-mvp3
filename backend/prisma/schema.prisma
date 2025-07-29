@@ -685,6 +685,7 @@ model purchase_order {
 model purchase_order_item {
   purchase_order_id Int
   item_id           Int
+  quantity          Int
 
   purchase_order    purchase_order @relation(fields: [purchase_order_id], references: [purchase_order_id], onDelete: Cascade)
   item              item           @relation(fields: [item_id], references: [item_id], onDelete: Cascade)

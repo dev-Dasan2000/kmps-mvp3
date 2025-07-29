@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { PurchaseOrderForm } from "@/Components/purchesorderform";
+import { PurchaseOrderForm } from "@/components/purchesorderform";
+import { AuthContext } from "@/context/auth-context";
+import { useRouter } from "next/navigation";
 
 import {
   Plus,
@@ -25,6 +27,7 @@ import {
   Phone,
   Mail
 } from "lucide-react";
+import { toast } from "sonner";
 
 // Types based on your schema
 interface Supplier {
@@ -56,8 +59,6 @@ interface Item {
   supplier_id: number;
   batch_tracking: boolean;
 }
-
-
 
 interface PurchaseOrder {
   purchase_order_id: number;
@@ -112,175 +113,72 @@ const PurchaseOrdersPage = () => {
   const [shippingMethods, setShippingMethods] = useState<ShippingMethod[]>([]);
   const [parentCategories, setParentCategories] = useState<ParentCategory[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // Move mock data outside of useEffect to prevent recreation on every render
-  const mockParentCategories: ParentCategory[] = [
-    {
-      parent_category_id: 1,
-      parent_category_name: "Medical Equipment",
-      description: "All medical and dental equipment"
-    },
-    {
-      parent_category_id: 2,
-      parent_category_name: "Medical Supplies",
-      description: "Consumable medical supplies"
-    }
-  ];
-
-  const mockSubCategories: SubCategory[] = [
-    {
-      sub_category_id: 1,
-      sub_category_name: "Dental Equipment",
-      description: "Specialized dental equipment and tools",
-      parent_category_id: 1
-    },
-    {
-      sub_category_id: 2,
-      sub_category_name: "Disposable Supplies",
-      description: "Single-use medical supplies",
-      parent_category_id: 2
-    }
-  ];
-
-  const mockSuppliers: Supplier[] = [
-    {
-      supplier_id: 1,
-      company_name: "MedSupply Lanka",
-      contact_person: "Rajesh Kumar",
-      email: "rajesh@medsupply.lk",
-      phone_number: "+94 11 2345678",
-      address: "123 Galle Road",
-      city: "Colombo",
-      state: "Western",
-      postal_code: "00300",
-      country: "Sri Lanka",
-      website: "www.medsupply.lk",
-      notes: "Reliable medical supplier",
-      status: "active"
-    },
-    {
-      supplier_id: 2,
-      company_name: "Dental Equipment Co.",
-      contact_person: "Priya Silva",
-      email: "priya@dentalequip.lk",
-      phone_number: "+94 11 9876543",
-      address: "456 Kandy Road",
-      city: "Kandy",
-      state: "Central",
-      postal_code: "20000",
-      country: "Sri Lanka",
-      website: "www.dentalequip.lk",
-      notes: "Specialized dental equipment",
-      status: "active"
-    }
-  ];
-
-  const mockItems: Item[] = [
-    {
-      item_id: 1,
-      item_name: "Dental Handpiece",
-      unit_of_measurements: "pieces",
-      unit_price: 25000,
-      storage_location: "Equipment Room A",
-      barcode: "DH001",
-      expiry_alert_days: 365,
-      description: "High-speed dental handpiece",
-      sub_category_id: 1,
-      supplier_id: 2,
-      batch_tracking: false
-    },
-    {
-      item_id: 2,
-      item_name: "Surgical Gloves",
-      unit_of_measurements: "boxes",
-      unit_price: 1500,
-      storage_location: "Storage Room B",
-      barcode: "SG001",
-      expiry_alert_days: 30,
-      description: "Latex surgical gloves - size M",
-      sub_category_id: 2,
-      supplier_id: 1,
-      batch_tracking: true
-    }
-  ];
-
-  const mockPaymentTerms: PaymentTerm[] = [
-    { payment_term_id: 1, payment_term: "Net 30" },
-    { payment_term_id: 2, payment_term: "Net 15" },
-    { payment_term_id: 3, payment_term: "Cash on Delivery" }
-  ];
-
-  const mockShippingMethods: ShippingMethod[] = [
-    { shipping_method_id: 1, shipping_method: "Standard Delivery" },
-    { shipping_method_id: 2, shipping_method: "Express Delivery" },
-    { shipping_method_id: 3, shipping_method: "Pickup" }
-  ];
-
-  const mockPurchaseOrders: PurchaseOrder[] = [
-    {
-      purchase_order_id: 1,
-      supplier_id: 1,
-      requested_by: "Dr. Amal Fernando",
-      expected_delivery_date: "2025-08-15",
-      payment_term_id: 1,
-      shipping_method_id: 1,
-      order_date: "2025-07-28",
-      authorized_by: "Admin",
-      delivery_address: "123 Main Street, Colombo 03",
-      notes: "Urgent order for new clinic setup",
-      
-      total_amount: 45000,
-      supplier: mockSuppliers[0]
-    },
-    {
-      purchase_order_id: 2,
-      supplier_id: 2,
-      requested_by: "Dr. Nimali Perera",
-      expected_delivery_date: "2025-08-10",
-      payment_term_id: 2,
-      shipping_method_id: 2,
-      order_date: "2025-07-25",
-      authorized_by: "Manager",
-      delivery_address: "456 Hospital Road, Kandy",
-      notes: "Regular monthly supplies",
-     
-      total_amount: 78000,
-      supplier: mockSuppliers[1]
-    },
-    {
-      purchase_order_id: 3,
-      supplier_id: 1,
-      requested_by: "Dr. Kasun Silva",
-      expected_delivery_date: "2025-08-05",
-      payment_term_id: 3,
-      shipping_method_id: 1,
-      order_date: "2025-07-20",
-      authorized_by: "Admin",
-      delivery_address: "789 Dental Plaza, Galle",
-      notes: "Equipment maintenance supplies",
-      
-      total_amount: 32000,
-      supplier: mockSuppliers[0]
-    }
-  ];
+  const {isLoadingAuth, isLoggedIn, user, apiClient} = useContext(AuthContext);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
-        // In a real app, you would fetch this data from your API
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const supplierRes = await apiClient.get(
+          `/inventory/suppliers`
+        );
+        if(supplierRes.status == 500){
+          throw new Error("Error Fetching Suppliers");
+        }
+        setSuppliers(supplierRes.data);
+
+        const itemsRes = await apiClient.get(
+          `/inventory/items`
+        ) ;
+        if(itemsRes.status == 500){
+          throw new Error("Error Fetching Items");
+        }
+        setItems(itemsRes.data);
+
+        const paymentTermsRes = await apiClient.get(
+          `/inventory/payment-terms`
+        );
+        if(paymentTermsRes.status == 500){
+          throw new Error("Error Fetching Payment Terms");
+        }
+        setPaymentTerms(paymentTermsRes.data);
         
-        setSuppliers(mockSuppliers);
-        setItems(mockItems);
-        setPaymentTerms(mockPaymentTerms);
-        setShippingMethods(mockShippingMethods);
-        setPurchaseOrders(mockPurchaseOrders);
-        setParentCategories(mockParentCategories);
-        setSubCategories(mockSubCategories);
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-        // You might want to show an error message to the user here
+        const shippingMethodsRes = await apiClient.get(
+          `/inventory/shipping-methods`
+        );
+        if(shippingMethodsRes.status == 500){
+          throw new Error("Error Fetching Shipping Methods");
+        }
+        setShippingMethods(shippingMethodsRes.data);
+
+        const parentCatRes = await apiClient.get(
+          `/inventory/parent-categories`
+        );
+        if(parentCatRes.status == 500){
+          throw new Error("Error Fetching Parent Categories");
+        }
+        setParentCategories(parentCatRes.data);
+
+        const subCatRes = await apiClient.get(
+          `/inventory/sub-categories`
+        );
+        if(subCatRes.status == 500){
+          throw new Error("Error Fetching Sub Categories");
+        }
+        setSubCategories(subCatRes.data);
+        
+        const purchaseOrderRes = await apiClient.get(
+          `/inventory/purchase-orders`
+        );
+        if(purchaseOrderRes.status == 500){
+          throw new Error("Error Fetching Purchase Orders");
+        }
+        setPurchaseOrders(purchaseOrderRes.data);
+      } catch (error: any) {
+        toast.error(error.message);
       } finally {
         setLoading(false);
       }
@@ -296,6 +194,18 @@ const PurchaseOrdersPage = () => {
       order.requested_by?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   });
+
+  useEffect(()=>{
+    if(isLoadingAuth) return;
+    if(!isLoggedIn){
+      toast.error("Please Log in");
+      router.push("/");
+    }
+    else if(user.role != "admin"){
+      toast.error("Access Denied");
+      router.push("/");
+    }
+  },[]);
 
   if (loading) {
     return (
