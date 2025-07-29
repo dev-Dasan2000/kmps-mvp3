@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,21 +8,25 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Settings, 
-  Edit, 
-  Eye, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Settings,
+  Edit,
+  Eye,
   Wrench,
   AlertTriangle,
   CheckCircle,
   Archive,
   Trash2,
   Menu,
-  X
+  X,
+  Loader
 } from "lucide-react";
+import { AuthContext } from "@/context/auth-context";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 // Types based on your schema
 interface EquipmentCategory {
@@ -45,7 +49,7 @@ interface Equipment {
   status: string;
   notes: string;
   equipment_category?: EquipmentCategory;
-  maintenance?: Maintenance[];
+  maintenances?: Maintenance[];
 }
 
 interface Maintenance {
@@ -60,103 +64,14 @@ interface Maintenance {
   notes: string;
 }
 
-// Mock data
-const mockCategories: EquipmentCategory[] = [
-  { equipment_category_id: 1, equipment_category: "Imaging Equipment" },
-  { equipment_category_id: 2, equipment_category: "Dental Chairs" },
-  { equipment_category_id: 3, equipment_category: "Sterilization" },
-  { equipment_category_id: 4, equipment_category: "Laboratory Equipment" },
-  { equipment_category_id: 5, equipment_category: "Computer/Software" },
-  { equipment_category_id: 6, equipment_category: "Other" }
-];
-
-const mockMaintenance: Maintenance[] = [
-  {
-    maintenance_id: 1,
-    equipment_id: 1,
-    maintain_type: "preventive",
-    maintenance_date: "2024-01-15",
-    description: "Regular calibration and cleaning",
-    performed_by: "John Smith",
-    cost: 150.00,
-    next_maintenance_date: "2024-07-15",
-    notes: "All systems functioning normally"
-  },
-  {
-    maintenance_id: 2,
-    equipment_id: 1,
-    maintain_type: "corrective",
-    maintenance_date: "2024-03-10",
-    description: "Replaced sensor unit",
-    performed_by: "Tech Support",
-    cost: 450.00,
-    next_maintenance_date: "2024-09-10",
-    notes: "Sensor was malfunctioning, replaced with new unit"
-  }
-];
-
-const mockEquipment: Equipment[] = [
-  {
-    equipment_id: 1,
-    equipment_name: "Digital X-Ray Machine",
-    equipment_category_id: 1,
-    brand: "Planmeca",
-    model: "ProMax 3D",
-    serial_number: "PM2024001",
-    purchase_date: "2023-05-15",
-    purchase_price: 85000.00,
-    location: "Room 101",
-    warranty_start_date: "2023-05-15",
-    warranty_end_date: "2025-05-15",
-    status: "active",
-    notes: "Primary imaging equipment for the clinic",
-    equipment_category: mockCategories[0],
-    maintenance: mockMaintenance.filter(m => m.equipment_id === 1)
-  },
-  {
-    equipment_id: 2,
-    equipment_name: "Dental Chair Unit",
-    equipment_category_id: 2,
-    brand: "Sirona",
-    model: "C8+",
-    serial_number: "SR2024002",
-    purchase_date: "2023-08-20",
-    purchase_price: 45000.00,
-    location: "Treatment Room A",
-    warranty_start_date: "2023-08-20",
-    warranty_end_date: "2026-08-20",
-    status: "active",
-    notes: "High-end dental chair with integrated delivery system",
-    equipment_category: mockCategories[1],
-    maintenance: []
-  },
-  {
-    equipment_id: 3,
-    equipment_name: "Autoclave Sterilizer",
-    equipment_category_id: 3,
-    brand: "Tuttnauer",
-    model: "3870EA",
-    serial_number: "TT2024003",
-    purchase_date: "2023-03-10",
-    purchase_price: 12000.00,
-    location: "Sterilization Room",
-    warranty_start_date: "2023-03-10",
-    warranty_end_date: "2024-03-10",
-    status: "maintenance",
-    notes: "Main sterilization unit",
-    equipment_category: mockCategories[2],
-    maintenance: []
-  }
-];
-
 const EquipmentManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isMaintenanceOpen, setIsMaintenanceOpen] = useState(false);
-  const [equipment, setEquipment] = useState<Equipment[]>(mockEquipment);
-  const [categories] = useState<EquipmentCategory[]>(mockCategories);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [categories, setCategories] = useState<EquipmentCategory[]>([]);
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -169,13 +84,19 @@ const EquipmentManagement: React.FC = () => {
   const [deleteMaintenanceData, setDeleteMaintenanceData] = useState<Maintenance | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const showToast = (title: string, description: string, variant: "default" | "destructive" = "default") => {
-    // Mock toast implementation
-    console.log(`${variant === "destructive" ? "Error" : "Success"}: ${title} - ${description}`);
-    alert(`${title}: ${description}`);
-  };
+  const { isLoadingAuth, isLoggedIn, apiClient, user } = useContext(AuthContext);
+  const router = useRouter();
 
-  const addEquipment = (formData: any) => {
+  const [loadingEquipment, setLoadingEquipment] = useState(true);
+  const [updatingEquipment, setUpdatingEquipment] = useState(false);
+  const [addingEquipment, setAddingEquipment] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [addingMaintenance, setAddingMaintenance] = useState(false);
+  const [updatingMaintenance, setUpdatingMaintenance] = useState(false);
+  const [deletingMaintenance, setDeletingMaintenance] = useState(false);
+
+  const addEquipment = async (formData: any) => {
+    setAddingEquipment(true);
     try {
       const newEquipment: Equipment = {
         equipment_id: Math.max(...equipment.map(e => e.equipment_id)) + 1,
@@ -192,57 +113,111 @@ const EquipmentManagement: React.FC = () => {
         status: "active",
         notes: formData.notes,
         equipment_category: categories.find(c => c.equipment_category_id === parseInt(formData.category)),
-        maintenance: []
+        maintenances: []
       };
 
-      setEquipment([...equipment, newEquipment]);
-      showToast("Success", "Equipment added successfully");
+      const payload = {
+        equipment_name: newEquipment.equipment_name,
+        equipment_category_id: newEquipment.equipment_category_id,
+        brand: newEquipment.brand,
+        model: newEquipment.model,
+        serial_number: newEquipment.serial_number,
+        purchase_date: newEquipment.purchase_date,
+        purchase_price: newEquipment.purchase_price,
+        location: newEquipment.location,
+        warranty_start_date: newEquipment.warranty_start_date,
+        warranty_end_date: newEquipment.warranty_end_date,
+        status: newEquipment.status,
+        notes: newEquipment.notes,
+      };
+
+      const res = await apiClient.post(
+        `/inventory/equipments`, payload
+      );
+      if (res.status != 201) {
+        throw new Error("Error Adding New Equipment");
+      }
+
+      setEquipment([...equipment, res.data]);
+      toast.success("Equipement added succesfully");
       setIsAddOpen(false);
-    } catch (error) {
-      showToast("Error", "Failed to add equipment", "destructive");
+    } catch (error: any) {
+      toast.error(`Failed to add equipment: ${error.message}`)
+    }
+    finally {
+      setAddingEquipment(false);
     }
   };
 
-  const updateEquipment = (formData: any) => {
+  const updateEquipment = async (formData: any) => {
     try {
       if (!editEquipmentData) return;
-      
-      const updatedEquipment = equipment.map(e => 
-        e.equipment_id === editEquipmentData.equipment_id 
+
+      const updatedEquipment = equipment.map(e =>
+        e.equipment_id === editEquipmentData.equipment_id
           ? {
-              ...e,
-              equipment_name: formData.name,
-              equipment_category_id: parseInt(formData.category),
-              brand: formData.brand,
-              model: formData.model,
-              serial_number: formData.serialNumber,
-              purchase_date: formData.purchaseDate,
-              purchase_price: parseFloat(formData.purchasePrice) || 0,
-              location: formData.location,
-              warranty_start_date: formData.warrantyStart,
-              warranty_end_date: formData.warrantyEnd,
-              status: formData.status,
-              notes: formData.notes,
-              equipment_category: categories.find(c => c.equipment_category_id === parseInt(formData.category))
-            }
+            ...e,
+            equipment_name: formData.name,
+            equipment_category_id: parseInt(formData.category),
+            brand: formData.brand,
+            model: formData.model,
+            serial_number: formData.serialNumber,
+            purchase_date: formData.purchaseDate,
+            purchase_price: parseFloat(formData.purchasePrice) || 0,
+            location: formData.location,
+            warranty_start_date: formData.warrantyStart,
+            warranty_end_date: formData.warrantyEnd,
+            status: formData.status,
+            notes: formData.notes,
+            equipment_category: categories.find(c => c.equipment_category_id === parseInt(formData.category))
+          }
           : e
       );
 
+      const updatedData = {
+        equipment_name: formData.name,
+        equipment_category_id: parseInt(formData.category),
+        brand: formData.brand,
+        model: formData.model,
+        serial_number: formData.serialNumber,
+        purchase_date: formData.purchaseDate,
+        purchase_price: parseFloat(formData.purchasePrice) || 0,
+        location: formData.location,
+        warranty_start_date: formData.warrantyStart,
+        warranty_end_date: formData.warrantyEnd,
+        status: formData.status,
+        notes: formData.notes,
+      };
+
+      setUpdatingEquipment(true);
+      const res = await apiClient.put(
+        `/inventory/equipments/${editEquipmentData.equipment_id}`, updatedData
+      );
+      if (res.status != 202) {
+        throw new Error("Error Updating Equioment");
+      }
+
       setEquipment(updatedEquipment);
-      showToast("Success", "Equipment updated successfully");
+      toast.success("Equipment updated successfully");
       setIsEditOpen(false);
       setEditEquipmentData(null);
-    } catch (error) {
-      showToast("Error", "Failed to update equipment", "destructive");
+    } catch (error: any) {
+      toast.success(`Failed to update equipment: ${error.message}`);
+    }
+    finally {
+      setUpdatingEquipment(false);
     }
   };
 
-  const addMaintenance = (formData: any) => {
+  const addMaintenance = async (formData: any) => {
+    setAddingMaintenance(true);
     try {
       if (!selectedEquipmentId) return;
 
+      // Create maintenances object locally (with ID)
       const newMaintenance: Maintenance = {
-        maintenance_id: Math.max(...equipment.flatMap(e => e.maintenance || []).map(m => m.maintenance_id)) + 1,
+        maintenance_id:
+          Math.max(...equipment.flatMap(e => e.maintenances || []).map(m => m.maintenance_id), 0) + 1,
         equipment_id: selectedEquipmentId,
         maintain_type: formData.maintenanceType,
         maintenance_date: formData.maintenanceDate,
@@ -253,50 +228,86 @@ const EquipmentManagement: React.FC = () => {
         notes: formData.notes
       };
 
-      const updatedEquipment = equipment.map(e => 
-        e.equipment_id === selectedEquipmentId 
-          ? { ...e, maintenance: [...(e.maintenance || []), newMaintenance] }
+      // Prepare payload without maintenance_id
+      const payload = {
+        equipment_id: newMaintenance.equipment_id,
+        maintain_type: newMaintenance.maintain_type,
+        maintenance_date: newMaintenance.maintenance_date,
+        description: newMaintenance.description,
+        performed_by: newMaintenance.performed_by,
+        cost: newMaintenance.cost,
+        next_maintenance_date: newMaintenance.next_maintenance_date,
+        notes: newMaintenance.notes
+      };
+
+      const res = await apiClient.post(`/inventory/maintenance`, payload);
+
+      if (res.status !== 201) {
+        throw new Error("Error creating a maintenances record");
+      }
+
+      const updatedEquipment = equipment.map(e =>
+        e.equipment_id === selectedEquipmentId
+          ? { ...e, maintenances: [...(e.maintenances || []), res.data] }
           : e
       );
 
       setEquipment(updatedEquipment);
-      showToast("Success", "Maintenance record added successfully");
+      toast.success("Maintenance record added successfully");
       setIsMaintenanceOpen(false);
-      
-      // Update view data if currently viewing this equipment
+
       if (viewEquipmentData && selectedEquipmentId === viewEquipmentData.equipment_id) {
         const updatedViewData = updatedEquipment.find(e => e.equipment_id === selectedEquipmentId);
         if (updatedViewData) setViewEquipmentData(updatedViewData);
       }
-    } catch (error) {
-      showToast("Error", "Failed to add maintenance record", "destructive");
+    } catch (error: any) {
+      toast.error(`Failed to add maintenances record: ${error.message}`);
+    } finally {
+      setAddingMaintenance(false);
     }
   };
 
-  const updateMaintenance = (formData: any) => {
+  const updateMaintenance = async (formData: any) => {
+    setUpdatingMaintenance(true);
     try {
       if (!editMaintenanceData) return;
 
       const updatedEquipment = equipment.map(e => ({
         ...e,
-        maintenance: e.maintenance?.map(m =>
+        maintenances: e.maintenances?.map(m =>
           m.maintenance_id === editMaintenanceData.maintenance_id
             ? {
-                ...m,
-                maintenance_date: formData.maintenanceDate,
-                maintain_type: formData.maintenanceType,
-                description: formData.description,
-                performed_by: formData.performedBy,
-                cost: parseFloat(formData.cost) || 0,
-                next_maintenance_date: formData.nextMaintenanceDate,
-                notes: formData.notes
-              }
+              ...m,
+              maintenance_date: formData.maintenanceDate,
+              maintain_type: formData.maintenanceType,
+              description: formData.description,
+              performed_by: formData.performedBy,
+              cost: parseFloat(formData.cost) || 0,
+              next_maintenance_date: formData.nextMaintenanceDate,
+              notes: formData.notes
+            }
             : m
         )
       }));
 
+      const res = await apiClient.put(
+        `/inventory/maintenance/${editMaintenanceData.maintenance_id}`,
+        {
+          maintenance_date: formData.maintenanceDate,
+          maintain_type: formData.maintenanceType,
+          description: formData.description,
+          performed_by: formData.performedBy,
+          cost: parseFloat(formData.cost) || 0,
+          next_maintenance_date: formData.nextMaintenanceDate,
+          notes: formData.notes
+        }
+      );
+      if(res.status != 202){
+        throw new Error("Error Updating Maintence Record");
+      }
+
       setEquipment(updatedEquipment);
-      showToast("Success", "Maintenance record updated");
+      toast.success("Maintenance record updated");
       setIsEditMaintenanceOpen(false);
       setEditMaintenanceData(null);
 
@@ -306,31 +317,45 @@ const EquipmentManagement: React.FC = () => {
         if (updatedViewData) setViewEquipmentData(updatedViewData);
       }
     } catch (error) {
-      showToast("Error", "Failed to update maintenance record", "destructive");
+      toast.success("Failed to update maintenances record");
+    }
+    finally{
+      setUpdatingMaintenance(false);
     }
   };
 
-  const deleteMaintenance = () => {
+  const deleteMaintenance = async () => {
+    setDeletingMaintenance(true);
     try {
       if (!deleteMaintenanceData) return;
 
+      const res = await apiClient.delete(
+        `/inventory/maintenance/${deleteMaintenanceData.maintenance_id}`
+      );
+
+      if(res.status == 500){
+        throw new Error("Error Deleting Maintenance Record");
+      }
+
       const updatedEquipment = equipment.map(e => ({
         ...e,
-        maintenance: e.maintenance?.filter(m => m.maintenance_id !== deleteMaintenanceData.maintenance_id)
+        maintenances: e.maintenances?.filter(m => m.maintenance_id !== deleteMaintenanceData.maintenance_id)
       }));
 
       setEquipment(updatedEquipment);
-      showToast("Success", "Maintenance record deleted");
+      toast.success("Maintenance record deleted");
       setIsDeleteMaintenanceOpen(false);
       setDeleteMaintenanceData(null);
 
-      // Update view data
       if (viewEquipmentData) {
         const updatedViewData = updatedEquipment.find(e => e.equipment_id === viewEquipmentData.equipment_id);
         if (updatedViewData) setViewEquipmentData(updatedViewData);
       }
     } catch (error) {
-      showToast("Error", "Failed to delete maintenance record", "destructive");
+      toast.success("Failed to delete maintenances record");
+    }
+    finally{
+      setDeletingMaintenance(false);
     }
   };
 
@@ -364,26 +389,79 @@ const EquipmentManagement: React.FC = () => {
 
   const filteredEquipment = equipment.filter((item) => {
     const matchesSearch = item.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.serial_number.toLowerCase().includes(searchTerm.toLowerCase());
+      item.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.serial_number.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || item.status === statusFilter;
     const matchesCategory = categoryFilter === "all" || item.equipment_category_id.toString() === categoryFilter;
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
+  const fetchEquipment = async () => {
+    setLoadingEquipment(true);
+    try {
+      const res = await apiClient.get(
+        `/inventory/equipments`
+      );
+      if (res.status == 500) {
+        throw new Error("Error Fetching Equipment");
+      }
+      setEquipment(res.data);
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setLoadingEquipment(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    try {
+      const res = await apiClient.get(
+        `/inventory/equipment-categories`
+      );
+      if (res.status == 500) {
+        throw new Error("Error Fetching Categories");
+      }
+      setCategories(res.data);
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setLoadingCategories(false);
+    }
+  }
+
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    if (!isLoggedIn) {
+      toast.error("Please Log in");
+      router.push("/");
+    }
+    else if (user.role != "admin") {
+      toast.error("Access Denied");
+      router.push("/");
+    }
+  }, [isLoadingAuth]);
+
+  useEffect(() => {
+    fetchEquipment();
+    fetchCategories();
+  }, []);
+
   if (loading) {
     return <div className="p-4 sm:p-6">Loading...</div>;
   }
+
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
       <div>
-            <h1 className="md:hidden text-2xl font-semibold text-gray-900">Equipment</h1>
-          
+        <h1 className="md:hidden text-2xl font-semibold text-gray-900">Equipment</h1>
       </div>
-
-      
 
       <div className="pb-6 space-y-4">
         {/* Desktop Header */}
@@ -392,7 +470,7 @@ const EquipmentManagement: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Equipment & Assets</h1>
             <p className="text-gray-600 mt-1">Track dental equipment, maintenance, and warranties</p>
           </div>
-          
+
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
               <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
@@ -484,8 +562,8 @@ const EquipmentManagement: React.FC = () => {
                   <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="w-full sm:w-auto">
                     Cancel
                   </Button>
-                  <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto">
-                    Add Equipment
+                  <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto" disabled={addingEquipment}>
+                    {addingEquipment ? <Loader /> : "Add Equipment"}
                   </Button>
                 </div>
               </form>
@@ -532,8 +610,8 @@ const EquipmentManagement: React.FC = () => {
                   <Input name="name" placeholder="e.g., Digital X-Ray Machine" required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category *</Label>
-                  <Select name="category" required>
+                  <Label htmlFor="category">{loadingCategories ? <Loader /> : "Category *"}</Label>
+                  <Select disabled={loadingCategories} name="category" required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -628,13 +706,13 @@ const EquipmentManagement: React.FC = () => {
                     <SelectItem value="disposed">Disposed</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter} disabled={loadingCategories}>
                   <SelectTrigger>
                     <Settings className="md:hidden h-4 w-4" />
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Categories</SelectItem>
+                    <SelectItem value="all">{loadingCategories ? <Loader /> : "Categories"}</SelectItem>
                     {categories.map(cat => (
                       <SelectItem key={cat.equipment_category_id} value={cat.equipment_category_id.toString()}>
                         {cat.equipment_category}
@@ -695,11 +773,10 @@ const EquipmentManagement: React.FC = () => {
                 </div>
 
                 {item.warranty_end_date && (
-                  <div className={`p-2 rounded text-xs ${
-                    isWarrantyExpiring(item.warranty_end_date) 
-                      ? 'bg-yellow-50 text-yellow-800 border border-yellow-200' 
-                      : 'bg-gray-50 text-gray-600'
-                  }`}>
+                  <div className={`p-2 rounded text-xs ${isWarrantyExpiring(item.warranty_end_date)
+                    ? 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+                    : 'bg-gray-50 text-gray-600'
+                    }`}>
                     <div className="flex items-center">
                       {isWarrantyExpiring(item.warranty_end_date) && <AlertTriangle className="h-3 w-3 mr-1" />}
                       Warranty expires: {new Date(item.warranty_end_date).toLocaleDateString()}
@@ -708,7 +785,7 @@ const EquipmentManagement: React.FC = () => {
                 )}
 
                 {(() => {
-                  const maint = item.maintenance || [];
+                  const maint = item.maintenances || [];
                   if (!maint.length) return null;
                   const last = maint.reduce((a, b) => a.maintenance_date > b.maintenance_date ? a : b);
                   const next = maint.filter(m => m.next_maintenance_date).sort((a, b) => a.next_maintenance_date.localeCompare(b.next_maintenance_date))[0];
@@ -736,9 +813,9 @@ const EquipmentManagement: React.FC = () => {
                     <Edit className="h-3 w-3 mr-1" />
                     Edit
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="flex-1 text-xs"
                     onClick={() => {
                       setSelectedEquipmentId(item.equipment_id);
@@ -822,8 +899,8 @@ const EquipmentManagement: React.FC = () => {
                 <Button type="button" variant="outline" onClick={() => setIsMaintenanceOpen(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto">
-                  Add Record
+                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto" disabled={addingMaintenance}>
+                  {addingMaintenance ? <Loader /> : "Add Record"}
                 </Button>
               </div>
             </form>
@@ -891,14 +968,14 @@ const EquipmentManagement: React.FC = () => {
                 <div className="p-2 bg-gray-50 rounded min-h-[40px] text-sm">{viewEquipmentData?.notes || '-'}</div>
               </div>
             </div>
-            
+
             <div className="mt-8">
               <h3 className="text-lg font-semibold mb-4">Maintenance History</h3>
-              {Array.isArray(viewEquipmentData?.maintenance) && viewEquipmentData.maintenance.length > 0 ? (
+              {Array.isArray(viewEquipmentData?.maintenances) && viewEquipmentData.maintenances.length > 0 ? (
                 <div className="space-y-4">
                   {/* Mobile view - cards */}
                   <div className="block sm:hidden space-y-3">
-                    {viewEquipmentData.maintenance.map((m) => (
+                    {viewEquipmentData.maintenances.map((m) => (
                       <Card key={m.maintenance_id} className="p-4">
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between items-start">
@@ -949,7 +1026,7 @@ const EquipmentManagement: React.FC = () => {
                       </Card>
                     ))}
                   </div>
-                  
+
                   {/* Desktop view - table */}
                   <div className="hidden sm:block overflow-x-auto">
                     <table className="min-w-full text-sm border rounded-lg">
@@ -965,7 +1042,7 @@ const EquipmentManagement: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {viewEquipmentData.maintenance.map((m) => (
+                        {viewEquipmentData.maintenances.map((m) => (
                           <tr key={m.maintenance_id} className="border-b hover:bg-gray-50">
                             <td className="px-4 py-2">{new Date(m.maintenance_date).toLocaleDateString()}</td>
                             <td className="px-4 py-2">
@@ -1001,7 +1078,7 @@ const EquipmentManagement: React.FC = () => {
                 <div className="text-gray-500 text-center py-8">No maintenance records found.</div>
               )}
             </div>
-            
+
             <div className="flex justify-end mt-6">
               <Button type="button" variant="outline" onClick={() => setIsViewOpen(false)}>
                 Close
@@ -1091,7 +1168,7 @@ const EquipmentManagement: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status *</Label>
-                <Select name="status" defaultValue={editEquipmentData?.status || 'active'} required>
+                <Select name="status" defaultValue={editEquipmentData?.status.toLocaleLowerCase()} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -1111,8 +1188,8 @@ const EquipmentManagement: React.FC = () => {
                 <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto">
-                  Save Changes
+                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto" disabled={updatingEquipment}>
+                  {updatingEquipment ? <Loader /> : "Save Changes"}
                 </Button>
               </div>
             </form>
@@ -1178,7 +1255,7 @@ const EquipmentManagement: React.FC = () => {
               </div>
               <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
                 <Button type="button" variant="outline" onClick={() => setIsEditMaintenanceOpen(false)} className="w-full sm:w-auto">Cancel</Button>
-                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto">Save</Button>
+                <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto" disabled={updatingMaintenance }>{updatingMaintenance? <Loader/> : "Save"}</Button>
               </div>
             </form>
           </DialogContent>
@@ -1193,13 +1270,22 @@ const EquipmentManagement: React.FC = () => {
             </DialogHeader>
             <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-4">
               <Button type="button" variant="outline" onClick={() => setIsDeleteMaintenanceOpen(false)} className="w-full sm:w-auto">Cancel</Button>
-              <Button type="button" className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto" onClick={deleteMaintenance}>Delete</Button>
+              <Button type="button" className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto" disabled={deletingMaintenance} onClick={deleteMaintenance}>{deletingMaintenance? <Loader/>:"Delete"}</Button>
             </div>
           </DialogContent>
         </Dialog>
 
         {/* Empty State */}
-        {filteredEquipment.length === 0 && (
+        {loadingEquipment ? (
+          <Card className="text-center py-12">
+            <CardContent>
+              <div className="flex justify-center items-center flex-col">
+                <div className="h-10 w-10 mb-4 animate-spin border-4 border-emerald-500 border-t-transparent rounded-full" />
+                <p className="text-gray-600 text-sm">Loading equipment...</p>
+              </div>
+            </CardContent>
+          </Card>
+        ) : filteredEquipment.length === 0 && (
           <Card className="text-center py-12">
             <CardContent>
               <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -1211,7 +1297,7 @@ const EquipmentManagement: React.FC = () => {
                 }
               </p>
               {!searchTerm && statusFilter === "all" && categoryFilter === "all" && (
-                <Button 
+                <Button
                   className="bg-emerald-500 hover:bg-emerald-600 text-white"
                   onClick={() => setIsAddOpen(true)}
                 >
