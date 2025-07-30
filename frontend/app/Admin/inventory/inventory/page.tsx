@@ -909,6 +909,48 @@ const InventoryManagement = () => {
                     <p className="text-sm">{selectedItem.batch_tracking ? 'Enabled' : 'Disabled'}</p>
                   </div>
                 </div>
+                {selectedItem.batch_tracking && (
+                  <div className="col-span-2 mt-4">
+                    <Label className="text-sm font-medium mb-2 block">Batch Details</Label>
+                    <div className="border rounded-md overflow-hidden">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch ID</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Stock</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Minimum Stock</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {batches
+                            .filter(b => b.item?.item_id === selectedItem.item_id)
+                            .map((batch) => (
+                              <tr key={batch.batch_id} className="hover:bg-gray-50">
+                                <td className="px-4 py-2 text-sm text-gray-900">{batch.batch_id}</td>
+                                <td className="px-4 py-2 text-sm text-gray-900">
+                                  {batch.current_stock} {selectedItem.unit_of_measurements}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-gray-900">
+                                  {batch.minimum_stock} {selectedItem.unit_of_measurements}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-gray-900">
+                                  {new Date(batch.expiry_date).toLocaleDateString()}
+                                </td>
+                                <td className="px-4 py-2 text-sm text-gray-900">
+                                  {new Date(batch.stock_date).toLocaleDateString()}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                      {batches.filter(b => b.item?.item_id === selectedItem.item_id).length === 0 && (
+                        <p className="p-4 text-sm text-gray-500 text-center">No batch records found</p>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
