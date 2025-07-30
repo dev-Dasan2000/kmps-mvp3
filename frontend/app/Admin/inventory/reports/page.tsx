@@ -250,18 +250,18 @@ const report = () => {
   const groupedPurchases = groupPurchaseReports(purchaseReports);
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="pb-6 space-y-4 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
         <div>
-          <h1 className="text-3xl font-bold text-dental-dark">Reports & Analytics</h1>
+          <h1 className="text-2xl font-semibold text-dental-dark">Reports & Analytics</h1>
           <p className="text-gray-600 mt-1">Analyze your inventory performance and trends</p>
         </div>
       </div>
 
       {/* Reports Tabs */}
       <Tabs defaultValue="stock" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger disabled={isFetchingStockReports} value="stock" className="hover:bg-gray-200 hover:text-gray-900">{isFetchingStockReports ? <Loader /> : "Stock Reports"}</TabsTrigger>
           <TabsTrigger disabled={isFetchingUsageReports} value="usage" className="hover:bg-gray-200 hover:text-gray-900">{isFetchingUsageReports ? <Loader /> : "Usage Analytics"}</TabsTrigger>
           <TabsTrigger disabled={isFetchingPurchaseReports} value="purchasing" className="hover:bg-gray-200 hover:text-gray-900">{isFetchingPurchaseReports ? <Loader /> : "Purchase Reports"}</TabsTrigger>
