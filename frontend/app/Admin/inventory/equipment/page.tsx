@@ -467,7 +467,7 @@ const EquipmentManagement: React.FC = () => {
         {/* Desktop Header */}
         <div className="hidden lg:flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Equipment & Assets</h1>
+            <h1 className="text-2xl font-semibold text-gray-900">Equipment & Assets</h1>
             <p className="text-gray-600 mt-1">Track dental equipment, maintenance, and warranties</p>
           </div>
 
@@ -666,13 +666,14 @@ const EquipmentManagement: React.FC = () => {
                   <Label htmlFor="notes">Notes</Label>
                   <Textarea name="notes" placeholder="Additional notes..." />
                 </div>
-                <div className="flex flex-col space-y-2">
-                  <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white">
-                    Add Equipment
-                  </Button>
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
                   <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
                     Cancel
                   </Button>
+                  <Button type="submit" className="bg-emerald-500 hover:bg-emerald-600 text-white">
+                    Add Equipment
+                  </Button>
+                  
                 </div>
               </form>
             </DialogContent>
@@ -909,7 +910,7 @@ const EquipmentManagement: React.FC = () => {
 
         {/* View Equipment Dialog */}
         <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-          <DialogContent className="max-w-[95vw] sm:max-w-[90vw] lg:max-w-7xl xl:max-w-[1400px] max-h-[95vh] overflow-y-auto">
+          <DialogContent className="md:max-w-5xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Equipment Details</DialogTitle>
               <DialogDescription>
