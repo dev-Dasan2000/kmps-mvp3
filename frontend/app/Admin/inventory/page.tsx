@@ -17,7 +17,10 @@ import {
   Clock,
   Menu,
   X,
-  DollarSign
+  DollarSign,
+  FileText,
+  Hammer,
+  Users
 } from 'lucide-react';
 import { AuthContext } from '@/context/auth-context';
 import { useRouter } from 'next/navigation';
@@ -133,11 +136,17 @@ const Dashboard = () => {
 
   const [itemCount, setItemCount] = useState(0);
   const [inventoryValue, setInventoryValue] = useState(0);
+  const [purchaseOrders, setPurchaseOrders] = useState(0);
+  const [equipments, setEquipments] = useState(0);
+  const [suppliers, setSuppliers] = useState(0);
   const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
   const [expiringSoonItems, setExpiringSoonItems] = useState<ExpiringItem[]>([]);
 
   const [loadingItemCount, setLoadingItemCount] = useState(false);
   const [loadingInventoryValue, setLoadingInventoryValue] = useState(false);
+  const [loadingPurchaseOrders, setLoadingPurchaseOrders] = useState(false);
+  const [loadingEquipments, setLoadingEquipments] = useState(false);
+  const [loadingSuppliers, setLoadingSuppliers] = useState(false);
   const [loadingLowStockItems, setLoadingLowStockItems] = useState(false);
   const [loadingExpiringSoonItems, setLoadingExpiringSoonItems] = useState(false);
 
@@ -183,6 +192,63 @@ const Dashboard = () => {
       setLoadingInventoryValue(false);
     }
   };
+
+  const fetchPurchaseOrderCount = async () => {
+    setLoadingPurchaseOrders(true);
+    try{
+      const res = await apiClient.get(
+        `/inventory/purchase-orders/count`
+      );
+      if(res.status == 500) {
+        throw new Error("Error fetching purchase order count");
+      }
+      setPurchaseOrders(res.data);
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setLoadingPurchaseOrders(false);
+    }
+  };
+
+  const fetchEquipmentCount = async () => {
+    setLoadingEquipments(true);
+    try{
+      const response = await apiClient.get(
+        `/inventory/equipments/count`
+      );
+      if (response.status == 500) {
+        throw new Error("Error fetching equipment count");
+      }
+      setEquipments(response.data);
+    }
+    catch(err: any){
+      toast.error(err.message);
+    }
+    finally {
+      setLoadingEquipments(false);
+    }
+  };
+
+  const fetchSuppliersCount = async () => {
+    setLoadingSuppliers(true);
+    try{
+      const response = await apiClient.get(
+        `/inventory/suppliers/count`
+      );
+      if (response.status == 500) {
+        throw new Error("Error fetching suppliers count");
+      }
+      setSuppliers(response.data);
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setLoadingSuppliers(false);
+    }
+  }
 
   const fetchLowStockItems = async () => {
     setLoadingLowStockItems(true);
@@ -237,6 +303,9 @@ const Dashboard = () => {
   useEffect(() => {
     fetchItemCount();
     fetchInventoryValue();
+    fetchPurchaseOrderCount();
+    fetchEquipmentCount();
+    fetchSuppliersCount();
     fetchLowStockItems();
     fetchExpiringSoonItems();
   }, []);
@@ -253,7 +322,7 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="pb-6 space-y-6">
         {/* Stats Cards - Using unique ID as key */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4 lg:gap-6">
           {/* Total Items Card */}
           <Card className="hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-4 lg:p-6">
@@ -275,10 +344,55 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-gray-600 truncate">Inventory Value</p>
-                  <p className="text-xl lg:text-2xl font-bold text-gray-900 mt-1">{loadingInventoryValue ? "Loading..." : `Rs. ${inventoryValue}`}</p>
+                  <p className="text-xl lg:text-xl font-bold text-gray-900 mt-1">{loadingInventoryValue ? "Loading..." : `Rs. ${inventoryValue}`}</p>
                 </div>
                 <div className="bg-green-50 p-2 lg:p-3 rounded-lg flex-shrink-0 ml-4">
                   <DollarSign className="h-5 w-5 lg:h-6 lg:w-6 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/*Purchase Orders Card */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Purchase Orders</p>
+                  <p className="text-2xl font-bold text-dental-dark">{loadingPurchaseOrders ? "Loading..." : purchaseOrders}</p>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-lg">
+                  <FileText className="h-6 w-6 text-purple-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/*Equipments Card */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Equipments</p>
+                  <p className="text-2xl font-bold text-dental-dark">{loadingEquipments ? "Loading..." : equipments}</p>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-lg">
+                  <Hammer className='h-6 w-6 text-emerald-600' />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/*Suppliers Card */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Suppliers</p>
+                  <p className="text-2xl font-bold text-dental-dark">{loadingSuppliers ? "Loading" : suppliers}</p>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-lg">
+                  <Users className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
             </CardContent>
@@ -354,7 +468,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-
           {/* Expiring Items */}
           <Card className="hover:shadow-md transition-shadow duration-200 overflow-auto">
             <CardHeader className="pb-3">
@@ -409,50 +522,6 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Recent Activity - Full Width 
-        <Card className="hover:shadow-md transition-shadow duration-200">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold flex items-center">
-                <Clock className="h-5 w-5 text-blue-600 mr-2 flex-shrink-0" />
-                <span className="truncate">Recent Activity</span>
-              </CardTitle>
-            </div>
-            <CardDescription>Latest inventory transactions and updates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-96 overflow-y-auto">
-              {recentActivity.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Clock className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <p>No recent activity</p>
-                </div>
-              ) : (
-                recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-center space-x-4 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
-                        <span className="font-medium text-gray-900">{activity.action}</span>
-                        <Badge variant="outline" className="text-xs w-fit">
-                          {activity.item_name}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
-                        <span>{activity.quantity}</span>
-                        <span className="hidden sm:inline">•</span>
-                        <span>{activity.time_ago}</span>
-                        <span className="hidden sm:inline">•</span>
-                        <span>by {activity.user_name}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>*/}
       </div>
     </div>
   );

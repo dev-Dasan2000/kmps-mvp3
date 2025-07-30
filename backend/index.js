@@ -74,8 +74,10 @@ import maintenanceRouter from './routes/inventory/maintenance-routes.js';
 import paymentTermRouter from './routes/inventory/payment-term-routes.js';
 import shippingMethodRouter from './routes/inventory/shipping-method-routes.js';
 import equipmentCategoryRouter from './routes/inventory/equipment-category-routes.js';
+import stockIssueRouter from './routes/inventory/stock-issue-routes.js';
 
 import passwordResetRouter from './routes/password-reset-routes.js';
+import InventoryReportRouter from './routes/inventory/report-routes.js';
 
 import signatureRouter from './routes/signature-routes.js';   
 
@@ -169,7 +171,9 @@ app.use('/inventory/maintenance', maintenanceRouter);
 app.use('/inventory/payment-terms', paymentTermRouter);
 app.use('/inventory/shipping-methods', shippingMethodRouter);
 app.use('/inventory/equipment-categories', equipmentCategoryRouter);
+app.use('/inventory/stock-issues', stockIssueRouter);
 
+app.use('/inventory/reports', InventoryReportRouter);
 
 app.use('/reset-password', passwordResetRouter);
 
