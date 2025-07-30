@@ -21,6 +21,17 @@ router.get('/', /*authenticateToken,*/ async (req, res) => {
   }
 });
 
+// GET count of all equipments
+router.get('/count', /*authenticateToken,*/ async (req, res) => {
+  try {
+    const count = await prisma.equipment.count();
+    res.json(count);
+  } catch (error) {
+    console.error('Error fetching equipments:', error);
+    res.status(500).json({ error: 'Failed to fetch equipments' });
+  }
+});
+
 // GET single equipment by id with relations
 router.get('/:equipment_id', /*authenticateToken,*/ async (req, res) => {
   try {

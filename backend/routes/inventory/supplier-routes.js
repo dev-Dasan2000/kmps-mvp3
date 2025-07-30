@@ -21,6 +21,17 @@ router.get('/',  /*authenticateToken,*/ async (req, res) => {
   }
 });
 
+// GET count of all suppliers
+router.get('/count',  /*authenticateToken,*/ async (req, res) => {
+  try {
+    const count = await prisma.supplier.count();
+    res.json(count);
+  } catch (error) {
+    console.error('Error fetching suppliers:', error);
+    res.status(500).json({ error: 'Failed to fetch suppliers' });
+  }
+});
+
 // GET single supplier by id with related items and purchase_orders
 router.get('/:supplier_id',  /*authenticateToken,*/ async (req, res) => {
   try {

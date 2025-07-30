@@ -614,6 +614,7 @@ model batch {
   stock_date     String
 
   item           item   @relation(fields: [item_id], references: [item_id], onDelete: Cascade)
+  stock_issues   stock_issue[]
 
   @@map("batch")
 }
@@ -772,4 +773,18 @@ model equipment_category {
   equipments            equipment[]
 
   @@map("equipment_category")
+}
+
+model stock_issue {
+  stock_issue_id Int    @id @default(autoincrement())
+  batch_id       Int
+  quantity       Int
+  usage_type     String?
+  issued_to      String?
+  notes          String?
+  date           String
+
+  batch          batch  @relation(fields: [batch_id], references: [batch_id], onDelete: Cascade)
+
+  @@map("stock_issue")
 }

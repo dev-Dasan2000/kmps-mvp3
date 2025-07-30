@@ -40,6 +40,18 @@ router.get('/',  /*authenticateToken,*/ async (req, res) => {
   }
 });
 
+// GET count of all purchase orders
+router.get('/count',  /*authenticateToken,*/ async (req, res) => {
+  try {
+    const count = await prisma.purchase_order.count();
+    res.json(count);
+  } catch (error) {
+    console.error('Error fetching purchase orders:', error);
+    res.status(500).json({ error: 'Failed to fetch purchase orders' });
+  }
+});
+
+
 // GET single purchase order by id with relations
 router.get('/:purchase_order_id', /*authenticateToken,*/ async (req, res) => {
   try {
