@@ -178,7 +178,6 @@ const report = () => {
     doc.save(`${item.item.item_name}_report.pdf`);
   };
 
-
   const fetchStockReports = async () => {
     setIsFetchingStockReports(true);
     try {
@@ -452,7 +451,7 @@ const report = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
+        
       </Tabs>
     </div>
   );
