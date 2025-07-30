@@ -49,6 +49,7 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
       delivery_note_url,
       qc_report_url,
       notes,
+      status
     } = req.body;
 
     const newStockReceiving = await prisma.stock_receiving.create({
@@ -60,6 +61,7 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
         delivery_note_url,
         qc_report_url,
         notes,
+        status
       },
     });
 

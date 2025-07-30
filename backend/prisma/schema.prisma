@@ -704,6 +704,7 @@ model stock_receiving {
   delivery_note_url  String
   qc_report_url      String
   notes              String
+  status             String
 
   purchase_order     purchase_order @relation(fields: [purchase_order_id], references: [purchase_order_id], onDelete: Cascade)
 
