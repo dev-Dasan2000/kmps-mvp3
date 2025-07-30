@@ -964,7 +964,8 @@ const InventoryManagement = () => {
             setSelectedItem(undefined);
           }}
           item={selectedItem || null}
-          batch={selectedItem ? (batches.find(b => b.item.item_id === selectedItem.item_id) || null) : null}
+        
+          batches={selectedItem ? batches.filter(b => b.item.item_id === selectedItem.item_id) : []}
           onUpdate={handleStockUpdate}
         />
       </div>
