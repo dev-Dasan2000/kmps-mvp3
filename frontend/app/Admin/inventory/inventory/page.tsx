@@ -248,7 +248,7 @@ const InventoryManagement = () => {
       }
 
       // Update or create batch
-      if (batchTracking) {
+      if (item.batch_tracking) {
         // For batch tracking, we'll handle batches separately
         // The batches are already being processed in the AddItemDialog
         const batchResponse = await apiClient.post('/inventory/batches', {
