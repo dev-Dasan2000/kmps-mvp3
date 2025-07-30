@@ -84,7 +84,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-
 // DELETE purchase_order_item by composite key
 router.delete('/:purchase_order_id/:item_id',  /*authenticateToken,*/ async (req, res) => {
   try {
