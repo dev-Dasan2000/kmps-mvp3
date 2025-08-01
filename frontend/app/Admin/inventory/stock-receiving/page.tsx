@@ -1008,7 +1008,7 @@ const StockReceivingSystem = () => {
           resetForm();
         }
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="md:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedReceipt ? 'Edit Stock Receipt' : 'Receive New Stock'}
@@ -1606,13 +1606,15 @@ const StockReceivingSystem = () => {
                             <h4 className="font-medium text-sm truncate">{item?.item?.item_name || 'Unknown Item'}</h4>
                             <p className="text-xs text-gray-600 truncate">{item?.item?.description || 'No description'}</p>
                           </div>
-                          <div className="text-right ml-4">
-                            <p className="font-semibold text-sm">Qty: {item?.quantity || 0}</p>
-                            <p className="text-xs text-gray-600">{item?.item?.unit_of_measurements || 'N/A'}</p>
-                          </div>
+                         
                         </div>
                         
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                           <div >
+                             <p className="text-xs text-gray-600">{item?.item?.unit_of_measurements || 'N/A'}</p>
+                            <p className="font-semibold text-sm">Qty: {item?.quantity || 0}</p>
+                           
+                          </div>
                           <div>
                             <span className="text-gray-500">Unit Price:</span>
                             <p className="font-medium">${item?.item?.unit_price || 0}</p>
@@ -1748,8 +1750,9 @@ const StockReceivingSystem = () => {
           
           <DialogFooter className="mt-6">
             <Button 
+             
               onClick={() => setIsViewOpen(false)}
-              className="w-full sm:w-auto"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white w-full sm:w-auto"
             >
               Close
             </Button>
