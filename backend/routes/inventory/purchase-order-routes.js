@@ -102,6 +102,16 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
       },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "purchase-order",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newPurchaseOrder);
   } catch (error) {
     console.error('Error creating purchase order:', error);
@@ -120,6 +130,16 @@ router.put('/:purchase_order_id',  /*authenticateToken,*/ async (req, res) => {
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "purchase-order",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedPurchaseOrder);
   } catch (error) {
     console.error('Error updating purchase order:', error);
@@ -134,6 +154,17 @@ router.delete('/:purchase_order_id',  /*authenticateToken,*/ async (req, res) =>
     await prisma.purchase_order.delete({
       where: { purchase_order_id: purchaseOrderId },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "purchase-order",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Purchase order deleted' });
   } catch (error) {
     console.error('Error deleting purchase order:', error);

@@ -85,6 +85,16 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
       },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "supplier",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newSupplier);
   } catch (error) {
     console.error('Error creating supplier:', error);
@@ -103,6 +113,16 @@ router.put('/:supplier_id',  /*authenticateToken,*/ async (req, res) => {
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "supllier",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedSupplier);
   } catch (error) {
     console.error('Error updating supplier:', error);
@@ -117,6 +137,17 @@ router.delete('/:supplier_id',  /*authenticateToken,*/ async (req, res) => {
     await prisma.supplier.delete({
       where: { supplier_id: supplierId },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "supllier",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Supplier deleted' });
   } catch (error) {
     console.error('Error deleting supplier:', error);

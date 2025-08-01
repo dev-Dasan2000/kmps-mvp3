@@ -86,6 +86,16 @@ router.post('/', /*authenticateToken,*/ async (req, res) => {
       },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "equipment",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newEquipment);
   } catch (error) {
     console.error('Error creating equipment:', error);
@@ -104,6 +114,16 @@ router.put('/:equipment_id', /*authenticateToken,*/ async (req, res) => {
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "equipment",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedEquipment);
   } catch (error) {
     console.error('Error updating equipment:', error);
@@ -118,6 +138,17 @@ router.delete('/:equipment_id',  /*authenticateToken,*/ async (req, res) => {
     await prisma.equipment.delete({
       where: { equipment_id: equipmentId },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "equipment",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Equipment deleted' });
   } catch (error) {
     console.error('Error deleting equipment:', error);

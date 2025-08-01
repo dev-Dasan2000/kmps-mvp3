@@ -65,6 +65,16 @@ router.post('/',  /*authenticateToken,*/async (req, res) => {
       },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "maintenance",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newMaintenance);
   } catch (error) {
     console.error('Error creating maintenance record:', error);
@@ -83,6 +93,16 @@ router.put('/:maintenance_id',  /*authenticateToken,*/ async (req, res) => {
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "maintenance",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedMaintenance);
   } catch (error) {
     console.error('Error updating maintenance record:', error);
@@ -97,6 +117,17 @@ router.delete('/:maintenance_id',  /*authenticateToken,*/ async (req, res) => {
     await prisma.maintenance.delete({
       where: { maintenance_id: maintenanceId },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "maintenance",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Maintenance record deleted' });
   } catch (error) {
     console.error('Error deleting maintenance record:', error);

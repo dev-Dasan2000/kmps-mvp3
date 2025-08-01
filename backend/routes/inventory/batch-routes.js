@@ -73,6 +73,16 @@ router.post('/', /*authenticateToken,*/ async (req, res) => {
       },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "batch",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newBatch);
   } catch (error) {
     console.error('Error creating batch:', error);
@@ -91,6 +101,16 @@ router.put('/:batch_id', /*authenticateToken,*/ async (req, res) => {
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "batch",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedBatch);
   } catch (error) {
     console.error('Error updating batch:', error);
@@ -105,6 +125,17 @@ router.delete('/:batch_id',/* authenticateToken,*/ async (req, res) => {
     await prisma.batch.delete({
       where: { batch_id: batchId },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "batch",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Batch deleted' });
   } catch (error) {
     console.error('Error deleting batch:', error);

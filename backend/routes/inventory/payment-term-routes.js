@@ -50,6 +50,16 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
       data: { payment_term },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "payment-term",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newPaymentTerm);
   } catch (error) {
     console.error('Error creating payment term:', error);
@@ -68,6 +78,16 @@ router.put('/:payment_term_id',  /*authenticateToken,*/ async (req, res) => {
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "payment-term",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedPaymentTerm);
   } catch (error) {
     console.error('Error updating payment term:', error);
@@ -82,6 +102,17 @@ router.delete('/:payment_term_id',  /*authenticateToken,*/ async (req, res) => {
     await prisma.payment_term.delete({
       where: { payment_term_id: id },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "payment-term",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Payment term deleted' });
   } catch (error) {
     console.error('Error deleting payment term:', error);

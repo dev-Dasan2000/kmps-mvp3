@@ -46,6 +46,16 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
       data: { equipment_category },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "equipment-category",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newCategory);
   } catch (error) {
     console.error('Error creating equipment category:', error);
@@ -64,6 +74,16 @@ router.put('/:equipment_category_id', /*authenticateToken,*/ async (req, res) =>
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "equipment-category",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedCategory);
   } catch (error) {
     console.error('Error updating equipment category:', error);
@@ -78,6 +98,17 @@ router.delete('/:equipment_category_id', /*authenticateToken,*/ async (req, res)
     await prisma.equipment_category.delete({
       where: { equipment_category_id: id },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "equipment-category",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Equipment category deleted' });
   } catch (error) {
     console.error('Error deleting equipment category:', error);

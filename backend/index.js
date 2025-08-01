@@ -78,6 +78,7 @@ import stockIssueRouter from './routes/inventory/stock-issue-routes.js';
 
 import passwordResetRouter from './routes/password-reset-routes.js';
 import InventoryReportRouter from './routes/inventory/report-routes.js';
+import InventoryActivityLogsRouter from './routes/inventory/activity-log-routes.js';
 
 import signatureRouter from './routes/signature-routes.js';   
 
@@ -174,6 +175,7 @@ app.use('/inventory/equipment-categories', equipmentCategoryRouter);
 app.use('/inventory/stock-issues', stockIssueRouter);
 
 app.use('/inventory/reports', InventoryReportRouter);
+app.use('/inventory/activity-log', InventoryActivityLogsRouter);
 
 app.use('/reset-password', passwordResetRouter);
 

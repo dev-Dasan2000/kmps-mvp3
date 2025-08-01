@@ -47,6 +47,17 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
         description,
       },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "parent-category",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newParent);
   } catch (error) {
     console.error('Error creating parent category:', error);
@@ -63,6 +74,17 @@ router.put('/:parent_category_id',  /*authenticateToken,*/ async (req, res) => {
       where: { parent_category_id: parentCategoryId },
       data,
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "parent-category",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedParent);
   } catch (error) {
     console.error('Error updating parent category:', error);
@@ -77,6 +99,17 @@ router.delete('/:parent_category_id',  /*authenticateToken,*/ async (req, res) =
     await prisma.parent_category.delete({
       where: { parent_category_id: parentCategoryId },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "parent-category",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Parent category deleted' });
   } catch (error) {
     console.error('Error deleting parent category:', error);

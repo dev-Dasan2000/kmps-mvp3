@@ -222,6 +222,16 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
       },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "item",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newItem);
   } catch (error) {
     console.error('Error creating item:', error);
@@ -244,9 +254,19 @@ router.put('/:item_id',  /*authenticateToken,*/ async (req, res) => {
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "item",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedItem);
   } catch (error) {
-    console.error('Error updating item:', error);
+    console.error('Error updating item:', error.message);
     res.status(500).json({ error: 'Failed to update item' });
   }
 });
@@ -258,6 +278,17 @@ router.delete('/:item_id',  /*authenticateToken,*/ async (req, res) => {
     await prisma.item.delete({
       where: { item_id: itemId },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "item",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Item deleted' });
   } catch (error) {
     console.error('Error deleting item:', error);

@@ -50,6 +50,17 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
         parent_category_id: parent_category_id || null,
       },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "sub-category",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newSubCategory);
   } catch (error) {
     console.error('Error creating sub category:', error);
@@ -67,6 +78,17 @@ router.put('/:sub_category_id',  /*authenticateToken,*/ async (req, res) => {
       where: { sub_category_id: subCategoryId },
       data,
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "sub-category",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedSubCategory);
   } catch (error) {
     console.error('Error updating sub category:', error);
@@ -81,6 +103,17 @@ router.delete('/:sub_category_id',  /*authenticateToken,*/ async (req, res) => {
     await prisma.sub_category.delete({
       where: { sub_category_id: subCategoryId },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "sub-category",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Sub category deleted' });
   } catch (error) {
     console.error('Error deleting sub category:', error);

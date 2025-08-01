@@ -67,6 +67,16 @@ router.post('/', async (req, res) => {
       },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "purchase-order-item",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newPOI);
   } catch (error) {
     console.error('Error creating purchase_order_item:', error);
@@ -98,6 +108,17 @@ router.delete('/:purchase_order_id/:item_id',  /*authenticateToken,*/ async (req
         },
       },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "purchase-order-item",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Purchase order item deleted' });
   } catch (error) {
     console.error('Error deleting purchase_order_item:', error);

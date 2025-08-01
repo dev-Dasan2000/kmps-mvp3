@@ -142,6 +142,16 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
       newStockReceiving.purchase_order.total_amount = totalAmount;
     }
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "stock-receive",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newStockReceiving);
   } catch (error) {
     console.error('Error creating stock receiving:', error);
@@ -184,6 +194,16 @@ router.put('/:stock_receiving_id',  /*authenticateToken,*/ async (req, res) => {
       updatedStockReceiving.purchase_order.total_amount = totalAmount;
     }
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "stock-receive",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedStockReceiving);
   } catch (error) {
     console.error('Error updating stock receiving:', error);
@@ -198,6 +218,17 @@ router.delete('/:stock_receiving_id',  /*authenticateToken,*/ async (req, res) =
     await prisma.stock_receiving.delete({
       where: { stock_receiving_id: id },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "stock-receive",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Stock receiving deleted' });
   } catch (error) {
     console.error('Error deleting stock receiving:', error);

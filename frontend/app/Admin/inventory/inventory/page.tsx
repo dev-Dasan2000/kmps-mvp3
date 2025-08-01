@@ -232,57 +232,6 @@ const InventoryManagement = () => {
   };
 
   const handleUpdateItem = async (item: Item, batch: Batch) => {
-    try {
-      // Update or create item
-      let updatedItem: Item;
-      if (item.item_id) {
-        // Update existing item
-        const response = await apiClient.put(`/inventory/items/${item.item_id}`, item);
-        updatedItem = response.data;
-        setItems(items.map(i => i.item_id === item.item_id ? updatedItem : i));
-      } else {
-        // Create new item
-        const response = await apiClient.post('/inventory/items', item);
-        updatedItem = response.data;
-        setItems([...items, updatedItem]);
-      }
-
-      // Update or create batch
-      if (item.batch_tracking) {
-        // For batch tracking, we'll handle batches separately
-        // The batches are already being processed in the AddItemDialog
-        const batchResponse = await apiClient.post('/inventory/batches', {
-          ...batch,
-          item_id: updatedItem.item_id
-        });
-        const updatedBatch = batchResponse.data;
-        setBatches(batches.map(b => b.batch_id === batch.batch_id ? updatedBatch : b));
-      } else {
-        // For non-batch items, update/create the single batch
-        if (batch.batch_id) {
-          const response = await apiClient.put(`/inventory/batches/${batch.batch_id}`, {
-            ...batch,
-            item_id: updatedItem.item_id
-          });
-          const updatedBatch = response.data;
-          setBatches(batches.map(b => b.batch_id === batch.batch_id ? updatedBatch : b));
-        } else {
-          const response = await apiClient.post('/inventory/batches', {
-            ...batch,
-            item_id: updatedItem.item_id
-          });
-          const newBatch = response.data;
-          setBatches([...batches, newBatch]);
-        }
-      }
-
-      toast.success(`Item ${item.item_id ? 'updated' : 'added'} successfully`);
-      setIsAddItemOpen(false);
-      setSelectedItem(undefined);
-    } catch (error: any) {
-      console.error('Error saving item:', error);
-      toast.error(error.response?.data?.message || 'Failed to save item');
-    }
   };
 
   const handleDelete = (item: Item) => {
@@ -393,31 +342,6 @@ const InventoryManagement = () => {
     }
   };
 
-  const addItem = async (item: Item, batch: Batch) => {
-    try {
-      // Create new item
-      const itemResponse = await apiClient.post('/inventory/items', item);
-      const newItem = itemResponse.data;
-
-      // Create batch for the item
-      const batchResponse = await apiClient.post('/inventory/batches', {
-        ...batch,
-        item_id: newItem.item_id
-      });
-      const newBatch = batchResponse.data;
-
-      // Update local state
-      setItems([...items, newItem]);
-      setBatches([...batches, newBatch]);
-
-      toast.success('Item added successfully');
-      setIsAddItemOpen(false);
-    } catch (error: any) {
-      console.error('Error adding item:', error);
-      toast.error(error.response?.data?.message || 'Failed to add item');
-    }
-  };
-
   const addSubCategory = async (category: any) => {
     setSubmittingNewSubCategory(true);
     try {
@@ -459,7 +383,6 @@ const InventoryManagement = () => {
   };
 
   const handleStockUpdate = (itemId: number, newStock: number) => {
-    // Update the batches state with the new stock value
     setBatches(batches.map(batch =>
       batch.item.item_id === itemId
         ? { ...batch, current_stock: newStock, stock_date: batch.stock_date || new Date().toISOString().split('T')[0] }
@@ -807,7 +730,7 @@ const InventoryManagement = () => {
             }
           }}
           onSubmit={(item, batch) => {
-            if (selectedItem) {
+            if (item) {
               handleUpdateItem(item, batch);
             } else {
               const newId = Math.max(...items.map(item => item.item_id)) + 1;

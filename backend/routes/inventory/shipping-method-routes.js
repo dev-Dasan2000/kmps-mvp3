@@ -44,6 +44,16 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
       data: { shipping_method },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "shipping-method",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newShippingMethod);
   } catch (error) {
     console.error('Error creating shipping method:', error);
@@ -62,6 +72,16 @@ router.put('/:shipping_method_id',  /*authenticateToken,*/ async (req, res) => {
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "shipping-method",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updatedShippingMethod);
   } catch (error) {
     console.error('Error updating shipping method:', error);
@@ -76,6 +96,17 @@ router.delete('/:shipping_method_id',  /*authenticateToken,*/ async (req, res) =
     await prisma.shipping_method.delete({
       where: { shipping_method_id: id },
     });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "shipping-method",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.json({ message: 'Shipping method deleted' });
   } catch (error) {
     console.error('Error deleting shipping method:', error);

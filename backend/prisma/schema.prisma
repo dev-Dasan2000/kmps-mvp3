@@ -788,3 +788,13 @@ model stock_issue {
 
   @@map("stock_issue")
 }
+
+model activity_log {
+  activity_log_id Int    @id @default(autoincrement())
+  subject         String
+  event           String
+  date            String
+  time            String
+
+  @@map("activity_log") // maps to actual table name in DB
+}

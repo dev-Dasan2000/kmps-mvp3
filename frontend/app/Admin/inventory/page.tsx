@@ -120,13 +120,11 @@ interface ExpiringItem {
 }
 
 interface ActivityLog {
-  id: number;
-  action: string;
-  item_name: string;
-  quantity: string;
-  user_name: string;
-  created_at: string;
-  time_ago: string;
+  activity_log_id: number;
+  subject: string;
+  event: string;
+  date: string;
+  time: string;
 }
 
 const Dashboard = () => {
@@ -149,6 +147,7 @@ const Dashboard = () => {
   const [loadingSuppliers, setLoadingSuppliers] = useState(false);
   const [loadingLowStockItems, setLoadingLowStockItems] = useState(false);
   const [loadingExpiringSoonItems, setLoadingExpiringSoonItems] = useState(false);
+  const [loadingRecentActivity, setLoadingRecentActivity] = useState(false);
 
   const { isLoadingAuth, isLoggedIn, apiClient, user } = useContext(AuthContext);
   const router = useRouter();
@@ -195,11 +194,11 @@ const Dashboard = () => {
 
   const fetchPurchaseOrderCount = async () => {
     setLoadingPurchaseOrders(true);
-    try{
+    try {
       const res = await apiClient.get(
         `/inventory/purchase-orders/count`
       );
-      if(res.status == 500) {
+      if (res.status == 500) {
         throw new Error("Error fetching purchase order count");
       }
       setPurchaseOrders(res.data);
@@ -214,7 +213,7 @@ const Dashboard = () => {
 
   const fetchEquipmentCount = async () => {
     setLoadingEquipments(true);
-    try{
+    try {
       const response = await apiClient.get(
         `/inventory/equipments/count`
       );
@@ -223,7 +222,7 @@ const Dashboard = () => {
       }
       setEquipments(response.data);
     }
-    catch(err: any){
+    catch (err: any) {
       toast.error(err.message);
     }
     finally {
@@ -233,7 +232,7 @@ const Dashboard = () => {
 
   const fetchSuppliersCount = async () => {
     setLoadingSuppliers(true);
-    try{
+    try {
       const response = await apiClient.get(
         `/inventory/suppliers/count`
       );
@@ -288,6 +287,25 @@ const Dashboard = () => {
     }
   };
 
+  const fetchActivityLogs = async () => {
+    setLoadingRecentActivity(true);
+    try {
+      const res = await apiClient.get(
+        `/inventory/activity-log/recent`
+      );
+      if (res.status == 500) {
+        throw new Error("Error Fetching Recent Activity");
+      }
+      setRecentActivity(res.data);
+    }
+    catch (err: any) {
+      toast.error(err.message);
+    }
+    finally {
+      setLoadingRecentActivity(false);
+    }
+  }
+
   useEffect(() => {
     if (isLoadingAuth) return;
     if (!isLoggedIn) {
@@ -308,6 +326,7 @@ const Dashboard = () => {
     fetchSuppliersCount();
     fetchLowStockItems();
     fetchExpiringSoonItems();
+    fetchActivityLogs();
   }, []);
 
   const getDaysLeft = (expiryDate: string) => {
@@ -522,6 +541,46 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+        {/* Recent Activity */}
+        <Card className="hover:shadow-md transition-shadow duration-200 overflow-auto">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold flex items-center">
+                <Clock className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0" />
+                <span className="truncate">Recent Activities</span>
+              </CardTitle>
+            </div>
+            <CardDescription>System logs and updates</CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4 max-h-96 overflow-y-auto">
+            {recentActivity.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No recent activities</p>
+              </div>
+            ) : (
+              recentActivity.map((log) => (
+                <div
+                  key={log.activity_log_id}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-800">
+                      <span className="capitalize font-medium">{log.event == "create" && `A new `}{log.subject}</span> was
+                      <span className="ml-1 font-semibold text-blue-700">{log.event.endsWith("e") ? `${log.event}d` : `${log.event}ed`}</span>
+                      {" on"} <span className="font-medium">{log.date}</span> at <span className="font-medium">
+                        {log.time.split(":").slice(0, 2).join(":")}
+                      </span>
+                      .
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
       </div>
     </div>
   );

@@ -63,6 +63,16 @@ router.post('/', /*authenticateToken,*/ async (req, res) => {
       },
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "stock-issue",
+        event: "create",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(201).json(newIssue);
   } catch (error) {
     console.error('Error creating stock issue:', error);
@@ -81,6 +91,16 @@ router.put('/:stock_issue_id', /*authenticateToken,*/ async (req, res) => {
       data,
     });
 
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "stock-issue",
+        event: "edit",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
+    });
+
     res.status(202).json(updated);
   } catch (error) {
     console.error('Error updating stock issue:', error);
@@ -95,6 +115,16 @@ router.delete('/:stock_issue_id', /*authenticateToken,*/ async (req, res) => {
 
     await prisma.stock_issue.delete({
       where: { stock_issue_id: stockIssueId },
+    });
+
+    const now = new Date();
+    const actres = await prisma.activity_log.create({
+      data: {
+        subject: "stock-issue",
+        event: "delete",
+        date: now.toISOString().split("T")[0],
+        time: now.toTimeString().split(" ")[0],
+      }
     });
 
     res.json({ message: 'Stock issue deleted' });
