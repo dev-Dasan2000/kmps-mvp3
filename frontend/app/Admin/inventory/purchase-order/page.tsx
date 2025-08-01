@@ -427,6 +427,92 @@ const PurchaseOrdersPage = () => {
                   </Card>
                 </div>
 
+                {/* Purchase Order Items Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center">
+                      <Package className="h-5 w-5 mr-2" />
+                      Order Items ({selectedPurchaseOrder.purchase_order_items?.length || 0})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedPurchaseOrder.purchase_order_items && selectedPurchaseOrder.purchase_order_items.length > 0 ? (
+                      <div className="space-y-4">
+                        {selectedPurchaseOrder.purchase_order_items.map((orderItem, index) => (
+                          <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              <div>
+                                <Label className="font-medium text-gray-700">Item Name</Label>
+                                <p className="mt-1 font-semibold text-gray-900">
+                                  {orderItem.item?.item_name || 'N/A'}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="font-medium text-gray-700">Quantity</Label>
+                                <p className="mt-1 text-gray-900 flex items-center">
+                                  <Package className="h-4 w-4 mr-1 text-gray-500" />
+                                  {orderItem.quantity} {orderItem.item?.unit_of_measurements || 'units'}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="font-medium text-gray-700">Unit Price</Label>
+                                <p className="mt-1 text-gray-900 flex items-center">
+                                  <DollarSign className="h-4 w-4 mr-1 text-gray-500" />
+                                  LKR {orderItem.item?.unit_price?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="font-medium text-gray-700">Total</Label>
+                                <p className="mt-1 font-semibold text-blue-600">
+                                  LKR {((orderItem.quantity * (orderItem.item?.unit_price || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 }))}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="font-medium text-gray-700">Storage Location</Label>
+                                <p className="mt-1 text-gray-900 flex items-center">
+                                  <MapPin className="h-4 w-4 mr-1 text-gray-500" />
+                                  {orderItem.item?.storage_location || 'N/A'}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="font-medium text-gray-700">Barcode</Label>
+                                <p className="mt-1 text-gray-900 font-mono text-sm">
+                                  {orderItem.item?.barcode || 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                            {orderItem.item?.description && (
+                              <div className="mt-3 pt-3 border-t border-gray-200">
+                                <Label className="font-medium text-gray-700">Description</Label>
+                                <p className="mt-1 text-gray-600 text-sm">
+                                  {orderItem.item.description}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        
+                        {/* Order Total */}
+                        <div className="border-t pt-4 mt-4">
+                          <div className="flex justify-between items-center">
+                            <span className="text-lg font-semibold text-gray-900">Order Total:</span>
+                            <span className="text-xl font-bold text-blue-600">
+                              LKR {selectedPurchaseOrder.purchase_order_items.reduce((total, item) => 
+                                total + (item.quantity * (item.item?.unit_price || 0)), 0
+                              ).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Package className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                        <p>No items found for this purchase order</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Delivery & Notes</CardTitle>
