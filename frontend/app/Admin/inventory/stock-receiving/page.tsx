@@ -1,14 +1,24 @@
 "use client";
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '@/context/auth-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,13 +27,20 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { 
   Plus, 
   Search, 
   Package, 
+  FileCheck, 
   Eye, 
   Edit, 
   AlertTriangle,
@@ -34,31 +51,17 @@ import {
   User,
   Upload,
   Truck,
-  Building2,
+  DollarSign,
+  MapPin,
   Phone,
   Mail,
-  Package2,
+  Globe,
+  Building2,
   Clock,
-  DollarSign,
-  Clipboard,
-  X,
-  XCircle
+  X
 } from 'lucide-react';
 
 // Types based on your schema
-interface ParentCategory {
-  parent_category_id: number;
-  parent_category_name: string;
-  description: string;
-}
-
-interface SubCategory {
-  sub_category_id: number;
-  sub_category_name: string;
-  description: string;
-  parent_category_id: number;
-}
-
 interface Supplier {
   supplier_id: number;
   company_name: string;
@@ -72,7 +75,17 @@ interface Supplier {
   country: string;
   website: string;
   notes: string;
-  status: 'active' | 'inactive';
+  status: string;
+}
+
+interface PaymentTerm {
+  payment_term_id: number;
+  payment_term: string;
+}
+
+interface ShippingMethod {
+  shipping_method_id: number;
+  shipping_method: string;
 }
 
 interface Item {
@@ -89,23 +102,11 @@ interface Item {
   batch_tracking: boolean;
 }
 
-interface Batch {
-  batch_id: number;
+interface PurchaseOrderItem {
+  purchase_order_id: number;
   item_id: number;
-  current_stock: number;
-  minimum_stock: number;
-  expiry_date: string;
-  stock_date: string;
-}
-
-interface PaymentTerm {
-  payment_term_id: number;
-  payment_term: string;
-}
-
-interface ShippingMethod {
-  shipping_method_id: number;
-  shipping_method: string;
+  quantity: number;
+  item: Item;
 }
 
 interface PurchaseOrder {
@@ -119,36 +120,12 @@ interface PurchaseOrder {
   authorized_by: string;
   delivery_address: string;
   notes: string;
-  supplier?: Supplier;
-  payment_term?: PaymentTerm;
-  shipping_method?: ShippingMethod;
-  purchase_order_items?: PurchaseOrderItem[];
-}
-
-interface PurchaseOrderItem {
-  purchase_order_id: number;
-  item_id: number;
-  quantity: number;
-  unit_price: number;
-  item_name?: string;
-  unit_of_measure?: string;
-}
-
-interface StockReceivingItem {
-  id: string;
-  inventory_item_id: string;
-  item_name: string;
-  quantity_ordered: number;
-  quantity: number;
-  unit_of_measure: string;
-  batch_number: string;
-  lot_number: string;
-  manufacture_date: string;
-  expiry_date: string;
-  condition: 'good' | 'damaged' | 'expired';
-  storage_location: string;
-  remarks: string;
-  has_discrepancy: boolean;
+  supplier: Supplier;
+  payment_term: PaymentTerm;
+  shipping_method: ShippingMethod;
+  stock_receivings: StockReceiving[];
+  purchase_order_items: PurchaseOrderItem[];
+  total_amount: number;
 }
 
 interface StockReceiving {
@@ -160,1290 +137,545 @@ interface StockReceiving {
   delivery_note_url: string;
   qc_report_url: string;
   notes: string;
-  purchase_order?: PurchaseOrder;
-  items_count?: number;
-  has_discrepancy?: boolean;
-  stock_receipt_items?: StockReceivingItem[];
-  suppliers?: { name: string };
-  receipt_number?: string;
-  invoice_uploaded?: boolean;
-  delivery_note_uploaded?: boolean;
-  qc_report_uploaded?: boolean;
+  status: string;
+  purchase_order: PurchaseOrder;
 }
 
-interface ReceivingItem {
-  id: string;
-  inventory_item_id: string;
-  item_name: string;
-  quantity_ordered: number;
-  quantity_received: number;
-  unit_of_measure: string;
-  batch_number: string;
-  lot_number: string;
-  manufacture_date: string;
-  expiry_date: string;
-  condition: 'good' | 'damaged' | 'expired';
-  storage_location: string;
-  remarks: string;
-  has_discrepancy: boolean;
-}
+const StockReceivingSystem = () => {
+  const { apiClient } = useContext(AuthContext);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState<StockReceiving | null>(null);
+  const [stockReceipts, setStockReceipts] = useState<StockReceiving[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-interface UploadedFile {
-  name: string;
-  size: number;
-  type: string;
-  file: File;
-}
-
-// Mock data
-const mockSuppliers: Supplier[] = [
-  {
-    supplier_id: 1,
-    company_name: "MedSupply Corp",
-    contact_person: "John Smith",
-    email: "john@medsupply.com",
-    phone_number: "+1-555-0123",
-    address: "123 Medical Ave",
-    city: "Boston",
-    state: "MA",
-    postal_code: "02101",
-    country: "USA",
-    website: "www.medsupply.com",
-    notes: "Primary dental supplies vendor",
-    status: "active"
-  },
-  {
-    supplier_id: 2,
-    company_name: "Dental Equipment Ltd",
-    contact_person: "Sarah Johnson",
-    email: "sarah@dentalequip.com",
-    phone_number: "+1-555-0456",
-    address: "456 Dental St",
-    city: "New York",
-    state: "NY",
-    postal_code: "10001",
-    country: "USA",
-    website: "www.dentalequip.com",
-    notes: "Specialized in dental equipment",
-    status: "active"
-  }
-];
-
-const mockPaymentTerms: PaymentTerm[] = [
-  { payment_term_id: 1, payment_term: "Net 30" },
-  { payment_term_id: 2, payment_term: "Net 15" },
-  { payment_term_id: 3, payment_term: "COD" }
-];
-
-const mockShippingMethods: ShippingMethod[] = [
-  { shipping_method_id: 1, shipping_method: "Standard Shipping" },
-  { shipping_method_id: 2, shipping_method: "Express Delivery" },
-  { shipping_method_id: 3, shipping_method: "Next Day Air" }
-];
-
-const mockPurchaseOrderItems: PurchaseOrderItem[] = [
-  {
-    purchase_order_id: 1,
-    item_id: 1,
-    quantity: 100,
-    unit_price: 2.50,
-    item_name: "Disposable Gloves",
-    unit_of_measure: "boxes"
-  },
-  {
-    purchase_order_id: 1,
-    item_id: 2,
-    quantity: 50,
-    unit_price: 15.00,
-    item_name: "Dental Syringes",
-    unit_of_measure: "units"
-  },
-  {
-    purchase_order_id: 2,
-    item_id: 3,
-    quantity: 25,
-    unit_price: 45.00,
-    item_name: "Dental Burs Set",
-    unit_of_measure: "sets"
-  }
-];
-
-const mockPurchaseOrders: PurchaseOrder[] = [
-  {
-    purchase_order_id: 1,
-    supplier_id: 1,
-    requested_by: "Dr. Miller",
-    expected_delivery_date: "2024-02-15",
-    payment_term_id: 1,
-    shipping_method_id: 1,
-    order_date: "2024-02-01",
-    authorized_by: "Manager",
-    delivery_address: "123 Clinic Ave, Boston, MA 02101",
-    notes: "Urgent order for dental supplies",
-    supplier: mockSuppliers[0],
-    payment_term: mockPaymentTerms[0],
-    shipping_method: mockShippingMethods[0],
-    purchase_order_items: mockPurchaseOrderItems.filter(item => item.purchase_order_id === 1)
-  },
-  {
-    purchase_order_id: 2,
-    supplier_id: 2,
-    requested_by: "Dr. Davis",
-    expected_delivery_date: "2024-02-20",
-    payment_term_id: 2,
-    shipping_method_id: 2,
-    order_date: "2024-02-05",
-    authorized_by: "Manager",
-    delivery_address: "456 Medical Center, New York, NY 10001",
-    notes: "Equipment maintenance supplies",
-    supplier: mockSuppliers[1],
-    payment_term: mockPaymentTerms[1],
-    shipping_method: mockShippingMethods[1],
-    purchase_order_items: mockPurchaseOrderItems.filter(item => item.purchase_order_id === 2)
-  }
-];
-
-const mockStockReceivingItems: StockReceivingItem[] = [
-  {
-    id: "1",
-    inventory_item_id: "1",
-    item_name: "Disposable Gloves",
-    quantity_ordered: 100,
-    quantity: 98,
-    unit_of_measure: "boxes",
-    batch_number: "GLV001",
-    lot_number: "L2024001",
-    manufacture_date: "2024-01-15",
-    expiry_date: "2026-01-15",
-    condition: "good",
-    storage_location: "Storage Room A",
-    remarks: "2 boxes damaged during transport",
-    has_discrepancy: true
-  },
-  {
-    id: "2",
-    inventory_item_id: "2",
-    item_name: "Dental Syringes",
-    quantity_ordered: 50,
-    quantity: 50,
-    unit_of_measure: "units",
-    batch_number: "SYR001",
-    lot_number: "L2024002",
-    manufacture_date: "2024-01-20",
-    expiry_date: "2025-01-20",
-    condition: "good",
-    storage_location: "Storage Room B",
-    remarks: "",
-    has_discrepancy: false
-  }
-];
-
-const mockStockReceivings: StockReceiving[] = [
-  {
-    stock_receiving_id: 1,
-    purchase_order_id: 1,
-    received_date: "2024-02-14",
-    received_by: "John Doe",
-    invoice_url: "https://example.com/invoice1.pdf",
-    delivery_note_url: "https://example.com/delivery1.pdf",
-    qc_report_url: "https://example.com/qc1.pdf",
-    notes: "2 items damaged during transport, supplier will credit",
-    purchase_order: mockPurchaseOrders[0],
-    items_count: 2,
-    has_discrepancy: true,
-    stock_receipt_items: mockStockReceivingItems,
-    suppliers: { name: "MedSupply Corp" },
-    receipt_number: "REC001",
-    invoice_uploaded: true,
-    delivery_note_uploaded: true,
-    qc_report_uploaded: true
-  },
-  {
-    stock_receiving_id: 2,
-    purchase_order_id: 2,
-    received_date: "2024-02-18",
-    received_by: "Jane Smith",
-    invoice_url: "https://example.com/invoice2.pdf",
-    delivery_note_url: "",
-    qc_report_url: "https://example.com/qc2.pdf",
-    notes: "All items received in perfect condition",
-    purchase_order: mockPurchaseOrders[1],
-    items_count: 1,
-    has_discrepancy: false,
-    stock_receipt_items: [mockStockReceivingItems[0]],
-    suppliers: { name: "Dental Equipment Ltd" },
-    receipt_number: "REC002",
-    invoice_uploaded: true,
-    delivery_note_uploaded: false,
-    qc_report_uploaded: true
-  }
-];
-
-// StockItemsView Component
-const StockItemsView = ({ receipt, isOpen, onOpenChange }: {
-  receipt: StockReceiving | null;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-}) => {
-  if (!receipt) return null;
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const getDiscrepancyCount = () => {
-    return receipt.stock_receipt_items?.filter((item) => item.has_discrepancy).length || 0;
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="md:max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <DialogTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Items in Receipt #{receipt.receipt_number}
-            </DialogTitle>
-            {getDiscrepancyCount() > 0 ? (
-              <Badge variant="destructive" className="text-sm py-1 w-fit">
-                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                {getDiscrepancyCount()} {getDiscrepancyCount() === 1 ? 'Discrepancy' : 'Discrepancies'}
-              </Badge>
-            ) : (
-              <Badge className="bg-green-100 text-green-800 text-sm py-1 w-fit">
-                <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                All Items Match
-              </Badge>
-            )}
-          </div>
-          <DialogDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-            <span>Received on {formatDate(receipt.received_date)}</span>
-            <span className="font-medium">{receipt.suppliers?.name || "Unknown Supplier"}</span>
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="mt-4">
-          {/* Mobile Card View */}
-          <div className="block lg:hidden space-y-4">
-            {receipt.stock_receipt_items?.map((item, index) => {
-              const difference = item.quantity - item.quantity_ordered;
-              const isDifferent = item.quantity !== item.quantity_ordered;
-              
-              return (
-                <Card key={index}>
-                  <CardContent className="p-4">
-                    <div className="mb-3">
-                      <h4 className="font-medium text-sm">{item.item_name}</h4>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <span className="text-gray-500">Ordered:</span>
-                        <span className="ml-1 font-medium">{item.quantity_ordered} {item.unit_of_measure}</span>
-                      </div>
-                      {item.expiry_date && (
-                        <div>
-                          <span className="text-gray-500">Expires:</span>
-                          <span className="ml-1">{formatDate(item.expiry_date)}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {item.remarks && (
-                      <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
-                        <strong>Notes:</strong> {item.remarks}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden lg:block rounded-md border overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                  <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Info</th>
-                  <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {receipt.stock_receipt_items?.map((item, index) => {
-                  const difference = item.quantity - item.quantity_ordered;
-                  const isDifferent = item.quantity !== item.quantity_ordered;
-                  
-                  return (
-                    <tr key={index} className={isDifferent ? "bg-red-50" : "hover:bg-gray-50"}>
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-gray-900">{item.item_name}</div>
-                        {item.condition !== 'good' && (
-                          <Badge variant={item.condition === 'damaged' ? 'destructive' : 'outline'} className="mt-1 text-xs">
-                            {item.condition}
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-center font-medium text-gray-900">
-                        {item.quantity_ordered} {item.unit_of_measure}
-                      </td>
-                      <td className="px-3 py-4 text-sm">
-                        <div className="space-y-1">
-                          
-                          {item.expiry_date && (
-                            <div className="flex items-center gap-1 text-gray-700">
-                              <Calendar className="h-3 w-3 text-gray-400" />
-                              <span className="text-xs">Expires: {formatDate(item.expiry_date)}</span>
-                            </div>
-                          )}
-                          {item.storage_location && (
-                            <div className="text-xs text-gray-500 mt-1">Location: {item.storage_location}</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-4 text-sm text-center">
-                        {isDifferent ? (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertTriangle className="h-3 w-3 mr-1" />
-                            Discrepancy
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Match
-                          </Badge>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {receipt.stock_receipt_items?.some((item) => item.remarks) && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold mb-2">Item Notes</h3>
-              <div className="space-y-2">
-                {receipt.stock_receipt_items
-                  .filter((item) => item.remarks)
-                  .map((item, index) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded-md">
-                      <div className="font-medium">{item.item_name}</div>
-                      <div className="text-sm text-gray-700 mt-1">{item.remarks}</div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end mt-6">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// StockReceivingView Component
-const StockReceivingView = ({ receipt, isOpen, onOpenChange }: {
-  receipt: StockReceiving | null;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-}) => {
-  if (!receipt) return null;
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  const getDiscrepancyCount = () => {
-    return receipt.stock_receipt_items?.filter((item) => item.has_discrepancy).length || 0;
-  };
-
-  const getDocumentStatus = () => {
-    const docs = [];
-    if (receipt.invoice_uploaded) docs.push('Invoice');
-    if (receipt.delivery_note_uploaded) docs.push('Delivery Note');
-    if (receipt.qc_report_uploaded) docs.push('QC Report');
-    return docs;
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="md:max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <DialogTitle className="text-xl sm:text-2xl font-bold">
-              Receipt #{receipt.receipt_number}
-            </DialogTitle>
-            <Badge className="bg-green-100 text-green-800 text-sm w-fit">
-              <CheckCircle className="h-3.5 w-3.5 mr-1" />
-              Received
-            </Badge>
-          </div>
-          <DialogDescription>Received on {formatDate(receipt.received_date)}</DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Truck className="h-5 w-5 text-blue-600" />
-                    Supplier Details
-                  </h3>
-                  <div className="space-y-2 pl-7">
-                    <div className="text-sm">
-                      <span className="text-gray-500">Name:</span>
-                      <span className="ml-2 font-medium">{receipt.suppliers?.name || "N/A"}</span>
-                    </div>
-                    {receipt.purchase_order && (
-                      <div className="text-sm">
-                        <span className="text-gray-500">PO Number:</span>
-                        <span className="ml-2 font-medium">#{receipt.purchase_order_id}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-blue-600" />
-                    Receipt Information
-                  </h3>
-                  <div className="space-y-2 pl-7">
-                    <div className="text-sm">
-                      <span className="text-gray-500">Date:</span>
-                      <span className="ml-2 font-medium">{formatDate(receipt.received_date)}</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-gray-500">Received By:</span>
-                      <span className="ml-2 font-medium">{receipt.received_by || "Not specified"}</span>
-                    </div>
-                    <div className="text-sm">
-                      <span className="text-gray-500">Items Received:</span>
-                      <span className="ml-2 font-medium">{receipt.stock_receipt_items?.length || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              Documentation
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {getDocumentStatus().length > 0 ? (
-                getDocumentStatus().map((doc) => (
-                  <Badge key={doc} variant="outline" className="text-sm py-1 px-3 bg-green-50 text-green-700 border-green-200">
-                    <CheckCircle className="h-3 w-3 mr-2" />
-                    {doc} Uploaded
-                  </Badge>
-                ))
-              ) : (
-                <Badge variant="outline" className="text-sm py-1 px-3">
-                  No documents uploaded
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Package className="h-5 w-5 text-blue-600" />
-                Received Items
-              </h3>
-              {getDiscrepancyCount() > 0 && (
-                <Badge variant="destructive" className="text-sm py-1 w-fit">
-                  <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                  {getDiscrepancyCount()} {getDiscrepancyCount() === 1 ? 'Discrepancy' : 'Discrepancies'} Detected
-                </Badge>
-              )}
-            </div>
-
-            {/* Mobile Card View for Items */}
-            <div className="block lg:hidden space-y-3">
-              {receipt.stock_receipt_items?.map((item, index) => (
-                <Card key={index} className={item.has_discrepancy ? "border-red-300 bg-red-50" : ""}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium text-sm">{item.item_name}</h4>
-                      {item.has_discrepancy ? (
-                        <Badge variant="destructive" className="text-xs">Discrepancy</Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">OK</Badge>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-gray-500">Ordered:</span>
-                        <span className="ml-1">{item.quantity_ordered} {item.unit_of_measure}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">Received:</span>
-                        <span className={`ml-1 ${item.has_discrepancy ? "text-red-700 font-medium" : ""}`}>
-                          {item.quantity} {item.unit_of_measure}
-                        </span>
-                      </div>
-                      
-                      {item.expiry_date && (
-                        <div>
-                          <span className="text-gray-500">Expires:</span>
-                          <span className="ml-1">{formatDate(item.expiry_date)}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {item.remarks && (
-                      <div className="mt-2 text-xs text-gray-600">{item.remarks}</div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* Desktop Table View for Items */}
-            <div className="hidden lg:block rounded-md border overflow-hidden">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty Ordered</th>
-                   
-                    
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry</th>
-                    <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {receipt.stock_receipt_items?.map((item, index) => (
-                    <tr key={index} className={item.has_discrepancy ? "bg-red-50" : ""}>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{item.item_name}</div>
-                        {item.remarks && <div className="text-xs text-gray-500 mt-1">{item.remarks}</div>}
-                      </td>
-                      <td className="px-3 py-4 text-sm text-gray-500">
-                        {item.quantity_ordered} {item.unit_of_measure}
-                      </td>
-                      
-                      
-                      <td className="px-3 py-4 text-sm text-gray-500">
-                        {formatDate(item.expiry_date)}
-                      </td>
-                      <td className="px-3 py-4 text-sm">
-                        {item.has_discrepancy ? (
-                          <Badge variant="destructive" className="text-xs">Discrepancy</Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">OK</Badge>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {receipt.notes && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Clipboard className="h-5 w-5 text-blue-600" />
-                Notes
-              </h3>
-              <div className="bg-gray-50 p-4 rounded-md text-sm">
-                {receipt.notes}
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end pt-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// StockReceivingForm Component
-const StockReceivingForm = ({ 
-  suppliers, 
-  purchaseOrders, 
-  onSuccess, 
-  isOpen, 
-  onOpenChange,
-  initialData = null,
-  readOnly = false
-}: {
-  suppliers: Supplier[];
-  purchaseOrders: PurchaseOrder[];
-  onSuccess: () => void;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  initialData?: StockReceiving | null;
-  readOnly?: boolean;
-}) => {
+  // Form state
   const [formData, setFormData] = useState({
     purchase_order_id: '',
-    supplier_id: '',
-    receipt_date: new Date().toISOString().split('T')[0],
+    received_date: '',
     received_by: '',
-    notes: ''
+    invoice_url: '',
+    delivery_note_url: '',
+    qc_report_url: '',
+    notes: '',
+    status: 'not-updated'
   });
-  
-  const [receivingItems, setReceivingItems] = useState<ReceivingItem[]>([]);
-  const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<{
-    invoice: UploadedFile | null;
-    deliveryNote: UploadedFile | null;
-    qcReport: UploadedFile | null;
-  }>({
-    invoice: null,
-    deliveryNote: null,
-    qcReport: null
-  });
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        purchase_order_id: initialData.purchase_order_id?.toString() || '',
-        supplier_id: initialData.purchase_order?.supplier_id?.toString() || '',
-        receipt_date: initialData.received_date || new Date().toISOString().split('T')[0],
-        received_by: initialData.received_by || '',
-        notes: initialData.notes || ''
+  // File upload state
+  const [uploadedFiles, setUploadedFiles] = useState({
+    invoice: null as File | null,
+    delivery_note: null as File | null,
+    qc_report: null as File | null
+  });
+
+  const [uploadLoading, setUploadLoading] = useState({
+    invoice: false,
+    delivery_note: false,
+    qc_report: false
+  });
+
+  // Selected purchase order for form preview
+  const [selectedPO, setSelectedPO] = useState<PurchaseOrder | null>(null);
+
+  // API Functions
+  const fetchStockReceipts = async () => {
+    try {
+      const response = await apiClient.get('/inventory/stock-receivings');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching stock receipts:', error);
+      throw error;
+    }
+  };
+
+  const fetchPurchaseOrders = async () => {
+    try {
+      const response = await apiClient.get('/inventory/purchase-orders');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching purchase orders:', error);
+      throw error;
+    }
+  };
+
+  const createStockReceipt = async (data: any) => {
+    try {
+      const response = await apiClient.post('/inventory/stock-receivings', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating stock receipt:', error);
+      throw error;
+    }
+  };
+
+  const updateStockReceipt = async (id: number, data: any) => {
+    try {
+      const response = await apiClient.put(`/inventory/stock-receivings/${id}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating stock receipt:', error);
+      throw error;
+    }
+  };
+
+  const deleteStockReceipt = async (id: number) => {
+    try {
+      await apiClient.delete(`/inventory/stock-receivings/${id}`);
+    } catch (error) {
+      console.error('Error deleting stock receipt:', error);
+      throw error;
+    }
+  };
+
+  // File upload utility function
+  const uploadFile = async (file: File, fileType: 'invoice' | 'delivery_note' | 'qc_report') => {
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast.error('File size must be less than 10MB');
+      throw new Error('File too large');
+    }
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a valid file (PDF, JPG, PNG, DOC, DOCX)');
+      throw new Error('Invalid file type');
+    }
+
+    setUploadLoading(prev => ({ ...prev, [fileType]: true }));
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Use the existing file upload endpoint with apiClient
+      const response = await apiClient.post('/files', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       
-      if (initialData.stock_receipt_items) {
-        const items: ReceivingItem[] = initialData.stock_receipt_items.map((item, index) => ({
-          id: `${index + 1}`,
-          inventory_item_id: item.inventory_item_id || '',
-          item_name: item.item_name || 'Unknown Item',
-          quantity_ordered: item.quantity_ordered,
-          quantity_received: item.quantity,
-          unit_of_measure: item.unit_of_measure || 'units',
-          batch_number: item.batch_number || '',
-          lot_number: item.lot_number || '',
-          manufacture_date: item.manufacture_date || '',
-          expiry_date: item.expiry_date || '',
-          condition: item.condition || 'good',
-          storage_location: item.storage_location || '',
-          remarks: item.remarks || '',
-          has_discrepancy: item.has_discrepancy || false
-        }));
-        setReceivingItems(items);
-      }
+      const result = response.data;
+      // Backend returns { url: '/uploads/files/filename' }
+      const fileUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}${result.url}`;
       
-      if (initialData.invoice_uploaded || initialData.delivery_note_uploaded || initialData.qc_report_uploaded) {
-        setUploadedFiles({
-          invoice: initialData.invoice_uploaded ? { name: 'Invoice', size: 0, type: '', file: null as any } : null,
-          deliveryNote: initialData.delivery_note_uploaded ? { name: 'Delivery Note', size: 0, type: '', file: null as any } : null,
-          qcReport: initialData.qc_report_uploaded ? { name: 'QC Report', size: 0, type: '', file: null as any } : null
-        });
+      // Update form data with the uploaded file URL
+      const urlField = fileType === 'invoice' ? 'invoice_url' : 
+                      fileType === 'delivery_note' ? 'delivery_note_url' : 'qc_report_url';
+      
+      setFormData(prev => ({ ...prev, [urlField]: fileUrl }));
+      
+      // Show success message
+      const fileTypeLabel = fileType === 'invoice' ? 'Invoice' : 
+                            fileType === 'delivery_note' ? 'Delivery Note' : 'QC Report';
+      toast.success(`${fileTypeLabel} uploaded successfully`);
+      
+      return fileUrl;
+    } catch (error) {
+      console.error('File upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to upload file: ${errorMessage}`);
+      throw error;
+    } finally {
+      setUploadLoading(prev => ({ ...prev, [fileType]: false }));
+    }
+  };
+
+  // Handle file selection and upload
+  const handleFileSelect = async (file: File, fileType: 'invoice' | 'delivery_note' | 'qc_report') => {
+    try {
+      setUploadedFiles(prev => ({ ...prev, [fileType]: file }));
+      await uploadFile(file, fileType);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      // Reset file selection on error
+      setUploadedFiles(prev => ({ ...prev, [fileType]: null }));
+    }
+  };
+
+  // Remove uploaded file
+  const handleFileRemove = (fileType: 'invoice' | 'delivery_note' | 'qc_report') => {
+    const urlField = fileType === 'invoice' ? 'invoice_url' : 
+                    fileType === 'delivery_note' ? 'delivery_note_url' : 'qc_report_url';
+    
+    setUploadedFiles(prev => ({ ...prev, [fileType]: null }));
+    setFormData(prev => ({ ...prev, [urlField]: '' }));
+    
+    const fileTypeLabel = fileType === 'invoice' ? 'Invoice' : 
+                          fileType === 'delivery_note' ? 'Delivery Note' : 'QC Report';
+    toast.success(`${fileTypeLabel} removed successfully`);
+  };
+
+
+
+  // Mock data based on your schema
+  const mockStockReceipts: StockReceiving[] = [
+    {
+      stock_receiving_id: 2,
+      purchase_order_id: 4,
+      received_date: '2025-07-25',
+      received_by: 'John Doe',
+      invoice_url: 'https://example.com/invoices/invoice1.pdf',
+      delivery_note_url: 'https://example.com/delivery-notes/delivery1.pdf',
+      qc_report_url: 'https://example.com/qc-reports/qc1.pdf',
+      notes: 'Received all items in good condition.',
+      status: 'not-updated',
+      purchase_order: {
+        purchase_order_id: 4,
+        supplier_id: 1,
+        requested_by: 'John Doe',
+        expected_delivery_date: '2025-08-15',
+        payment_term_id: 1,
+        shipping_method_id: 1,
+        order_date: '2025-07-25',
+        authorized_by: 'Jane Smith',
+        delivery_address: '123 Main St, Cityville',
+        notes: 'Please expedite shipping.',
+        supplier: {
+          supplier_id: 1,
+          company_name: 'DentalSupplies Inc.',
+          contact_person: 'Dr. Samantha Lee',
+          email: 'samantha@dentalsupplies.com',
+          phone_number: '+1-555-234-5678',
+          address: '456 Tooth Ave',
+          city: 'Colombo',
+          state: 'Western Province',
+          postal_code: '10100',
+          country: 'Sri Lanka',
+          website: 'https://www.dentalsupplies.com',
+          notes: 'Primary supplier for surgical items',
+          status: 'active'
+        },
+        payment_term: {
+          payment_term_id: 1,
+          payment_term: 'Net 30'
+        },
+        shipping_method: {
+          shipping_method_id: 1,
+          shipping_method: 'Express Delivery'
+        },
+        stock_receivings: [],
+        purchase_order_items: [
+          {
+            purchase_order_id: 4,
+            item_id: 1,
+            quantity: 50,
+            item: {
+              item_id: 1,
+              item_name: 'Nitrile Examination Gloves',
+              unit_of_measurements: 'boxes',
+              unit_price: 1250.5,
+              storage_location: 'Shelf A2',
+              barcode: '8901234567890',
+              expiry_alert_days: 30,
+              description: 'Disposable non-sterile gloves for general examination use',
+              sub_category_id: 1,
+              supplier_id: 1,
+              batch_tracking: true
+            }
+          }
+        ],
+        total_amount: 62525
+      }
+    },
+    {
+      stock_receiving_id: 3,
+      purchase_order_id: 5,
+      received_date: '2025-07-28',
+      received_by: 'Sarah Wilson',
+      invoice_url: 'https://example.com/invoices/invoice2.pdf',
+      delivery_note_url: '',
+      qc_report_url: 'https://example.com/qc-reports/qc2.pdf',
+      notes: 'Minor packaging damage on 2 items, otherwise good.',
+      status: 'updated',
+      purchase_order: {
+        purchase_order_id: 5,
+        supplier_id: 2,
+        requested_by: 'Sarah Wilson',
+        expected_delivery_date: '2025-08-20',
+        payment_term_id: 2,
+        shipping_method_id: 2,
+        order_date: '2025-07-28',
+        authorized_by: 'Mike Johnson',
+        delivery_address: '789 Oak Street, Medical Center',
+        notes: 'Handle with care - fragile items.',
+        supplier: {
+          supplier_id: 2,
+          company_name: 'MedTech Solutions',
+          contact_person: 'Dr. Michael Chen',
+          email: 'michael@medtechsolutions.com',
+          phone_number: '+1-555-987-6543',
+          address: '789 Innovation Drive',
+          city: 'Kandy',
+          state: 'Central Province',
+          postal_code: '20000',
+          country: 'Sri Lanka',
+          website: 'https://www.medtechsolutions.com',
+          notes: 'Specialized in dental equipment',
+          status: 'active'
+        },
+        payment_term: {
+          payment_term_id: 2,
+          payment_term: 'Net 15'
+        },
+        shipping_method: {
+          shipping_method_id: 2,
+          shipping_method: 'Standard Delivery'
+        },
+        stock_receivings: [],
+        purchase_order_items: [
+          {
+            purchase_order_id: 5,
+            item_id: 2,
+            quantity: 25,
+            item: {
+              item_id: 2,
+              item_name: 'Dental Composite Resin',
+              unit_of_measurements: 'syringes',
+              unit_price: 2850.75,
+              storage_location: 'Refrigerator B1',
+              barcode: '8901234567891',
+              expiry_alert_days: 14,
+              description: 'Light-cured composite for dental restorations',
+              sub_category_id: 2,
+              supplier_id: 2,
+              batch_tracking: true
+            }
+          }
+        ],
+        total_amount: 71268.75
       }
     }
-  }, [initialData]);
+  ];
 
-  useEffect(() => {
-    if (formData.purchase_order_id) {
-      const po = purchaseOrders.find(p => p.purchase_order_id.toString() === formData.purchase_order_id);
-      if (po) {
-        setSelectedPO(po);
-        setFormData(prev => ({ ...prev, supplier_id: po.supplier_id.toString() }));
-        
-        const items: ReceivingItem[] = po.purchase_order_items?.map((item, index) => ({
-          id: `${index + 1}`,
-          inventory_item_id: item.item_id.toString(),
-          item_name: item.item_name || 'Unknown Item',
-          quantity_ordered: item.quantity,
-          quantity_received: item.quantity,
-          unit_of_measure: item.unit_of_measure || 'units',
-          batch_number: '',
-          lot_number: '',
-          manufacture_date: '',
-          expiry_date: '',
-          condition: 'good',
-          storage_location: '',
-          remarks: '',
-          has_discrepancy: false
-        })) || [];
-        
-        setReceivingItems(items);
-      }
-    } else {
-      setReceivingItems([]);
-      setSelectedPO(null);
-    }
-  }, [formData.purchase_order_id, purchaseOrders]);
-
-  const updateReceivingItem = (id: string, field: keyof ReceivingItem, value: any) => {
-    setReceivingItems(items => items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        
-        if (field === 'quantity_received') {
-          updatedItem.has_discrepancy = value !== item.quantity_ordered;
+  const mockPurchaseOrders: PurchaseOrder[] = [
+    {
+      purchase_order_id: 6,
+      supplier_id: 1,
+      requested_by: 'Emma Davis',
+      expected_delivery_date: '2025-08-25',
+      payment_term_id: 1,
+      shipping_method_id: 1,
+      order_date: '2025-08-01',
+      authorized_by: 'Robert Brown',
+      delivery_address: '456 Medical Plaza, Downtown',
+      notes: 'Urgent order for upcoming procedures.',
+      supplier: {
+        supplier_id: 1,
+        company_name: 'DentalSupplies Inc.',
+        contact_person: 'Dr. Samantha Lee',
+        email: 'samantha@dentalsupplies.com',
+        phone_number: '+1-555-234-5678',
+        address: '456 Tooth Ave',
+        city: 'Colombo',
+        state: 'Western Province',
+        postal_code: '10100',
+        country: 'Sri Lanka',
+        website: 'https://www.dentalsupplies.com',
+        notes: 'Primary supplier for surgical items',
+        status: 'active'
+      },
+      payment_term: {
+        payment_term_id: 1,
+        payment_term: 'Net 30'
+      },
+      shipping_method: {
+        shipping_method_id: 1,
+        shipping_method: 'Express Delivery'
+      },
+      stock_receivings: [],
+      purchase_order_items: [
+        {
+          purchase_order_id: 6,
+          item_id: 3,
+          quantity: 100,
+          item: {
+            item_id: 3,
+            item_name: 'Surgical Masks',
+            unit_of_measurements: 'boxes',
+            unit_price: 45.99,
+            storage_location: 'Shelf C3',
+            barcode: '8901234567892',
+            expiry_alert_days: 90,
+            description: 'Disposable 3-layer surgical masks',
+            sub_category_id: 3,
+            supplier_id: 1,
+            batch_tracking: false
+          }
         }
+      ],
+      total_amount: 4599
+    }
+  ];
+
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      setDataLoading(true);
+      setError(null);
+      
+      try {
+        const [receiptsData, ordersData] = await Promise.all([
+          fetchStockReceipts(),
+          fetchPurchaseOrders()
+        ]);
         
-        return updatedItem;
+        setStockReceipts(receiptsData);
+        setPurchaseOrders(ordersData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setError('Failed to load data. Please try again.');
+        toast.error('Failed to load data');
+        
+        // Fallback to mock data for development
+        setStockReceipts(mockStockReceipts);
+        setPurchaseOrders(mockPurchaseOrders);
+      } finally {
+        setDataLoading(false);
       }
-      return item;
-    }));
+    };
+    
+    loadData();
+  }, []);
+
+
+
+  const executeDelete = async () => {
+    if (!selectedReceipt) return;
+    
+    try {
+      await deleteStockReceipt(selectedReceipt.stock_receiving_id);
+      setStockReceipts(prev => prev.filter(r => r.stock_receiving_id !== selectedReceipt.stock_receiving_id));
+      toast.success('Stock receipt deleted successfully');
+    } catch (error) {
+      console.error('Error deleting stock receipt:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to delete stock receipt: ${errorMessage}`);
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setSelectedReceipt(null);
+    }
   };
 
-  const getDiscrepancyCount = () => {
-    return receivingItems.filter(item => item.has_discrepancy).length;
-  };
-
-  const handleFileUpload = (fileType: 'invoice' | 'deliveryNote' | 'qcReport', file: File) => {
-    setUploadedFiles(prev => ({
-      ...prev,
-      [fileType]: {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        file: file
-      }
-    }));
-  };
-
-  const removeFile = (fileType: 'invoice' | 'deliveryNote' | 'qcReport') => {
-    setUploadedFiles(prev => ({
-      ...prev,
-      [fileType]: null
-    }));
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  const handleStatusToggle = async (receipt: StockReceiving, newStatus: boolean) => {
+    const updatedStatus = newStatus ? 'updated' : 'not-updated';
+    
+    try {
+      await updateStockReceipt(receipt.stock_receiving_id, { status: updatedStatus });
+      
+      setStockReceipts(prev => 
+        prev.map(r => 
+          r.stock_receiving_id === receipt.stock_receiving_id 
+            ? { ...r, status: updatedStatus }
+            : r
+        )
+      );
+      
+      toast.success(`Status updated to ${updatedStatus}`);
+    } catch (error) {
+      console.error('Error updating status:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to update status: ${errorMessage}`);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (readOnly) {
-      onOpenChange(false);
-      return;
-    }
-    
-    if (!formData.supplier_id) {
-      alert("Please select a supplier");
-      return;
-    }
-
-    if (!formData.receipt_date) {
-      alert("Please select a receipt date");
-      return;
-    }
-
     setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      const receiptNumber = `REC${Math.floor(1000 + Math.random() * 9000)}`;
+    
+    try {
+      const submitData = {
+        ...formData,
+        purchase_order_id: parseInt(formData.purchase_order_id)
+      };
       
-      if (initialData) {
-        alert(`Stock receipt ${initialData.receipt_number} updated successfully`);
+      if (selectedReceipt) {
+        // Edit mode
+        const updatedReceipt = await updateStockReceipt(selectedReceipt.stock_receiving_id, submitData);
+        
+        setStockReceipts(prev => prev.map(r => 
+          r.stock_receiving_id === selectedReceipt.stock_receiving_id 
+            ? { ...r, ...updatedReceipt }
+            : r
+        ));
+        
+        setIsEditOpen(false);
+        toast.success('Stock receipt updated successfully');
       } else {
-        alert(`Stock receipt ${receiptNumber} created successfully`);
+        // Add mode
+        const newReceipt = await createStockReceipt(submitData);
+        
+        // Fetch the complete receipt with relations
+        const receiptsData = await fetchStockReceipts();
+        setStockReceipts(receiptsData);
+        
+        setIsAddOpen(false);
+        toast.success('Stock receipt created successfully');
       }
-
-      onSuccess();
-      onOpenChange(false);
       
       // Reset form
       setFormData({
         purchase_order_id: '',
-        supplier_id: '',
-        receipt_date: new Date().toISOString().split('T')[0],
+        received_date: '',
         received_by: '',
-        notes: ''
+        invoice_url: '',
+        delivery_note_url: '',
+        qc_report_url: '',
+        notes: '',
+        status: 'not-updated'
       });
-      setReceivingItems([]);
       setUploadedFiles({
         invoice: null,
-        deliveryNote: null,
-        qcReport: null
+        delivery_note: null,
+        qc_report: null
       });
+      setSelectedReceipt(null);
+      setSelectedPO(null);
+      
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to ${selectedReceipt ? 'update' : 'create'} stock receipt: ${errorMessage}`);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
-  // Get PO items for the selected PO
-  const poItems = selectedPO?.purchase_order_items || [];
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="md:max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl sm:text-2xl">
-            {readOnly ? 'View Stock Receipt' : initialData ? 'Edit Stock Receipt' : 'Receive Stock Inventory'}
-          </DialogTitle>
-          <DialogDescription>
-            {readOnly
-              ? 'View details of received inventory'
-              : initialData
-              ? 'Update received inventory details'
-              : 'Record received inventory with batch tracking and documentation'}
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="purchase_order_id">Linked PO Number *</Label>
-                {formData.purchase_order_id && !readOnly && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="text-xs h-7 px-2 text-gray-500 hover:bg-red-50 hover:text-red-600 border-dashed"
-                    onClick={() => {
-                      setFormData({...formData, purchase_order_id: ''});
-                      setReceivingItems([]);
-                      setSelectedPO(null);
-                    }}
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Clear PO
-                  </Button>
-                )}
-              </div>
-              <Select
-                value={formData.purchase_order_id}
-                onValueChange={(value) => setFormData({ ...formData, purchase_order_id: value })}
-                disabled={readOnly}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select PO (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {purchaseOrders.map((po) => (
-                    <SelectItem key={po.purchase_order_id} value={po.purchase_order_id.toString()}>
-                      PO #{po.purchase_order_id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="supplier_id">Supplier *</Label>
-              <Select
-                value={formData.supplier_id}
-                onValueChange={(value) => setFormData({ ...formData, supplier_id: value })}
-                disabled={!!formData.purchase_order_id || readOnly}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={selectedPO ? selectedPO.supplier?.company_name : 'Select supplier'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {suppliers.map((supplier) => (
-                    <SelectItem key={supplier.supplier_id} value={supplier.supplier_id.toString()}>
-                      {supplier.company_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="receipt_date">Receipt Date *</Label>
-              <Input
-                id="receipt_date"
-                type="date"
-                value={formData.receipt_date}
-                onChange={(e) => setFormData({ ...formData, receipt_date: e.target.value })}
-                readOnly={readOnly}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="received_by">Received By</Label>
-              <Input
-                placeholder="John Doe"
-                value={formData.received_by}
-                onChange={(e) => setFormData({ ...formData, received_by: e.target.value })}
-                readOnly={readOnly}
-              />
-            </div>
-          </div>
-
-          {/* PO Items Table */}
-          {selectedPO && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Purchase Order Items</h3>
-              <div className="rounded-md border">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty Ordered</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {poItems.map((item, index) => (
-                      <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{item.item_name}</div>
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.quantity}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {item.unit_of_measure || 'units'}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.unit_price)}
-                        </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.quantity * item.unit_price)}
-                        </td>
-                      </tr>
-                    ))}
-                    {poItems.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
-                          No items found in this purchase order
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Document Upload */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Documentation</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Invoice Upload */}
-              <div className="space-y-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full flex items-center gap-2"
-                  onClick={() => document.getElementById('invoice-upload')?.click()}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Invoice
-                </Button>
-                <input
-                  id="invoice-upload"
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFileUpload('invoice', e.target.files[0])}
-                />
-                {uploadedFiles.invoice && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <span className="truncate">{uploadedFiles.invoice.name}</span>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 p-0"
-                      onClick={() => removeFile('invoice')}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Delivery Note Upload */}
-              <div className="space-y-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full flex items-center gap-2"
-                  onClick={() => document.getElementById('delivery-note-upload')?.click()}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Delivery Note
-                </Button>
-                <input
-                  id="delivery-note-upload"
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFileUpload('deliveryNote', e.target.files[0])}
-                />
-                {uploadedFiles.deliveryNote && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <span className="truncate">{uploadedFiles.deliveryNote.name}</span>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 p-0"
-                      onClick={() => removeFile('deliveryNote')}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* QC Report Upload */}
-              <div className="space-y-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full flex items-center gap-2"
-                  onClick={() => document.getElementById('qc-report-upload')?.click()}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload QC Report
-                </Button>
-                <input
-                  id="qc-report-upload"
-                  type="file"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFileUpload('qcReport', e.target.files[0])}
-                />
-                {uploadedFiles.qcReport && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    <span className="truncate">{uploadedFiles.qcReport.name}</span>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6 p-0"
-                      onClick={() => removeFile('qcReport')}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Receiving Items 
-          {receivingItems.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <h3 className="text-lg font-semibold">Received Items</h3>
-                {receivingItems.some((item) => item.has_discrepancy) && (
-                  <Badge variant="destructive" className="flex items-center gap-1 w-fit">
-                    <AlertTriangle className="h-3 w-3" />
-                    {receivingItems.filter((item) => item.has_discrepancy).length} Discrepancies
-                  </Badge>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                {receivingItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className={`border rounded-lg p-4 space-y-4 ${
-                      item.has_discrepancy ? 'border-red-300 bg-red-50' : ''
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">{item.item_name}</h4>
-                      {item.has_discrepancy && <Badge variant="destructive">Discrepancy</Badge>}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="space-y-2">
-                        <Label>Quantity Ordered</Label>
-                        <Input
-                          type="number"
-                          value={item.quantity_ordered}
-                          readOnly
-                          className="bg-gray-50"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Quantity Received *</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={item.quantity_received}
-                          onChange={(e) => updateReceivingItem(item.id, 'quantity_received', Number(e.target.value))}
-                          readOnly={readOnly}
-                          className={item.has_discrepancy ? 'border-red-300' : ''}
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Unit of Measure</Label>
-                        <Input
-                          value={item.unit_of_measure}
-                          onChange={(e) => updateReceivingItem(item.id, 'unit_of_measure', e.target.value)}
-                          readOnly={readOnly}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Condition</Label>
-                        <Select
-                          value={item.condition}
-                          onValueChange={(value) => updateReceivingItem(item.id, 'condition', value)}
-                          disabled={readOnly}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="good">Good</SelectItem>
-                            <SelectItem value="damaged">Damaged</SelectItem>
-                            <SelectItem value="expired">Expired</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Batch Number</Label>
-                        <Input
-                          value={item.batch_number}
-                          onChange={(e) => updateReceivingItem(item.id, 'batch_number', e.target.value)}
-                          readOnly={readOnly}
-                          placeholder="Batch number"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Lot Number</Label>
-                        <Input
-                          value={item.lot_number}
-                          onChange={(e) => updateReceivingItem(item.id, 'lot_number', e.target.value)}
-                          readOnly={readOnly}
-                          placeholder="Lot number"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Manufacture Date</Label>
-                        <Input
-                          type="date"
-                          value={item.manufacture_date}
-                          onChange={(e) => updateReceivingItem(item.id, 'manufacture_date', e.target.value)}
-                          readOnly={readOnly}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Expiry Date</Label>
-                        <Input
-                          type="date"
-                          value={item.expiry_date}
-                          onChange={(e) => updateReceivingItem(item.id, 'expiry_date', e.target.value)}
-                          readOnly={readOnly}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Storage Location</Label>
-                        <Input
-                          value={item.storage_location}
-                          onChange={(e) => updateReceivingItem(item.id, 'storage_location', e.target.value)}
-                          readOnly={readOnly}
-                          placeholder="e.g., Room 1 Cabinet A"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Remarks</Label>
-                        <Textarea
-                          value={item.remarks}
-                          onChange={(e) => updateReceivingItem(item.id, 'remarks', e.target.value)}
-                          readOnly={readOnly}
-                          placeholder="Special notes or observations"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}*/}
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes/Comments</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              readOnly={readOnly}
-              placeholder="Any special instructions or notes about this receipt..."
-            />
-          </div>
-
-          <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 mt-6">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              {readOnly ? 'Close' : 'Cancel'}
-            </Button>
-            {!readOnly && (
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={loading}>
-                {loading ? 'Saving...' : (initialData ? 'Update Receipt' : 'Save Receipt')}
-              </Button>
-            )}
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// Main Component
-const StockReceiving = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isItemsOpen, setIsItemsOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedReceipt, setSelectedReceipt] = useState<StockReceiving | null>(null);
-  const [stockReceipts, setStockReceipts] = useState<StockReceiving[]>(mockStockReceivings);
-  const [loading, setLoading] = useState(false);
-
-  const getDocumentStatus = (receipt: StockReceiving) => {
-    const docs = [];
-    if (receipt.invoice_uploaded) docs.push('Invoice');
-    if (receipt.delivery_note_uploaded) docs.push('Delivery Note');
-    if (receipt.qc_report_uploaded) docs.push('QC Report');
-    return docs;
+  const resetForm = () => {
+    setFormData({
+      purchase_order_id: '',
+      received_date: '',
+      received_by: '',
+      invoice_url: '',
+      delivery_note_url: '',
+      qc_report_url: '',
+      notes: '',
+      status: 'not-updated'
+    });
+    setUploadedFiles({
+      invoice: null,
+      delivery_note: null,
+      qc_report: null
+    });
+    setSelectedReceipt(null);
+    setSelectedPO(null);
   };
 
-  const filteredReceipts = stockReceipts.filter((receipt) => {
-    const matchesSearch = 
-      receipt.stock_receiving_id.toString().includes(searchTerm.toLowerCase()) ||
-      receipt.purchase_order?.supplier?.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      receipt.purchase_order_id.toString().includes(searchTerm.toLowerCase()) ||
-      receipt.received_by.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      receipt.suppliers?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  // Handle purchase order selection
+  const handlePOSelection = (poId: string) => {
+    setFormData(prev => ({ ...prev, purchase_order_id: poId }));
+    const po = purchaseOrders.find(p => p.purchase_order_id === parseInt(poId));
+    setSelectedPO(po || null);
+  };
 
+  // Handler functions for CRUD operations
   const handleViewReceipt = (receipt: StockReceiving) => {
     setSelectedReceipt(receipt);
     setIsViewOpen(true);
@@ -1451,66 +683,164 @@ const StockReceiving = () => {
 
   const handleEditReceipt = (receipt: StockReceiving) => {
     setSelectedReceipt(receipt);
+    setFormData({
+      purchase_order_id: receipt.purchase_order_id.toString(),
+      received_date: receipt.received_date,
+      received_by: receipt.received_by,
+      invoice_url: receipt.invoice_url || '',
+      delivery_note_url: receipt.delivery_note_url || '',
+      qc_report_url: receipt.qc_report_url || '',
+      notes: receipt.notes || '',
+      status: receipt.status
+    });
+    const po = purchaseOrders.find(p => p.purchase_order_id === receipt.purchase_order_id);
+    setSelectedPO(po || null);
     setIsEditOpen(true);
   };
-  
-  const handleViewItems = (receipt: StockReceiving) => {
-    setSelectedReceipt(receipt);
-    setIsItemsOpen(true);
-  };
-  
+
   const handleDeleteReceipt = (receipt: StockReceiving) => {
     setSelectedReceipt(receipt);
     setIsDeleteDialogOpen(true);
   };
-  
-  const executeDelete = async () => {
-    if (!selectedReceipt) return;
-    
-    setLoading(true);
-    
-    setTimeout(() => {
-      setStockReceipts(prev => prev.filter(r => r.stock_receiving_id !== selectedReceipt.stock_receiving_id));
-      setIsDeleteDialogOpen(false);
-      setSelectedReceipt(null);
-      setLoading(false);
-    }, 1000);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'updated':
+        return (
+          <Badge className="bg-green-100 text-green-800 border-green-200">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Updated
+          </Badge>
+        );
+      case 'not-updated':
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending Update
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline">
+            {status}
+          </Badge>
+        );
+    }
   };
 
-  const handleSuccess = () => {
-    // In a real app, this would refetch data
-    setStockReceipts([...stockReceipts]);
+  const getDocumentCount = (receipt: StockReceiving) => {
+    let count = 0;
+    if (receipt.invoice_url) count++;
+    if (receipt.delivery_note_url) count++;
+    if (receipt.qc_report_url) count++;
+    return count;
   };
+
+  // Filter receipts based on search term
+  const filteredReceipts = stockReceipts.filter(receipt => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const receiptId = receipt.stock_receiving_id.toString();
+    const supplierName = receipt.purchase_order?.supplier?.company_name?.toLowerCase() || '';
+    const poNumber = receipt.purchase_order_id.toString();
+    const receivedBy = receipt.received_by.toLowerCase();
+    
+    return receiptId.includes(searchLower) ||
+           supplierName.includes(searchLower) ||
+           poNumber.includes(searchLower) ||
+           receivedBy.includes(searchLower);
+  });
+
+  // Show loading state
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-6">
+        <div className="max-w-7xl mx-auto space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Stock Receiving</h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">
+                Manage inventory receipts with batch tracking and quality control
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-center py-48">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
+              <p className="text-gray-600 mt-4">Loading stock receiving data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error && stockReceipts.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-6">
+        <div className="max-w-7xl mx-auto space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Stock Receiving</h1>
+              <p className="text-gray-600 mt-1 text-sm sm:text-base">
+                Manage inventory receipts with batch tracking and quality control
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="text-red-500 mb-4">
+                <AlertTriangle className="h-12 w-12 mx-auto" />
+              </div>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <Button 
+                onClick={() => window.location.reload()}
+                className="bg-emerald-500 hover:bg-emerald-600"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 ">
-      <div className="max-w-7xl mx-auto pb-6 space-y-4 ">
-        {/* Header Section */}
+    <div className="min-h-screen bg-gray-50 pb-6">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <div className="space-y-1">
+          <div>
             <h1 className="text-2xl font-semibold text-gray-900">Stock Receiving</h1>
-            <p className="text-sm sm:text-base text-gray-600">
-              Receive inventory items with batch tracking and discrepancy management
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
+              Manage inventory receipts with batch tracking and quality control
             </p>
           </div>
           
           <Button 
-            className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
-            onClick={() => setIsAddOpen(true)}
+            className="bg-emerald-500 hover:bg-emerald-600 w-full sm:w-auto"
+            onClick={() => {
+              resetForm();
+              setIsAddOpen(true);
+            }}
           >
             <Plus className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Receive Stock</span>
-            <span className="sm:hidden">Add Stock</span>
+            Receive Stock
           </Button>
         </div>
 
-        {/* Search Section */}
+        {/* Search */}
         <Card>
           <CardContent className="p-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
-                placeholder="Search by receipt ID, supplier, PO, or receiver..."
+                placeholder="Search by receipt ID, supplier, PO number, or received by..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -1519,48 +849,49 @@ const StockReceiving = () => {
           </CardContent>
         </Card>
 
-        
-        {/* Receipts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+        {/* Stock Receipts Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredReceipts.map((receipt) => (
             <Card key={receipt.stock_receiving_id} className="hover:shadow-lg transition-shadow duration-200">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base sm:text-lg font-semibold truncate">
-                      Receipt #{receipt.receipt_number || receipt.stock_receiving_id}
+                    <CardTitle className="text-lg font-semibold truncate">
+                      Receipt #{receipt.stock_receiving_id}
                     </CardTitle>
-                    <CardDescription className="mt-1 text-xs sm:text-sm">
+                    <CardDescription className="mt-1 text-sm">
                       <span className="truncate block">
-                        {receipt.suppliers?.name || receipt.purchase_order?.supplier?.company_name || 'No supplier'}
+                        {receipt.purchase_order?.supplier?.company_name || 'Unknown Supplier'}
                       </span>
                       <span className="text-xs text-gray-500">
                         {new Date(receipt.received_date).toLocaleDateString()}
                       </span>
                     </CardDescription>
                   </div>
-                  <div className="flex flex-col gap-1 ml-2">
-                    <Badge className="bg-green-100 text-green-800 text-xs">
-                      <CheckCircle className="h-2 w-2 mr-1" />
-                      Received
-                    </Badge>
-                    {receipt.has_discrepancy && (
-                      <Badge variant="destructive" className="text-xs">
-                        <AlertTriangle className="h-2 w-2 mr-1" />
-                        Issues
-                      </Badge>
-                    )}
+                  <div className="flex flex-col gap-2 ml-2">
+                    {getStatusBadge(receipt.status)}
+                    
+                    {/* Status Toggle */}
+                    <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border">
+                      <span className="text-xs font-medium text-gray-600">
+                        {receipt.status === 'updated' ? 'Updated' : 'Pending'}
+                      </span>
+                      <Switch
+                        checked={receipt.status === 'updated'}
+                        onCheckedChange={(checked) => handleStatusToggle(receipt, checked)}
+                        className="scale-75"
+                      />
+                    </div>
                   </div>
                 </div>
               </CardHeader>
               
               <CardContent className="space-y-4">
-                {/* Receipt Details */}
-                <div className="space-y-2 text-xs sm:text-sm">
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 flex items-center gap-1">
                       <FileText className="h-3 w-3" />
-                      PO Number:
+                      PO:
                     </span>
                     <span className="font-medium">#{receipt.purchase_order_id}</span>
                   </div>
@@ -1568,102 +899,71 @@ const StockReceiving = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 flex items-center gap-1">
                       <User className="h-3 w-3" />
-                      Received By:
+                      Received by:
                     </span>
-                    <span className="font-medium truncate max-w-24 sm:max-w-32" title={receipt.received_by}>
-                      {receipt.received_by}
+                    <span className="font-medium text-xs truncate max-w-20">{receipt.received_by}</span>
+                  </div>
+                  
+                 {/* <div className="flex justify-between items-center">
+                    <span className="text-gray-600 flex items-center gap-1">
+                      <Package className="h-3 w-3" />
+                      Quantity
                     </span>
+                    <span className="font-medium">{receipt.purchase_order? || 0}</span>
+                  </div> */}
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600 flex items-center gap-1">
+                      <Upload className="h-3 w-3" />
+                      Documents:
+                    </span>
+                    <span className="font-medium">{getDocumentCount(receipt)}/3</span>
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600 flex items-center gap-1">
-                      <Package2 className="h-3 w-3" />
-                      Items:
+                      <DollarSign className="h-3 w-3" />
+                      Total:
                     </span>
-                    <span className="font-medium">{receipt.items_count || receipt.stock_receipt_items?.length || 0}</span>
-                  </div>
-                  
-                  {receipt.purchase_order?.supplier && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600 flex items-center gap-1">
-                        <Building2 className="h-3 w-3" />
-                        Contact:
-                      </span>
-                      <span className="font-medium text-xs truncate max-w-20 sm:max-w-28" 
-                            title={receipt.purchase_order.supplier.contact_person}>
-                        {receipt.purchase_order.supplier.contact_person}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Document Status */}
-                <div className="space-y-2">
-                  <span className="text-xs sm:text-sm font-medium text-gray-600">Documentation:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {getDocumentStatus(receipt).length > 0 ? (
-                      getDocumentStatus(receipt).map((doc) => (
-                        <Badge key={doc} variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                          <Upload className="h-2 w-2 mr-1" />
-                          {doc}
-                        </Badge>
-                      ))
-                    ) : (
-                      <Badge variant="outline" className="text-xs text-gray-500">
-                        No documents
-                      </Badge>
-                    )}
+                    <span className="font-medium text-green-600">
+                      ${(receipt.purchase_order?.total_amount || 0).toLocaleString()}
+                    </span>
                   </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="grid grid-cols-4 gap-1 pt-2">
+                <div className="flex gap-2 pt-2">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="p-2"
+                    className="flex-1"
                     onClick={() => handleViewReceipt(receipt)}
-                    title="View Receipt"
                   >
-                    <Eye className="h-3 w-3" />
+                    <Eye className="h-3 w-3 mr-1" />
+                    View
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="p-2"
+                    className="flex-1"
                     onClick={() => handleEditReceipt(receipt)}
-                    title="Edit Receipt"
                   >
-                    <Edit className="h-3 w-3" />
+                    <Edit className="h-3 w-3 mr-1" />
+                    Edit
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="p-2"
-                    onClick={() => handleViewItems(receipt)}
-                    title="View Items"
-                  >
-                    <Package className="h-3 w-3" />
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="p-2 text-red-500 hover:bg-red-50 hover:text-red-600"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteReceipt(receipt);
-                    }}
-                    title="Delete Receipt"
+                    className="text-red-500 hover:bg-red-50 hover:text-red-600"
+                    onClick={() => handleDeleteReceipt(receipt)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
 
-                {/* Notes */}
                 {receipt.notes && (
-                  <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                    <strong>Notes:</strong> 
-                    <span className="block sm:inline sm:ml-1">{receipt.notes}</span>
+                  <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded border-l-2 border-blue-200">
+                    <strong>Notes:</strong> {receipt.notes}
                   </div>
                 )}
               </CardContent>
@@ -1673,13 +973,11 @@ const StockReceiving = () => {
 
         {/* Empty State */}
         {filteredReceipts.length === 0 && (
-          <Card className="text-center py-8 sm:py-12">
+          <Card className="text-center py-12">
             <CardContent>
-              <Truck className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                No stock receipts found
-              </h3>
-              <p className="text-sm sm:text-base text-gray-600 mb-4 px-4">
+              <Truck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No stock receipts found</h3>
+              <p className="text-gray-600 mb-4">
                 {searchTerm 
                   ? "Try adjusting your search terms"
                   : "Get started by receiving your first stock delivery"
@@ -1687,8 +985,11 @@ const StockReceiving = () => {
               </p>
               {!searchTerm && (
                 <Button 
-                  className="bg-blue-600 hover:bg-blue-700"
-                  onClick={() => setIsAddOpen(true)}
+                  className="bg-emerald-500 hover:bg-emerald-600"
+                  onClick={() => {
+                    resetForm();
+                    setIsAddOpen(true);
+                  }}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Receive First Stock
@@ -1697,84 +998,813 @@ const StockReceiving = () => {
             </CardContent>
           </Card>
         )}
-
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-  <AlertDialogContent className="mx-4 max-w-md">
-    <AlertDialogHeader>
-      <AlertDialogTitle className="text-red-600 flex items-center text-base sm:text-lg">
-        <Trash2 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-        Delete Stock Receipt
-      </AlertDialogTitle>
-      <AlertDialogDescription className="pt-3 text-sm">
-        {selectedReceipt && (
-          <>
-            <p className="mb-4">Are you sure you want to delete this stock receipt?</p>
-            <div className="bg-gray-50 p-3 rounded-md mb-4 border-l-4 border-red-400">
-              <p className="font-medium">
-                Receipt #{selectedReceipt.receipt_number || selectedReceipt.stock_receiving_id}
-              </p>
-              <p className="text-sm text-gray-600">
-                Supplier: {selectedReceipt.suppliers?.name || selectedReceipt.purchase_order?.supplier?.company_name || 'Unknown'}
-              </p>
-              <p className="text-sm text-gray-600">
-                Date: {new Date(selectedReceipt.received_date).toLocaleDateString()}
-              </p>
-            </div>
-            <p className="text-red-500 text-sm">
-              This will permanently delete the receipt and all its items. This action cannot be undone.
-            </p>
-          </>
-        )}
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter className="flex flex-col sm:flex-row gap-2">
-      <AlertDialogCancel disabled={loading} className="w-full sm:w-auto">
-        Cancel
-      </AlertDialogCancel>
-      <AlertDialogAction
-        className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
-        onClick={executeDelete}
-        disabled={loading}
-      >
-        {loading ? 'Deleting...' : 'Delete Receipt'}
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-
-
-        {/* Modal Components */}
-        <StockReceivingForm
-          suppliers={mockSuppliers}
-          purchaseOrders={mockPurchaseOrders}
-          onSuccess={handleSuccess}
-          isOpen={isAddOpen}
-          onOpenChange={setIsAddOpen}
-        />
-        
-        <StockReceivingView
-          receipt={selectedReceipt}
-          isOpen={isViewOpen}
-          onOpenChange={setIsViewOpen}
-        />
-        
-        <StockReceivingForm
-          suppliers={mockSuppliers}
-          purchaseOrders={mockPurchaseOrders}
-          onSuccess={handleSuccess}
-          isOpen={isEditOpen}
-          onOpenChange={setIsEditOpen}
-          initialData={selectedReceipt}
-        />
-        
-        <StockItemsView
-          receipt={selectedReceipt}
-          isOpen={isItemsOpen}
-          onOpenChange={setIsItemsOpen}
-        />
       </div>
+
+      {/* Add/Edit Stock Receipt Dialog */}
+      <Dialog open={isAddOpen || isEditOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsAddOpen(false);
+          setIsEditOpen(false);
+          resetForm();
+        }
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedReceipt ? 'Edit Stock Receipt' : 'Receive New Stock'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedReceipt 
+                ? 'Update the stock receipt information below.'
+                : 'Fill in the details to record a new stock receipt.'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="purchase_order_id">Purchase Order *</Label>
+                <Select 
+                  value={formData.purchase_order_id} 
+                  onValueChange={handlePOSelection}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Purchase Order" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {purchaseOrders.map((po) => (
+                      <SelectItem key={po.purchase_order_id} value={po.purchase_order_id.toString()}>
+                        PO #{po.purchase_order_id} - {po?.supplier?.company_name || 'Unknown Supplier'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="received_date">Received Date *</Label>
+                <Input
+                  id="received_date"
+                  type="date"
+                  value={formData.received_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, received_date: e.target.value }))}
+                  required
+                />
+              </div>
+            </div>
+            
+            {/* Purchase Order Details Preview */}
+            {selectedPO && (
+              <Card className="mt-4 bg-blue-50 border-blue-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center">
+                    <Package className="h-5 w-5 mr-2 text-blue-600" />
+                    Purchase Order Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* PO Summary */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Order Date:</span>
+                      <p className="font-medium">{new Date(selectedPO.order_date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Expected Delivery:</span>
+                      <p className="font-medium">{new Date(selectedPO.expected_delivery_date).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Total Amount:</span>
+                      <p className="font-semibold text-green-600">${(selectedPO?.total_amount || 0).toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Supplier Info */}
+                  <div className="bg-white p-3 rounded-lg border">
+                    <h4 className="font-medium text-sm mb-2 flex items-center">
+                      <Building2 className="h-4 w-4 mr-1" />
+                      Supplier Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600">Company:</span>
+                        <p className="font-medium">{selectedPO?.supplier?.company_name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Contact:</span>
+                        <p className="font-medium">{selectedPO?.supplier?.contact_person || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Email:</span>
+                        <p className="font-medium text-xs">{selectedPO?.supplier?.email || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Phone:</span>
+                        <p className="font-medium text-xs">{selectedPO?.supplier?.phone_number || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Details */}
+                  <div className="bg-white p-3 rounded-lg border">
+                    <h4 className="font-medium text-sm mb-2 flex items-center">
+                      <FileText className="h-4 w-4 mr-1" />
+                      Order Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600">Requested By:</span>
+                        <p className="font-medium">{selectedPO.requested_by}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Authorized By:</span>
+                        <p className="font-medium">{selectedPO.authorized_by}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Payment Terms:</span>
+                        <p className="font-medium">{selectedPO?.payment_term?.payment_term || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Shipping Method:</span>
+                        <p className="font-medium">{selectedPO?.shipping_method?.shipping_method || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <span className="text-gray-600">Delivery Address:</span>
+                      <p className="font-medium text-sm">{selectedPO.delivery_address}</p>
+                    </div>
+                  </div>
+
+                  {/* Items to Receive */}
+                  <div className="bg-white p-3 rounded-lg border">
+                    <h4 className="font-medium text-sm mb-3 flex items-center justify-between">
+                      <span className="flex items-center">
+                        <Package className="h-4 w-4 mr-1" />
+                        Items to Receive ({selectedPO?.purchase_order_items?.length || 0} items)
+                      </span>
+                      <span className="text-green-600 font-semibold">
+                        Total: ${(selectedPO?.total_amount || 0).toLocaleString()}
+                      </span>
+                    </h4>
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {(selectedPO?.purchase_order_items || []).map((item, index) => (
+                        <div key={item.item_id} className="bg-gray-50 p-4 rounded-lg border-l-4 border-blue-400 hover:bg-gray-100 transition-colors">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h5 className="font-semibold text-base text-gray-900 truncate">{item?.item?.item_name || 'Unknown Item'}</h5>
+                              <p className="text-sm text-gray-600 mt-1">{item?.item?.description || 'No description'}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {item?.item?.unit_of_measurements || 'N/A'}
+                                </Badge>
+                                <Badge 
+                                  variant={item?.item?.batch_tracking ? "default" : "outline"}
+                                  className="text-xs"
+                                >
+                                  {item?.item?.batch_tracking ? 'Batch Tracked' : 'No Batch Tracking'}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="text-right ml-4 bg-blue-100 p-3 rounded-lg">
+                              <p className="text-sm text-gray-600 mb-1">Quantity to Receive</p>
+                              <p className="text-2xl font-bold text-blue-600">{item.quantity}</p>
+                              <p className="text-xs text-gray-500">{item.item.unit_of_measurements}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm bg-white p-3 rounded border">
+                            <div className="text-center">
+                              <span className="text-gray-500 block text-xs">Unit Price</span>
+                              <p className="font-semibold text-green-600">${item?.item?.unit_price || 0}</p>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-gray-500 block text-xs">Line Total</span>
+                              <p className="font-semibold text-green-600">
+                                ${((item?.item?.unit_price || 0) * (item?.quantity || 0)).toLocaleString()}
+                              </p>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-gray-500 block text-xs">Storage Location</span>
+                              <p className="font-medium text-gray-900 truncate">{item?.item?.storage_location || 'N/A'}</p>
+                            </div>
+                            <div className="text-center">
+                              <span className="text-gray-500 block text-xs">Expiry Alert</span>
+                              <p className="font-medium text-gray-900">{item?.item?.expiry_alert_days || 0} days</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-3 text-sm bg-gray-100 p-2 rounded">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600">Barcode:</span>
+                              <span className="font-mono text-gray-900">{item?.item?.barcode || 'N/A'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Summary Footer */}
+                    <div className="mt-4 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium text-blue-900">
+                          Total Items: {(selectedPO?.purchase_order_items || []).reduce((sum, item) => sum + (item?.quantity || 0), 0)} units
+                        </span>
+                        <span className="font-bold text-blue-900 text-lg">
+                          Order Total: ${(selectedPO?.total_amount || 0).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PO Notes */}
+                  {selectedPO.notes && (
+                    <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                      <h4 className="font-medium text-sm mb-2 text-yellow-800">Purchase Order Notes:</h4>
+                      <p className="text-sm text-yellow-700">{selectedPO.notes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="received_by">Received By *</Label>
+                <Input
+                  id="received_by"
+                  value={formData.received_by}
+                  onChange={(e) => setFormData(prev => ({ ...prev, received_by: e.target.value }))}
+                  placeholder="Enter receiver name"
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select 
+                  value={formData.status} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="not-updated">Not Updated</SelectItem>
+                    <SelectItem value="updated">Updated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            {/* File Upload Section */}
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-gray-900 flex items-center">
+                <Upload className="h-4 w-4 mr-2" />
+                Document Uploads
+              </h4>
+              
+              {/* Invoice Upload */}
+              <div className="space-y-2">
+                <Label htmlFor="invoice_file">Invoice Document</Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      id="invoice_file"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleFileSelect(file, 'invoice');
+                        }
+                      }}
+                      className="cursor-pointer"
+                      disabled={uploadLoading.invoice}
+                    />
+                  </div>
+                  {uploadLoading.invoice && (
+                    <div className="text-sm text-blue-600 flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      Uploading...
+                    </div>
+                  )}
+                  {uploadedFiles.invoice && !uploadLoading.invoice && (
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm text-green-600 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Uploaded
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFileRemove('invoice')}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {formData.invoice_url && (
+                  <div className="text-xs text-gray-500 truncate bg-gray-50 p-2 rounded border">
+                    📄 {uploadedFiles.invoice?.name || 'Previously uploaded file'}
+                  </div>
+                )}
+              </div>
+              
+              {/* Delivery Note Upload */}
+              <div className="space-y-2">
+                <Label htmlFor="delivery_note_file">Delivery Note</Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      id="delivery_note_file"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleFileSelect(file, 'delivery_note');
+                        }
+                      }}
+                      className="cursor-pointer"
+                      disabled={uploadLoading.delivery_note}
+                    />
+                  </div>
+                  {uploadLoading.delivery_note && (
+                    <div className="text-sm text-blue-600 flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      Uploading...
+                    </div>
+                  )}
+                  {uploadedFiles.delivery_note && !uploadLoading.delivery_note && (
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm text-green-600 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Uploaded
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFileRemove('delivery_note')}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {formData.delivery_note_url && (
+                  <div className="text-xs text-gray-500 truncate bg-gray-50 p-2 rounded border">
+                    📦 {uploadedFiles.delivery_note?.name || 'Previously uploaded file'}
+                  </div>
+                )}
+              </div>
+              
+              {/* QC Report Upload */}
+              <div className="space-y-2">
+                <Label htmlFor="qc_report_file">Quality Control Report</Label>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <Input
+                      id="qc_report_file"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleFileSelect(file, 'qc_report');
+                        }
+                      }}
+                      className="cursor-pointer"
+                      disabled={uploadLoading.qc_report}
+                    />
+                  </div>
+                  {uploadLoading.qc_report && (
+                    <div className="text-sm text-blue-600 flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      Uploading...
+                    </div>
+                  )}
+                  {uploadedFiles.qc_report && !uploadLoading.qc_report && (
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm text-green-600 flex items-center">
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Uploaded
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleFileRemove('qc_report')}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                {formData.qc_report_url && (
+                  <div className="text-xs text-gray-500 truncate bg-gray-50 p-2 rounded border">
+                    📋 {uploadedFiles.qc_report?.name || 'Previously uploaded file'}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Additional notes about the receipt..."
+                rows={3}
+              />
+            </div>
+            
+            <DialogFooter className="flex flex-col sm:flex-row gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setIsAddOpen(false);
+                  setIsEditOpen(false);
+                  resetForm();
+                }}
+                className="w-full sm:w-auto"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={loading}
+                className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600"
+              >
+                {loading ? 'Saving...' : (selectedReceipt ? 'Update Receipt' : 'Save Receipt')}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Receipt Dialog */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Stock Receipt Details</DialogTitle>
+            <DialogDescription>
+              View complete information for this stock receipt
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedReceipt && (
+            <div className="mt-6 space-y-6">
+              {/* Receipt Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    Receipt #{selectedReceipt.stock_receiving_id}
+                    {getStatusBadge(selectedReceipt.status)}
+                  </CardTitle>
+                  <CardDescription>
+                    Received on {new Date(selectedReceipt.received_date).toLocaleDateString()}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Purchase Order:</span>
+                      <p className="font-medium">#{selectedReceipt.purchase_order_id}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Received By:</span>
+                      <p className="font-medium">{selectedReceipt.received_by}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Order Date:</span>
+                      <p className="font-medium">
+                        {new Date(selectedReceipt.purchase_order.order_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Expected Delivery:</span>
+                      <p className="font-medium">
+                        {new Date(selectedReceipt.purchase_order.expected_delivery_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Supplier Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <Building2 className="h-5 w-5 mr-2" />
+                    Supplier Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <h4 className="font-semibold text-lg">{selectedReceipt?.purchase_order?.supplier?.company_name || 'Unknown Supplier'}</h4>
+                    <p className="text-gray-600 text-sm">{selectedReceipt?.purchase_order?.supplier?.contact_person || 'N/A'}</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <span className="text-xs break-all">{selectedReceipt?.purchase_order?.supplier?.email || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span className="text-xs">{selectedReceipt?.purchase_order?.supplier?.phone_number || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span className="text-xs">
+                        {selectedReceipt?.purchase_order?.supplier?.city || 'N/A'}, {selectedReceipt?.purchase_order?.supplier?.state || 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-gray-500" />
+                      <a 
+                        href={selectedReceipt?.purchase_order?.supplier?.website || '#'} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline text-xs truncate"
+                      >
+                        Website
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2">
+                    <span className="text-gray-600 text-sm">Address:</span>
+                    <p className="text-sm">
+                      {selectedReceipt?.purchase_order?.supplier?.address || 'N/A'}, {selectedReceipt?.purchase_order?.supplier?.city || 'N/A'}, {selectedReceipt?.purchase_order?.supplier?.state || 'N/A'} {selectedReceipt?.purchase_order?.supplier?.postal_code || 'N/A'}, {selectedReceipt?.purchase_order?.supplier?.country || 'N/A'}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Order Details */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    <span className="flex items-center">
+                      <Package className="h-5 w-5 mr-2" />
+                      Order Details
+                    </span>
+                    <span className="text-green-600 font-semibold">
+                      ${(selectedReceipt?.purchase_order?.total_amount || 0).toLocaleString()}
+                    </span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Payment Terms:</span>
+                      <p className="font-medium">{selectedReceipt?.purchase_order?.payment_term?.payment_term || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Shipping Method:</span>
+                      <p className="font-medium">{selectedReceipt?.purchase_order?.shipping_method?.shipping_method || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Requested By:</span>
+                      <p className="font-medium">{selectedReceipt?.purchase_order?.requested_by || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Authorized By:</span>
+                      <p className="font-medium">{selectedReceipt?.purchase_order?.authorized_by || 'N/A'}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-gray-600 text-sm">Delivery Address:</span>
+                    <p className="text-sm">{selectedReceipt?.purchase_order?.delivery_address || 'N/A'}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Items Received */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Items Received</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {(selectedReceipt?.purchase_order?.purchase_order_items || []).map((item) => (
+                      <div key={item.item_id} className="border rounded-lg p-4 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm truncate">{item?.item?.item_name || 'Unknown Item'}</h4>
+                            <p className="text-xs text-gray-600 truncate">{item?.item?.description || 'No description'}</p>
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="font-semibold text-sm">Qty: {item?.quantity || 0}</p>
+                            <p className="text-xs text-gray-600">{item?.item?.unit_of_measurements || 'N/A'}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                          <div>
+                            <span className="text-gray-500">Unit Price:</span>
+                            <p className="font-medium">${item?.item?.unit_price || 0}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Total:</span>
+                            <p className="font-medium">${((item?.item?.unit_price || 0) * (item?.quantity || 0)).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Location:</span>
+                            <p className="font-medium truncate">{item?.item?.storage_location || 'N/A'}</p>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Batch Tracking:</span>
+                            <Badge 
+                              variant={item?.item?.batch_tracking ? "default" : "outline"}
+                              className="text-xs"
+                            >
+                              {item?.item?.batch_tracking ? 'Yes' : 'No'}
+                            </Badge>
+                          </div>
+                        </div>
+                        
+                        <div className="text-xs">
+                          <span className="text-gray-500">Barcode:</span>
+                          <span className="font-mono ml-1">{item?.item?.barcode || 'N/A'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Documents */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center">
+                    <FileCheck className="h-5 w-5 mr-2" />
+                    Documents ({getDocumentCount(selectedReceipt)}/3)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-3">
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">Invoice</span>
+                      </div>
+                      {selectedReceipt.invoice_url ? (
+                        <a 
+                          href={selectedReceipt.invoice_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-sm"
+                        >
+                          View Document
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Not uploaded</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">Delivery Note</span>
+                      </div>
+                      {selectedReceipt.delivery_note_url ? (
+                        <a 
+                          href={selectedReceipt.delivery_note_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-sm"
+                        >
+                          View Document
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Not uploaded</span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">QC Report</span>
+                      </div>
+                      {selectedReceipt.qc_report_url ? (
+                        <a 
+                          href={selectedReceipt.qc_report_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-sm"
+                        >
+                          View Document
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Not uploaded</span>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Notes */}
+              {(selectedReceipt.notes || selectedReceipt.purchase_order.notes) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {selectedReceipt.notes && (
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-700 mb-2">Receipt Notes:</h4>
+                        <p className="text-sm bg-blue-50 p-3 rounded border-l-4 border-blue-400">
+                          {selectedReceipt.notes}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {selectedReceipt.purchase_order.notes && (
+                      <div>
+                        <h4 className="font-medium text-sm text-gray-700 mb-2">Purchase Order Notes:</h4>
+                        <p className="text-sm bg-gray-50 p-3 rounded border-l-4 border-gray-400">
+                          {selectedReceipt.purchase_order.notes}
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter className="mt-6">
+            <Button 
+              onClick={() => setIsViewOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600 flex items-center">
+              <Trash2 className="h-5 w-5 mr-2" />
+              Delete Stock Receipt
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-3">
+              {selectedReceipt && (
+                <>
+                  <p className="mb-4">Are you sure you want to delete this stock receipt?</p>
+                  <div className="bg-gray-50 p-3 rounded-md mb-4 border-l-4 border-red-400">
+                    <p className="font-medium">Receipt #{selectedReceipt.stock_receiving_id}</p>
+                    <p className="text-sm text-gray-600">
+                      Supplier: {selectedReceipt.purchase_order.supplier.company_name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Date: {new Date(selectedReceipt.received_date).toLocaleDateString()}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Total Value: ${selectedReceipt.purchase_order.total_amount.toLocaleString()}
+                    </p>
+                  </div>
+                  <p className="text-red-500 text-sm">
+                    This will permanently delete the receipt and all associated data.
+                    This action cannot be undone.
+                  </p>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel disabled={loading} className="w-full sm:w-auto">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto" 
+              onClick={executeDelete}
+              disabled={loading}
+            >
+              {loading ? 'Deleting...' : 'Delete Receipt'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-}
+};
 
-export default StockReceiving;
+export default StockReceivingSystem;

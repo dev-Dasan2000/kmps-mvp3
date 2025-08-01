@@ -10,10 +10,41 @@ router.get('/',  /*authenticateToken,*/ async (req, res) => {
   try {
     const stockReceivings = await prisma.stock_receiving.findMany({
       include: {
-        purchase_order: true,
+        purchase_order: {
+          include: {
+            supplier: true,
+            payment_term: true,
+            shipping_method: true,
+            purchase_order_items: {
+              include: {
+                item: true
+              }
+            }
+          }
+        }
       },
     });
-    res.json(stockReceivings);
+    
+    // Calculate total_amount for each purchase_order
+    const enrichedStockReceivings = stockReceivings.map((sr) => {
+      if (sr.purchase_order && sr.purchase_order.purchase_order_items) {
+        const totalAmount = sr.purchase_order.purchase_order_items.reduce((sum, poi) => {
+          const unitPrice = poi.item?.unit_price || 0;
+          return sum + poi.quantity * unitPrice;
+        }, 0);
+        
+        return {
+          ...sr,
+          purchase_order: {
+            ...sr.purchase_order,
+            total_amount: totalAmount,
+          }
+        };
+      }
+      return sr;
+    });
+    
+    res.json(enrichedStockReceivings);
   } catch (error) {
     console.error('Error fetching stock receivings:', error);
     res.status(500).json({ error: 'Failed to fetch stock receivings' });
@@ -27,10 +58,32 @@ router.get('/:stock_receiving_id',  /*authenticateToken,*/ async (req, res) => {
     const stockReceiving = await prisma.stock_receiving.findUnique({
       where: { stock_receiving_id: id },
       include: {
-        purchase_order: true,
+        purchase_order: {
+          include: {
+            supplier: true,
+            payment_term: true,
+            shipping_method: true,
+            purchase_order_items: {
+              include: {
+                item: true
+              }
+            }
+          }
+        }
       },
     });
     if (!stockReceiving) return res.status(404).json({ error: 'Stock receiving not found' });
+    
+    // Calculate total_amount for purchase_order
+    if (stockReceiving.purchase_order && stockReceiving.purchase_order.purchase_order_items) {
+      const totalAmount = stockReceiving.purchase_order.purchase_order_items.reduce((sum, poi) => {
+        const unitPrice = poi.item?.unit_price || 0;
+        return sum + poi.quantity * unitPrice;
+      }, 0);
+      
+      stockReceiving.purchase_order.total_amount = totalAmount;
+    }
+    
     res.json(stockReceiving);
   } catch (error) {
     console.error('Error fetching stock receiving:', error);
@@ -63,7 +116,31 @@ router.post('/',  /*authenticateToken,*/ async (req, res) => {
         notes,
         status
       },
+      include: {
+        purchase_order: {
+          include: {
+            supplier: true,
+            payment_term: true,
+            shipping_method: true,
+            purchase_order_items: {
+              include: {
+                item: true
+              }
+            }
+          }
+        }
+      },
     });
+    
+    // Calculate total_amount for purchase_order
+    if (newStockReceiving.purchase_order && newStockReceiving.purchase_order.purchase_order_items) {
+      const totalAmount = newStockReceiving.purchase_order.purchase_order_items.reduce((sum, poi) => {
+        const unitPrice = poi.item?.unit_price || 0;
+        return sum + poi.quantity * unitPrice;
+      }, 0);
+      
+      newStockReceiving.purchase_order.total_amount = totalAmount;
+    }
 
     res.status(201).json(newStockReceiving);
   } catch (error) {
@@ -81,7 +158,31 @@ router.put('/:stock_receiving_id',  /*authenticateToken,*/ async (req, res) => {
     const updatedStockReceiving = await prisma.stock_receiving.update({
       where: { stock_receiving_id: id },
       data,
+      include: {
+        purchase_order: {
+          include: {
+            supplier: true,
+            payment_term: true,
+            shipping_method: true,
+            purchase_order_items: {
+              include: {
+                item: true
+              }
+            }
+          }
+        }
+      },
     });
+    
+    // Calculate total_amount for purchase_order
+    if (updatedStockReceiving.purchase_order && updatedStockReceiving.purchase_order.purchase_order_items) {
+      const totalAmount = updatedStockReceiving.purchase_order.purchase_order_items.reduce((sum, poi) => {
+        const unitPrice = poi.item?.unit_price || 0;
+        return sum + poi.quantity * unitPrice;
+      }, 0);
+      
+      updatedStockReceiving.purchase_order.total_amount = totalAmount;
+    }
 
     res.status(202).json(updatedStockReceiving);
   } catch (error) {
